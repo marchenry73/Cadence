@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Book a time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ground:#FAFAF8;--surface:#FFFFFF;--surface2:#F4F4F1;--line:#E2E0DA;
+--ink:#1C1B1F;--muted:#6B6960;--dim:#8A8880;--signal:#4F46E5;--good:#0D9488;--warn:#DC5F35;--radius:4px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:14px;line-height:1.5}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:24px}
+h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.muted{color:var(--muted)} .tiny{font-size:12px}
+.daynav{display:flex;gap:6px;overflow-x:auto;padding:16px 0;margin-bottom:4px}
+.daybtn{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:9px 13px;cursor:pointer;text-align:center;min-width:64px}
+.daybtn.on{border-color:var(--signal);background:rgba(79,70,229,.07)}
+.daybtn .d{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.daybtn .n{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:500;margin-top:2px}
+.daybtn.none{opacity:.4}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:8px}
+.slot{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:11px;text-align:center;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px}
+.slot:hover{border-color:var(--signal)}
+.slot.on{background:var(--signal);color:#fff;border-color:var(--signal)}
+label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:14px 0 5px}
+input,textarea{width:100%;background:var(--ground);border:1px solid var(--line);color:var(--ink);border-radius:var(--radius);padding:10px 12px;font:inherit;font-size:14px}
+input:focus,textarea:focus{outline:none;border-color:var(--signal)}
+textarea{min-height:76px;resize:vertical}
+.btn{background:var(--signal);color:#fff;border:0;border-radius:var(--radius);padding:11px 18px;font:inherit;font-weight:600;cursor:pointer;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.msg{margin-top:12px;font-size:13px;min-height:18px}
+.msg.err{color:var(--warn)} .msg.ok{color:var(--good)}
+.empty{text-align:center;padding:34px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted)}
+.done{text-align:center;padding:30px 10px}
+.check{width:46px;height:46px;border-radius:50%;background:rgba(13,148,136,.12);color:var(--good);display:grid;place-items:center;margin:0 auto 14px;font-size:22px}
+.foot{text-align:center;margin-top:26px;font-size:12px;color:var(--dim)}
+.foot a{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Loading…</p></div>
+<script>
+const SUPABASE_URL='https://eznsmotrmzeryduwkuuf.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bnNtb3RybXplcnlkdXdrdXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTk4MTMsImV4cCI6MjEwMTY5NTgxM30.bdAmERDDmZwl9Pve4Jz9zjBU9dtHqUHgjzvN_wDEd5k';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const toMin=t=>{const[a,b]=String(t).split(':').map(Number);return a*60+b};
+const isoDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function fmt12(m){const h=Math.floor(m/60)%24,mm=m%60,ap=h<12?'am':'pm',hh=h%12===0?12:h%12;return mm?`${hh}:${pad(mm)}${ap}`:`${hh}${ap}`}
+
+const slug=new URLSearchParams(location.search).get('u')||location.hash.replace('#','');
+let link=null, booked=[], selDay=0, selSlot=null, days=[];
+
+function busyOn(date){
+  const dow=date.getDay(), key=isoDate(date), out=[];
+  for(const r of (link.routines||[])) if((r.days||[]).includes(dow)) out.push([toMin(r.start),toMin(r.end)]);
+  for(const e of (link.events||[])) if(e.date===key) out.push([toMin(e.start),toMin(e.end)]);
+  for(const b of booked){ const s=new Date(b.starts_at); if(isoDate(s)===key)
+    out.push([s.getHours()*60+s.getMinutes(), new Date(b.ends_at).getHours()*60+new Date(b.ends_at).getMinutes()]) }
+  return out.sort((a,b)=>a[0]-b[0]);
+}
+function slotsOn(date){
+  const busy=busyOn(date), dur=link.duration_min;
+  const merged=[]; for(const b of busy){ if(merged.length&&b[0]<=merged[merged.length-1][1]) merged[merged.length-1][1]=Math.max(merged[merged.length-1][1],b[1]); else merged.push([...b]) }
+  const dayS=link.day_start*60, dayE=link.day_end*60, gaps=[]; let cur=dayS;
+  for(const [s,e] of merged){ if(s>cur) gaps.push([cur,Math.min(s,dayE)]); cur=Math.max(cur,e) }
+  if(cur<dayE) gaps.push([cur,dayE]);
+  const earliest=new Date(Date.now()+link.lead_hours*3600e3), out=[];
+  for(const [s,e] of gaps){ for(let t=s;t+dur<=e;t+=dur){
+    const dt=new Date(date); dt.setHours(Math.floor(t/60),t%60,0,0);
+    if(dt>earliest) out.push({min:t,at:dt});
+  } }
+  return out;
+}
+function render(){
+  if(!link) return;
+  const dayList=days.map((d,i)=>{
+    const n=slotsOn(d).length;
+    return `<button class="daybtn ${i===selDay?'on':''} ${n?'':'none'}" onclick="pickDay(${i})">
+      <div class="d">${d.toLocaleDateString([],{weekday:'short'})}</div>
+      <div class="n">${d.getDate()}</div>
+      <div class="d" style="margin-top:3px">${n||'—'}</div></button>`;
+  }).join('');
+  const s=slotsOn(days[selDay]);
+  $('#app').innerHTML=`<div class="card">
+    <div class="eyebrow">${esc(link.host_name||'')}</div>
+    <h1>${esc(link.title)}</h1>
+    <p class="muted tiny" style="margin:2px 0 0">${esc(link.blurb||'')} · ${link.duration_min} minutes</p>
+    <div class="daynav">${dayList}</div>
+    ${s.length?`<div class="slots">${s.map((x,i)=>`<div class="slot ${selSlot===i?'on':''}" onclick="pickSlot(${i})">${fmt12(x.min)}</div>`).join('')}</div>`
+      :`<div class="empty">No openings this day. Try another.</div>`}
+    ${selSlot!==null&&s[selSlot]?`
+      <div style="border-top:1px solid var(--line);margin-top:22px;padding-top:18px">
+        <div class="eyebrow">Selected</div>
+        <div style="font-weight:600;margin:3px 0 6px">${days[selDay].toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})} at ${fmt12(s[selSlot].min)}</div>
+        <label>Your name</label><input id="bName" placeholder="Alex Morgan">
+        <label>Email</label><input id="bEmail" type="email" placeholder="you@example.com">
+        <label>Anything they should know? (optional)</label><textarea id="bNote"></textarea>
+        <div style="margin-top:16px"><button class="btn" id="bGo" onclick="submit()">Confirm booking</button></div>
+        <div class="msg" id="bMsg"></div>
+      </div>`:''}
+  </div>
+  <p class="foot">Scheduling by <a href="./">Cadence</a></p>`;
+}
+function pickDay(i){ selDay=i; selSlot=null; render() }
+function pickSlot(i){ selSlot=i; render() }
+async function submit(){
+  const name=$('#bName').value.trim(), email=$('#bEmail').value.trim(), note=$('#bNote').value.trim();
+  const msg=$('#bMsg'); msg.className='msg';
+  if(!name||!email.includes('@')){ msg.className='msg err'; msg.textContent='Enter your name and a valid email.'; return }
+  const s=slotsOn(days[selDay])[selSlot]; if(!s) return;
+  $('#bGo').disabled=true; msg.textContent='Booking…';
+  const {error}=await sb.rpc('create_booking',{link_slug:slug,visitor_name:name,visitor_email:email,visitor_note:note||null,slot_start:s.at.toISOString()});
+  if(error){ msg.className='msg err'; msg.textContent=error.message; $('#bGo').disabled=false; return }
+  $('#app').innerHTML=`<div class="card done">
+    <div class="check">✓</div>
+    <h1 style="font-size:20px">You're booked</h1>
+    <p class="muted" style="margin-top:6px">${days[selDay].toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})} at ${fmt12(s.min)}</p>
+    ${link.meeting_url?`<div style="margin-top:16px"><a href="${esc(link.meeting_url)}" style="font-weight:600">Join the meeting</a><p class="tiny muted" style="margin-top:4px">Save this link — you will need it at the meeting time.</p></div>`:''}
+    <p class="tiny muted" style="margin-top:14px">A confirmation was sent to ${esc(email)}.</p></div>
+  <p class="foot">Scheduling by <a href="./">Cadence</a></p>`;
+}
+(async function(){
+  if(!slug){ $('#app').innerHTML='<div class="card"><h1>No link specified</h1><p class="muted">This page needs a booking link, like <span class="mono">?u=yourname</span>.</p></div>'; return }
+  const {data,error}=await sb.rpc('public_booking_link',{link_slug:slug});
+  if(error||!data||!data.length){ $('#app').innerHTML='<div class="card"><h1>Link not found</h1><p class="muted">This booking link does not exist or is no longer active.</p></div>'; return }
+  link=data[0];
+  const {data:bk}=await sb.rpc('public_booked_times',{link_slug:slug});
+  booked=bk||[];
+  for(let i=0;i<link.horizon_days;i++){ const d=new Date(); d.setDate(d.getDate()+i); d.setHours(0,0,0,0); days.push(d) }
+  const first=days.findIndex(d=>slotsOn(d).length); selDay=first>=0?first:0;
+  render();
+})();
+</script>
+</body>
+</html>
