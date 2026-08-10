@@ -138,11 +138,21 @@ function paintAuth(mode, error = '') {
 
 function renderShell() {
   document.getElementById('app').innerHTML = `
-    <div class="topbar">
-      <h1 id="routeTitle"></h1>
-      <span class="sync-pill" id="syncPill"><i class="dot"></i><span id="syncLabel">${t('app.synced')}</span></span>
+    <div class="app-shell">
+      <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">Cad<b>ence</b></div>
+        ${NAV.map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}">${svg}<span>${label}</span></button>`).join('')}
+        <div class="sidebar-spacer"></div>
+        <button class="sidebar-add tap" data-act="quickAdd">＋ ${t('common.add')}</button>
+        <div class="sidebar-user"><span class="sync-pill" id="syncPill"><i class="dot"></i><span id="syncLabel">${t('app.synced')}</span></span></div>
+      </nav>
+      <div class="main-col">
+        <div class="topbar">
+          <h1 id="routeTitle"></h1>
+        </div>
+        <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
+      </div>
     </div>
-    <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
     <button class="fab tap" data-act="quickAdd" aria-label="${t('common.add')}">＋</button>
     <div class="tabbar" id="tabbar">
       ${NAV.map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}">${svg}<span>${label}</span></button>`).join('')}
@@ -176,7 +186,7 @@ function renderRoute(dir = 0, sameRoute = false) {
 }
 
 function $$tabsSync() {
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.route === S.route));
+  document.querySelectorAll('.tab, .side-link').forEach(b => b.classList.toggle('on', b.dataset.route === S.route));
 }
 
 function go(route) {

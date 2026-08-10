@@ -1,10 +1,11 @@
 // Today — the screen the app opens on. A full 24-hour spine (never a 9-to-5
 // window), what is running now, what is next, and gaps you can still use.
 // Tap a gap to fill it; tap a block to edit it; hold a block for quick actions.
-import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp } from './state.js';
+import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp, openTasks, mine, goalProgress, taskScore } from './state.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINUTES, hexA, snap } from './util.js';
 import { openBlockSheet, openQuickAdd } from './sheets.js';
+import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 
@@ -86,6 +87,27 @@ function spine() {
   </div>`;
 }
 
+function desktopRail() {
+  const tasks = openTasks().sort((a, b) => taskScore(b) - taskScore(a)).slice(0, 5);
+  const goals = mine('goals').slice(0, 4);
+  const week = Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i - todayISOdow()));
+  return `<div class="desktop-rail">
+    <div class="rail-card">
+      <h3>${esc(t('nav.tasks'))}</h3>
+      ${tasks.length ? tasks.map(tk => `<button class="rail-task tap" data-act="editTaskFromRail" data-id="${tk.id}">
+        <span class="task-check${tk.done_at ? ' on' : ''}" style="width:16px;height:16px"></span>${esc(tk.title)}</button>`).join('')
+        : `<span class="dim small">${esc(t('task.empty'))}</span>`}
+    </div>
+    <div class="rail-card">
+      <h3>${esc(t('nav.goals'))}</h3>
+      ${goals.length ? goals.map(g => `<div class="rail-goal"><span style="flex:1">${esc(g.title)}</span><span class="mono dim">${goalProgress(g)}%</span></div>`).join('')
+        : `<span class="dim small">${esc(t('goal.empty'))}</span>`}
+    </div>
+  </div>`;
+}
+function todayISOdow() { return new Date(fromISOLocal(todayISO())).getDay(); }
+function fromISOLocal(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+
 export default {
   id: 'today',
 
@@ -98,7 +120,7 @@ export default {
 
     return `
       ${dayStrip()}
-      <div class="pad">
+      <div class="today-main">
         <div class="stat-row">
           <div class="stat"><div class="stat-n">${esc(fmtDur(committed))}</div><div class="stat-l">${esc(t('today.committed'))}</div></div>
           <div class="stat"><div class="stat-n good">${esc(fmtDur(free))}</div><div class="stat-l">${esc(t('today.open'))}</div></div>
@@ -124,7 +146,8 @@ export default {
 
         <div class="section-head"><span class="eyebrow">${esc(t('today.yourDay'))}</span></div>
         ${spine()}
-      </div>`;
+      </div>
+      ${desktopRail()}`;
   },
 
   onMount(root) {
@@ -161,5 +184,6 @@ registerActions({
   },
   fillGap: d => openBlockSheet({ day: S.day, start: Number(d.start), end: Math.min(Number(d.start) + 60, Number(d.end)) }),
   startTimerQuick: d => { startTimer(Number(d.minutes) || 25, d.label || ''); toast(t('timer.start'), 'good'); },
-  gotoTimer: () => window.cadenceGoRoute('today')
+  gotoTimer: () => window.cadenceGoRoute('today'),
+  editTaskFromRail: d => openTaskSheet(d.id)
 });

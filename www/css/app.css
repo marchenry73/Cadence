@@ -9,7 +9,7 @@
   --bg:#0B0D14; --bg-2:#12141F; --surface:#171A26; --surface-2:#1D2030;
   --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
   --text:#EDEEF5; --text-dim:#9497AC; --text-faint:#666a80;
-  --accent:#7C6AF0; --good:#3ECFB2; --warn:#F0C674; --danger:#FF6B6B;
+  --accent:#F2994A; --accent-2:#F2622E; --good:#3ECFB2; --warn:#F0C674; --danger:#FF6B6B;
   --radius:16px; --radius-sm:10px; --radius-lg:22px;
   --shadow: 0 12px 32px rgba(0,0,0,.35);
   --kb:0px;
@@ -286,7 +286,57 @@ body.sheet-open{ overflow:hidden; }
 .boot-mark{ width:14px; height:14px; border-radius:50%; background:var(--accent); animation:pulse 1.1s infinite; margin-right:8px; }
 .boot-row{ display:flex; align-items:center; }
 
-@media (min-width:720px){
-  #app{ max-width:480px; margin:0 auto; border-left:1px solid var(--border); border-right:1px solid var(--border); }
-  body{ background:var(--bg-2); }
+/* ==================================================================
+   DESKTOP — the website. A sidebar-and-dashboard layout instead of the
+   phone's single-column, bottom-tab app shell. Same markup, same data,
+   just re-composed: nothing here talks to the network differently.
+   ================================================================== */
+@media (max-width:959px){
+  .sidebar, .desktop-rail{ display:none; }
+}
+
+@media (min-width:960px){
+  html,body{ background:var(--bg-2); }
+  #app{ position:static; min-height:100vh; display:block; padding-top:0; }
+  .app-shell{ display:flex; min-height:100vh; max-width:1240px; margin:0 auto; background:var(--bg); }
+  .sidebar{ display:flex; flex-direction:column; width:236px; flex-shrink:0; padding:22px 14px; gap:2px;
+    border-right:1px solid var(--border); position:sticky; top:0; height:100vh; }
+  .sidebar-logo{ font-size:20px; font-weight:800; padding:6px 12px 22px; letter-spacing:-.02em; }
+  .sidebar-logo b{ color:var(--accent); }
+  .side-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; color:var(--text-dim); font-size:14px; font-weight:600; text-align:left; width:100%; }
+  .side-link svg{ width:19px; height:19px; flex-shrink:0; }
+  .side-link.on{ background:var(--surface-2); color:var(--text); }
+  .side-link:hover{ color:var(--text); }
+  .sidebar-spacer{ flex:1; }
+  .sidebar-add{ margin:10px 4px 14px; padding:11px; border-radius:12px; background:var(--accent); color:#fff; font-weight:700; font-size:13.5px; text-align:center; }
+  .sidebar-user{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--border); margin-top:6px; font-size:12.5px; color:var(--text-dim); }
+
+  .main-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .topbar{ padding:22px 32px 6px; }
+  .topbar h1{ font-size:26px; }
+  .screen-scroll{ padding:0; }
+  .pad, .pad-h{ padding:20px 32px 48px; max-width:none; }
+
+  /* Today becomes a two-column dashboard: schedule left, a live rail of
+     tasks/goals/week at a glance on the right. */
+  .pad:has(.spine){ display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
+  .daystrip{ grid-column:1/-1; padding:0 0 6px; }
+  .today-main{ min-width:0; }
+  .desktop-rail{ display:flex; flex-direction:column; gap:16px; position:sticky; top:20px; }
+  .rail-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .rail-card h3{ margin:0 0 10px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); }
+  .rail-task, .rail-goal{ display:flex; align-items:center; gap:8px; padding:7px 0; font-size:13.5px; border-bottom:1px solid var(--border); }
+  .rail-task:last-child, .rail-goal:last-child{ border-bottom:none; }
+  .rail-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .rail-week .rw-cell{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 0; border-radius:8px; }
+  .rail-week .rw-cell.today{ background:var(--surface-2); }
+  .rail-week .rw-dot{ width:5px; height:5px; border-radius:50%; }
+
+  .fab{ right:32px; bottom:32px; }
+  .tabbar{ display:none; }
+  .sheet{ left:auto; right:32px; bottom:32px; width:420px; border-radius:22px; max-height:80vh; box-shadow:0 24px 60px rgba(0,0,0,.5); }
+  #scrim{ background:rgba(0,0,0,.35); }
+
+  .goal-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
+  .week-wrap{ max-width:920px; }
 }

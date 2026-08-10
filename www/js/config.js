@@ -15,8 +15,10 @@ export const CONFIG = {
 };
 
 export const CATEGORY_COLORS = [
-  '#7C6AF0', '#3ECFB2', '#FF8462', '#6FA8FF',
-  '#F0C674', '#E86AA6', '#8FD46A', '#9A8CF5'
+  '#F2994A', '#3ECFB2', '#7C6AF0', '#6FA8FF',
+  '#F0C674', '#E86AA6', '#8FD46A', '#FF6B6B'
 ];
 
-export const ACCENTS = ['#7C6AF0', '#3ECFB2', '#6FA8FF', '#FF8462', '#E86AA6'];
+// Warm, motivational accent by default — the ask was a palette that
+// energizes goal-chasing rather than a cool, financial-dashboard indigo.
+export const ACCENTS = ['#F2994A', '#F2622E', '#F0C674', '#3ECFB2', '#7C6AF0'];

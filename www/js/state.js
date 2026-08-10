@@ -7,7 +7,7 @@ import { TABLES, pull, pullPrefs, enqueue, flush, watch, sb } from './net.js';
 import { cacheGet, cacheSet, metaGet, metaSet } from './idb.js';
 
 export const DEFAULT_PREFS = {
-  lang: 'en', theme: 'dark', accent: '#7C6AF0', density: 'comfortable',
+  lang: 'en', theme: 'dark', accent: '#F2994A', density: 'comfortable',
   focus_start: 540, focus_end: 1020, week_starts: 0, slot_min: 15, buffer_min: 0,
   clock24: false, reminders: true, haptics: true,
   tabs: ['today', 'calendar', 'tasks', 'goals', 'settings'], onboarded: false
