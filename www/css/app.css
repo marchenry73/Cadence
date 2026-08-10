@@ -43,7 +43,9 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .danger-text{ color:var(--danger); } .warn-text{ color:var(--warn); }
 .dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; }
 
-#app{ position:fixed; inset:0; display:flex; flex-direction:column; padding-top:var(--safe-t); }
+#app{ position:fixed; inset:0; padding-top:var(--safe-t); overflow:hidden; }
+.app-shell{ display:flex; flex-direction:row; height:100%; }
+.main-col{ display:flex; flex-direction:column; flex:1; min-width:0; height:100%; }
 .screen-scroll{ flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; position:relative; }
 .screen{ min-height:100%; }
 .pad{ padding:14px 16px calc(96px + var(--safe-b)); }
@@ -297,8 +299,9 @@ body.sheet-open{ overflow:hidden; }
 
 @media (min-width:960px){
   html,body{ background:var(--bg-2); }
-  #app{ position:static; min-height:100vh; display:block; padding-top:0; }
-  .app-shell{ display:flex; min-height:100vh; max-width:1240px; margin:0 auto; background:var(--bg); }
+  #app{ position:static; min-height:100vh; height:auto; padding-top:0; overflow:visible; }
+  .app-shell{ min-height:100vh; height:auto; max-width:1240px; margin:0 auto; background:var(--bg); }
+  .main-col{ height:auto; }
   .sidebar{ display:flex; flex-direction:column; width:236px; flex-shrink:0; padding:22px 14px; gap:2px;
     border-right:1px solid var(--border); position:sticky; top:0; height:100vh; }
   .sidebar-logo{ font-size:20px; font-weight:800; padding:6px 12px 22px; letter-spacing:-.02em; }

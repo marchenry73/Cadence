@@ -144,11 +144,11 @@ function renderShell() {
         ${NAV.map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}">${svg}<span>${label}</span></button>`).join('')}
         <div class="sidebar-spacer"></div>
         <button class="sidebar-add tap" data-act="quickAdd">＋ ${t('common.add')}</button>
-        <div class="sidebar-user"><span class="sync-pill" id="syncPill"><i class="dot"></i><span id="syncLabel">${t('app.synced')}</span></span></div>
       </nav>
       <div class="main-col">
         <div class="topbar">
           <h1 id="routeTitle"></h1>
+          <span class="sync-pill" id="syncPill"><i class="dot"></i><span id="syncLabel">${t('app.synced')}</span></span>
         </div>
         <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
       </div>
