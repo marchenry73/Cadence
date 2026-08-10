@@ -3,6 +3,7 @@
   "appName": "KingdomOS",
   "webDir": "www",
   "server": {
+    "url": "https://marchenry73.github.io/Cadence/",
     "androidScheme": "https"
   }
 }
