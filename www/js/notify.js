@@ -1,0 +1,97 @@
+// Reminders: vibration, system notifications, and a choice of alert tone.
+// Tones are synthesised with the Web Audio API rather than shipped as audio
+// files — no downloads, no licensing, and they work offline. Reminders fire
+// for blocks starting soon while the app is open; true background alarms on
+// Android need the Capacitor LocalNotifications plugin (see notes below).
+import { S, savePrefs, occurrencesOn } from './state.js';
+import { todayISO, minutesNow, fmtTime } from './util.js';
+import { haptic, toast } from './ui.js';
+
+export const TONES = {
+  chime:  { label: 'Chime',  notes: [[660, 0], [880, .14]] },
+  ping:   { label: 'Ping',   notes: [[1320, 0]] },
+  rise:   { label: 'Rise',   notes: [[440, 0], [554, .1], [659, .2]] },
+  soft:   { label: 'Soft',   notes: [[392, 0], [392, .18]] },
+  alert:  { label: 'Alert',  notes: [[880, 0], [660, .12], [880, .24]] },
+  none:   { label: 'Silent', notes: [] }
+};
+
+let ctx = null;
+function audio() {
+  if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+  if (ctx.state === 'suspended') ctx.resume?.();
+  return ctx;
+}
+
+export function playTone(name = S.prefs.tone || 'chime') {
+  const tone = TONES[name] || TONES.chime;
+  if (!tone.notes.length) return;
+  const ac = audio();
+  if (!ac) return;
+  tone.notes.forEach(([freq, at]) => {
+    const osc = ac.createOscillator(), gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const t0 = ac.currentTime + at;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
+    osc.start(t0); osc.stop(t0 + 0.75);
+  });
+}
+
+export async function requestNotifications() {
+  const cap = window.Capacitor?.Plugins?.LocalNotifications;
+  if (cap) {
+    try { const r = await cap.requestPermissions(); return r?.display === 'granted'; } catch { return false; }
+  }
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  const res = await Notification.requestPermission();
+  return res === 'granted';
+}
+
+export function notificationsAllowed() {
+  const cap = window.Capacitor?.Plugins?.LocalNotifications;
+  if (cap) return true;
+  return 'Notification' in window && Notification.permission === 'granted';
+}
+
+export function fireNotification(title, body) {
+  if (S.prefs.haptics) haptic('success');
+  playTone();
+  const cap = window.Capacitor?.Plugins?.LocalNotifications;
+  if (cap) {
+    cap.schedule({ notifications: [{ id: Date.now() % 100000, title, body, schedule: { at: new Date(Date.now() + 500) } }] }).catch(() => {});
+    return;
+  }
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body, tag: 'cadence' }); return; } catch {}
+  }
+  toast(`${title} — ${body}`, 'good');
+}
+
+// Watch today's schedule and alert once, `lead` minutes before each block.
+const fired = new Set();
+let watching = null;
+
+export function startReminderWatch() {
+  clearInterval(watching);
+  watching = setInterval(() => {
+    if (!S.prefs.reminders) return;
+    const lead = Number(S.prefs.remind_lead ?? 5);
+    const now = minutesNow();
+    occurrencesOn(todayISO()).forEach(o => {
+      const key = todayISO() + ':' + o.key;
+      const due = o.start - lead;
+      if (fired.has(key)) return;
+      if (now >= due && now < o.start + 1) {
+        fired.add(key);
+        fireNotification(o.title, `Starts at ${fmtTime(o.start, S.prefs.clock24)}`);
+      }
+    });
+  }, 30000);
+}
+
+export function stopReminderWatch() { clearInterval(watching); watching = null; }

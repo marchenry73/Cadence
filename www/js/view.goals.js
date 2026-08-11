@@ -5,7 +5,7 @@ import { t, dateLabel } from './i18n.js';
 import { esc } from './util.js';
 import { openGoalSheet, openCheckinSheet } from './sheets.js';
 import { openInterestSheet } from './onboarding.js';
-import { registerActions, haptic, toast, confirmSheet } from './ui.js';
+import { openSheet, closeSheet, registerActions, haptic, toast, confirmSheet, readForm, field, $ } from './ui.js';
 
 const HORIZONS = ['quarter', 'year', 'life'];
 
@@ -63,8 +63,22 @@ registerActions({
   editGoal: d => openGoalSheet(d.id),
   addCheckin: d => openCheckinSheet(d.id),
   addMilestone: d => {
-    const title = prompt(t('goal.addMilestone'));
-    if (title?.trim()) { save('milestones', { goal_id: d.id, title: title.trim(), sort: Date.now() }); haptic('success'); }
+    openSheet({
+      title: t('goal.addMilestone'),
+      body: `${field(t('block.title'), `<input class="input" name="title" autocomplete="off" placeholder="${esc(t('goal.nextStep'))}">`)}
+        <p class="dim small">Small enough to finish in one sitting works best.</p>`,
+      footer: `<button class="btn ghost" data-act="sheetClose">${esc(t('common.cancel'))}</button>
+               <button class="btn primary" data-act="milestoneSave" data-goal="${d.id}">${esc(t('common.save'))}</button>`,
+      onMount: root => { setTimeout(() => $('input[name=title]', root)?.focus(), 120); }
+    });
+  },
+  milestoneSave: d => {
+    const title = (readForm().title || '').trim();
+    if (!title) { toast(t('block.title'), 'warn'); return; }
+    save('milestones', { goal_id: d.goal, title, sort: Date.now() });
+    haptic('success');
+    closeSheet();
+    toast(t('msg.saved'), 'good');
   },
   toggleMilestone: d => {
     const m = S.milestones.find(x => x.id === d.id);

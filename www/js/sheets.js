@@ -2,7 +2,7 @@
 // screen, keep its context visible behind them, and drag away.
 import { S, save, remove, catById, categories, freeGaps, overlapsOn, logActivity } from './state.js';
 import { t, dateLabel } from './i18n.js';
-import { esc, fmtRange, todayISO, addDays, clamp } from './util.js';
+import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field } from './ui.js';
 import { uploadImage, deleteImage, pickFile, hydrateImages } from './images.js';
 import { startTimer } from './timer.js';
@@ -446,20 +446,24 @@ export const sheetActions = {
     toast(t('msg.deleted'));
   },
 
-  // Drop the task into the first gap today that fits its estimate.
+  // Drop the task into the best free gap today: earliest slot that actually
+  // fits its estimate, preferring the focus window. Tells you where it went.
   taskToCalendar: () => {
     const task = S.tasks.find(x => x.id === draft.id);
-    if (!task) return;
+    if (!task) { toast(t('msg.somethingWrong'), 'warn'); return; }
     const need = task.est_min || 30;
-    const gap = freeGaps(S.day, need)[0];
-    const start = gap ? gap[0] : 540;
+    const gaps = freeGaps(S.day, need);
+    if (!gaps.length) { toast('No free slot long enough today', 'warn'); return; }
+    const inFocus = gaps.find(([a, b]) => a >= S.prefs.focus_start && b <= S.prefs.focus_end + 60);
+    const [start] = inFocus || gaps[0];
     save('events', {
-      title: task.title, day: S.day, start_min: start, end_min: Math.min(1440, start + need),
+      title: task.title, day: S.day,
+      start_min: start, end_min: Math.min(1440, start + need),
       category_id: task.category_id || null
     });
     haptic('success');
     closeSheet();
-    toast(t('msg.saved'), 'good');
+    toast(`Scheduled ${fmtTime(start, S.prefs.clock24)}`, 'good');
   },
 
   goalSave: () => {

@@ -10,6 +10,7 @@ import { loadWorkspace } from './org.js';
 import { installDelegation, installEdgeBack, installPullToRefresh, installKeyboardInset, swapScreen, toast, haptic, registerActions, readForm, $ , closeSheet} from './ui.js';
 import { installErrorCapture } from './support.js';
 import { maybeShowOnboarding } from './onboarding.js';
+import { startReminderWatch } from './notify.js';
 import { hydrateImages } from './images.js';
 import { openQuickAdd } from './sheets.js';
 import { debounce } from './util.js';
@@ -82,6 +83,7 @@ async function afterSignIn() {
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
+  startReminderWatch();
   setTimeout(() => maybeShowOnboarding(), 600);
 }
 

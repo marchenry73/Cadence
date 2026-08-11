@@ -46,7 +46,10 @@ export function installDelegation() {
     const node = ev.target.closest('[data-act]');
     if (!node || node.hasAttribute('disabled')) return;
     if (node.dataset.swipeOpen === '1') return;   // ignore the tap that closes a swipe
-    ev.preventDefault();
+    // Native inputs keep their own behaviour (date/time pickers, selects,
+    // text carets). Calling preventDefault on those stops the picker opening.
+    const tag = node.tagName;
+    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') ev.preventDefault();
     runAction(node.dataset.act, node, ev);
   });
 
@@ -186,23 +189,27 @@ export function confirmSheet({ title, message, confirm = t('common.delete'), dan
 
 // ---------------------------------------------------------------- screens
 
-// Directional transition between screens. The outgoing screen leaves the way
-// you came from, so movement always matches intent.
+// Directional transition between screens. Kept deliberately short — anything
+// over ~150ms reads as lag on a phone. Any leftover screen from an
+// interrupted transition is dropped first so nothing ghosts behind.
 export function swapScreen(host, html, dir = 0) {
+  while (host.children.length > 1) host.lastElementChild.remove();
   if (reduceMotion || !host.firstElementChild) { host.innerHTML = html; return; }
   const old = host.firstElementChild;
   const next = document.createElement('div');
   next.className = 'screen';
   next.innerHTML = html;
-  const from = dir === 0 ? 0 : dir > 0 ? 22 : -22;
+  const from = dir === 0 ? 0 : dir > 0 ? 14 : -14;
   host.appendChild(next);
-  old.animate([{ opacity: 1, transform: 'translateX(0)' },
-               { opacity: 0, transform: `translateX(${-from}px)` }],
-              { duration: 170, easing: 'ease-out', fill: 'forwards' });
+  old.style.position = 'absolute';
+  old.style.inset = '0';
+  old.style.pointerEvents = 'none';
+  const fade = old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, easing: 'ease-out', fill: 'forwards' });
   next.animate([{ opacity: 0, transform: `translateX(${from}px)` },
                 { opacity: 1, transform: 'translateX(0)' }],
-               { duration: 230, easing: 'cubic-bezier(.2,.8,.2,1)' });
-  setTimeout(() => old.remove(), 180);
+               { duration: 140, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  fade.onfinish = () => old.remove();
+  setTimeout(() => old.remove(), 200);
 }
 
 // ---------------------------------------------------------------- gestures

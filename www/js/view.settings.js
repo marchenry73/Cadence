@@ -9,6 +9,7 @@ import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets } from './support.js';
 import { storageUsed } from './images.js';
 import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
+import { TONES, playTone, requestNotifications, notificationsAllowed } from './notify.js';
 import { CONFIG } from './config.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented } from './ui.js';
 
@@ -17,6 +18,19 @@ function toggleRow(label, name, on) {
     <span>${esc(label)}</span><span class="switch${on ? ' on' : ''}"></span>
   </button>`;
 }
+
+// Starter categories most people end up creating anyway — one tap each
+// beats typing them, and consistent names make the week view readable.
+const SUGGESTED_CATS = [
+  { name: 'Deep work', color: '#F2994A' },
+  { name: 'Meetings', color: '#6FA8FF' },
+  { name: 'Admin', color: '#9497AC' },
+  { name: 'Health', color: '#3ECFB2' },
+  { name: 'Family', color: '#E86AA6' },
+  { name: 'Learning', color: '#7C6AF0' },
+  { name: 'Errands', color: '#F0C674' },
+  { name: 'Rest', color: '#8FD46A' }
+];
 
 export default {
   id: 'settings',
@@ -35,7 +49,7 @@ export default {
           ${['comfortable', 'compact'].map(d => `<button class="seg-item${S.prefs.density === d ? ' on' : ''}" data-act="prefSeg" data-name="density" data-value="${d}">${esc(t('set.' + d))}</button>`).join('')}
         </div>
         <div class="row-label">${esc(t('set.language'))}</div>
-        <select class="input" data-act="langChange" onchange="window.cadenceSetLang(this.value)">
+        <select class="input" onchange="window.cadenceSetLang(this.value)">
           ${LANGS.map(l => `<option value="${l.code}"${S.prefs.lang === l.code ? ' selected' : ''}>${esc(l.native)}</option>`).join('')}
         </select>
       </div>
@@ -46,8 +60,8 @@ export default {
         <div class="row-label">${esc(t('set.focusWindow'))}</div>
         <p class="dim small">${esc(t('set.focusHint'))}</p>
         <div class="field-row">
-          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_start / 60)).padStart(2, '0')}:${String(S.prefs.focus_start % 60).padStart(2, '0')}" data-act="focusStart" onchange="window.cadenceFocusChange('start', this.value)">
-          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_end / 60)).padStart(2, '0')}:${String(S.prefs.focus_end % 60).padStart(2, '0')}" data-act="focusEnd" onchange="window.cadenceFocusChange('end', this.value)">
+          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_start / 60)).padStart(2, '0')}:${String(S.prefs.focus_start % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('start', this.value)">
+          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_end / 60)).padStart(2, '0')}:${String(S.prefs.focus_end % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('end', this.value)">
         </div>
         <div class="row-label">${esc(t('set.weekStart'))}</div>
         <div class="segmented">
@@ -61,13 +75,28 @@ export default {
           <button class="cat-row tap" data-act="editCat" data-id="${c.id}">
             <i class="dot" style="background:${c.color}"></i>${esc(c.name)}
           </button>`).join('')}</div>
+        <div class="row-label">Suggestions</div>
+        <div class="chip-row">
+          ${SUGGESTED_CATS.filter(s => !categories().some(c => c.name.toLowerCase() === s.name.toLowerCase()))
+            .map(s => `<button class="chip tap" data-act="addSuggestedCat" data-name="${esc(s.name)}" data-color="${s.color}">
+              <i class="dot" style="background:${s.color}"></i>${esc(s.name)}</button>`).join('')}
+        </div>
         <button class="btn ghost sm" data-act="addCat">${esc(t('set.addCategory'))}</button>
       </div>
 
-      <div class="section-head"><span class="eyebrow">${esc(t('set.haptics'))} · ${esc(t('set.reminders'))}</span></div>
+      <div class="section-head"><span class="eyebrow">Reminders &amp; alerts</span></div>
       <div class="card">
-        ${toggleRow(t('set.haptics'), 'haptics', S.prefs.haptics)}
         ${toggleRow(t('set.reminders'), 'reminders', S.prefs.reminders)}
+        ${toggleRow(t('set.haptics'), 'haptics', S.prefs.haptics)}
+        <div class="row-label">Alert me before a block starts</div>
+        <div class="segmented">
+          ${[0, 5, 10, 15, 30].map(m => `<button class="seg-item${Number(S.prefs.remind_lead) === m ? ' on' : ''}" data-act="prefSeg" data-name="remind_lead" data-value="${m}">${m ? m + 'm' : 'On time'}</button>`).join('')}
+        </div>
+        <div class="row-label">Alert tone <span class="dim">(tap to preview)</span></div>
+        <div class="chip-row">
+          ${Object.entries(TONES).map(([k, v]) => `<button class="chip tap${S.prefs.tone === k ? ' on' : ''}" data-act="pickTone" data-k="${k}">${esc(v.label)}</button>`).join('')}
+        </div>
+        ${notificationsAllowed() ? '' : `<button class="btn ghost sm" data-act="enableNotifs">Turn on notifications</button>`}
       </div>
 
       <div class="section-head"><span class="eyebrow">${esc(t('nav.calendar'))} — import &amp; share</span></div>
@@ -103,6 +132,18 @@ registerActions({
 
   addCat: () => openCategorySheet(),
   editCat: d => openCategorySheet(d.id),
+
+  addSuggestedCat: d => {
+    save('categories', { name: d.name, color: d.color, sort: categories().length });
+    haptic('success');
+    window.cadenceRerender();
+  },
+  pickTone: d => { savePrefs({ tone: d.k }); playTone(d.k); window.cadenceRerender(); },
+  enableNotifs: async () => {
+    const ok = await requestNotifications();
+    toast(ok ? 'Notifications on' : 'Permission denied', ok ? 'good' : 'warn');
+    window.cadenceRerender();
+  },
 
   exportCalendar: () => { downloadICS(); haptic('success'); toast('Calendar file downloaded', 'good'); },
   importCalendar: async () => {

@@ -10,6 +10,7 @@ const SHELL = [
   './js/app.js', './js/config.js', './js/util.js', './js/idb.js', './js/net.js',
   './js/state.js', './js/i18n.js', './js/ui.js', './js/auth.js', './js/org.js',
   './js/images.js', './js/support.js', './js/timer.js', './js/sheets.js',
+  './js/ics.js', './js/onboarding.js', './js/notify.js',
   './js/view.today.js', './js/view.calendar.js', './js/view.tasks.js',
   './js/view.goals.js', './js/view.team.js', './js/view.settings.js'
 ];

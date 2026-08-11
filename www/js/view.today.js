@@ -173,6 +173,7 @@ export default {
     const timer = snapshot();
 
     return `
+      <div class="pad">
       ${dayStrip()}
       <div class="today-main">
         <div class="stat-row">
@@ -201,7 +202,8 @@ export default {
         <div class="section-head"><span class="eyebrow">${esc(t('today.yourDay'))}</span></div>
         ${spine()}
       </div>
-      ${desktopRail()}`;
+      ${desktopRail()}
+      </div>`;
   },
 
   onMount(root) {
