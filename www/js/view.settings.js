@@ -9,7 +9,8 @@ import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets } from './support.js';
 import { storageUsed } from './images.js';
 import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
-import { TONES, playTone, requestNotifications, notificationsAllowed } from './notify.js';
+import { TONES, playTone, requestNotifications, notificationsAllowed, shadeEnabled, setShade, postTaskSummary, isNative } from './notify.js';
+import { openTasks } from './state.js';
 import { CONFIG } from './config.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented } from './ui.js';
 
@@ -97,6 +98,10 @@ export default {
           ${Object.entries(TONES).map(([k, v]) => `<button class="chip tap${S.prefs.tone === k ? ' on' : ''}" data-act="pickTone" data-k="${k}">${esc(v.label)}</button>`).join('')}
         </div>
         ${notificationsAllowed() ? '' : `<button class="btn ghost sm" data-act="enableNotifs">Turn on notifications</button>`}
+        ${isNative() ? `<button class="toggle-row tap" data-act="toggleShade">
+          <span>Keep today's tasks in the notification shade</span>
+          <span class="switch${shadeEnabled() ? ' on' : ''}"></span>
+        </button>` : ''}
       </div>
 
       <div class="section-head"><span class="eyebrow">${esc(t('nav.calendar'))} — import &amp; share</span></div>
@@ -142,6 +147,14 @@ registerActions({
   enableNotifs: async () => {
     const ok = await requestNotifications();
     toast(ok ? 'Notifications on' : 'Permission denied', ok ? 'good' : 'warn');
+    window.cadenceRerender();
+  },
+  toggleShade: async () => {
+    const on = !shadeEnabled();
+    if (on && !(await requestNotifications())) { toast('Permission denied', 'warn'); return; }
+    setShade(on);
+    if (on) postTaskSummary(openTasks());
+    haptic('light');
     window.cadenceRerender();
   },
 

@@ -19,17 +19,19 @@ import viewToday from './view.today.js';
 import viewCalendar from './view.calendar.js';
 import viewTasks from './view.tasks.js';
 import viewGoals from './view.goals.js';
+import viewReview from './view.review.js';
 import viewTeam from './view.team.js';
 import viewSettings from './view.settings.js';
 
 installErrorCapture();
 
-const VIEWS = { today: viewToday, calendar: viewCalendar, tasks: viewTasks, goals: viewGoals, team: viewTeam, settings: viewSettings };
+const VIEWS = { today: viewToday, calendar: viewCalendar, tasks: viewTasks, goals: viewGoals, review: viewReview, team: viewTeam, settings: viewSettings };
 const NAV = [
   ['today', t('nav.today'), icon('sun')],
   ['calendar', t('nav.calendar'), icon('cal')],
   ['tasks', t('nav.tasks'), icon('check')],
   ['goals', t('nav.goals'), icon('flag')],
+  ['review', 'Review', icon('chart')],
   ['settings', t('nav.settings'), icon('gear')]
 ];
 
@@ -40,7 +42,8 @@ function icon(name) {
     check: '<path d="M4 12l5 5L20 6"/>',
     flag: '<path d="M5 3v18M5 4h11l-3 4 3 4H5"/>',
     team: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14c2.8 0 5 2 5 5"/>',
-    gear: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.6-2-3.4-2.4.7a7 7 0 0 0-2.8-1.6L13 2h-4l-.6 2.5a7 7 0 0 0-2.8 1.6l-2.4-.7-2 3.4 2 1.6A7 7 0 0 0 3 12c0 .5 0 1.1.2 1.6l-2 1.6 2 3.4 2.4-.7a7 7 0 0 0 2.8 1.6L9 22h4l.6-2.5a7 7 0 0 0 2.8-1.6l2.4.7 2-3.4-2-1.6c.1-.5.2-1 .2-1.6Z"/>'
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.6-2-3.4-2.4.7a7 7 0 0 0-2.8-1.6L13 2h-4l-.6 2.5a7 7 0 0 0-2.8 1.6l-2.4-.7-2 3.4 2 1.6A7 7 0 0 0 3 12c0 .5 0 1.1.2 1.6l-2 1.6 2 3.4 2.4-.7a7 7 0 0 0 2.8 1.6L9 22h4l.6-2.5a7 7 0 0 0 2.8-1.6l2.4.7 2-3.4-2-1.6c.1-.5.2-1 .2-1.6Z"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
 }

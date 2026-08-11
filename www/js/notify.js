@@ -95,3 +95,46 @@ export function startReminderWatch() {
 }
 
 export function stopReminderWatch() { clearInterval(watching); watching = null; }
+
+// ---------------------------------------------------------------- task shade
+// A persistent "here's what's left today" notification, the way Google
+// Calendar keeps your next thing visible. Device-local by design: whether
+// this phone shows a shade notification is a property of the phone, not the
+// account, so it lives in localStorage rather than synced prefs.
+const SHADE_KEY = 'cadence.taskShade';
+
+export const shadeEnabled = () => localStorage.getItem(SHADE_KEY) === '1';
+export function setShade(on) {
+  localStorage.setItem(SHADE_KEY, on ? '1' : '0');
+  if (on) postTaskSummary(); else clearTaskSummary();
+}
+
+export function postTaskSummary(tasks = []) {
+  if (!shadeEnabled()) return;
+  const cap = window.Capacitor?.Plugins?.LocalNotifications;
+  const top = tasks.slice(0, 5);
+  const body = top.length ? top.map(t => '• ' + t.title).join('\n') : 'Nothing left today';
+  if (cap) {
+    cap.schedule({
+      notifications: [{
+        id: 9001,
+        title: `${tasks.length} task${tasks.length === 1 ? '' : 's'} today`,
+        body,
+        ongoing: true,
+        autoCancel: false,
+        schedule: { at: new Date(Date.now() + 400) }
+      }]
+    }).catch(() => {});
+    return;
+  }
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(`${tasks.length} tasks today`, { body, tag: 'cadence-tasks' }); } catch {}
+  }
+}
+
+export function clearTaskSummary() {
+  const cap = window.Capacitor?.Plugins?.LocalNotifications;
+  if (cap) cap.cancel({ notifications: [{ id: 9001 }] }).catch(() => {});
+}
+
+export const isNative = () => !!window.Capacitor?.isNativePlatform?.();

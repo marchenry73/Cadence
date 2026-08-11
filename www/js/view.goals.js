@@ -1,8 +1,8 @@
 // Goals — quarter/year/life horizons, milestone progress, and check-ins that
 // keep a goal from going stale and silently dying.
-import { S, mine, goalMilestones, goalCheckins, goalProgress, goalStale, save, remove } from './state.js';
+import { S, mine, goalMilestones, goalCheckins, goalProgress, goalStale, goalHours, weekDays, save, remove } from './state.js';
 import { t, dateLabel } from './i18n.js';
-import { esc } from './util.js';
+import { esc, fmtDur } from './util.js';
 import { openGoalSheet, openCheckinSheet } from './sheets.js';
 import { openInterestSheet } from './onboarding.js';
 import { openSheet, closeSheet, registerActions, haptic, toast, confirmSheet, readForm, field, $ } from './ui.js';
@@ -22,6 +22,7 @@ function goalCard(g) {
     <div class="goal-bar"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
     <div class="goal-row">
       <span class="mono">${pct}%</span>
+      <span class="mono dim">${esc(fmtDur(goalHours(g.id, weekDays(0))))} this week</span>
       ${stale ? `<span class="warn-text">${esc(t('goal.stale'))}</span>` : ''}
     </div>
     ${next ? `<button class="goal-next tap" data-act="toggleMilestone" data-id="${next.id}">
@@ -52,7 +53,14 @@ export default {
       </div>
       ${goals.filter(g => S.goalArea === 'all' || g.horizon === S.goalArea).length
         ? `<div class="goal-grid">${goals.filter(g => S.goalArea === 'all' || g.horizon === S.goalArea).map(goalCard).join('')}</div>`
-        : `<div class="empty-state">${esc(t('goal.empty'))}</div>`}
+        : `<div class="empty-state big">
+            <div style="font-size:34px;margin-bottom:10px">🎯</div>
+            <b>No goals yet</b><br>
+            <span class="dim">Goals turn scattered days into a direction. Start with one — or borrow an idea.</span>
+            <div class="btn-row" style="justify-content:center;margin-top:16px">
+              <button class="btn primary sm" data-act="openIdeas">💡 Show me ideas</button>
+            </div>
+          </div>`}
     </div>`;
   }
 };

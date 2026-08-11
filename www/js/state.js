@@ -163,7 +163,8 @@ export function occurrencesOn(day, userId = S.user?.id) {
   const out = evts.map(e => ({
     key: 'e:' + e.id, kind: 'event', id: e.id, title: e.title,
     category_id: e.category_id, start: e.start_min, end: e.end_min,
-    notes: e.notes, image_path: e.image_path, routine_id: e.routine_id
+    notes: e.notes, image_path: e.image_path, routine_id: e.routine_id,
+    protected: !!e.protected, goal_id: e.goal_id || null
   }));
   S.routines.filter(r => r.user_id === userId).forEach(r => {
     if (!(r.days || []).includes(dow)) return;
@@ -172,7 +173,8 @@ export function occurrencesOn(day, userId = S.user?.id) {
     out.push({
       key: 'r:' + r.id + ':' + day, kind: 'routine', id: r.id, title: r.title,
       category_id: r.category_id, start: r.start_min, end: r.end_min,
-      notes: r.notes, image_path: null, routine_id: r.id
+      notes: r.notes, image_path: null, routine_id: r.id,
+      protected: !!r.protected, goal_id: r.goal_id || null
     });
   });
   return out.sort((a, b) => a.start - b.start || a.end - b.end);
@@ -271,4 +273,62 @@ export function monthGrid(anchorDay = S.day) {
 export function workloadWarning() {
   const heavy = weekDays().filter(d => dayLoad(d) > 10 * 60);
   return heavy.length ? heavy : null;
+}
+
+// ------------------------------------------------------------------ review
+//
+// "Planned" is what the calendar says. "Actual" is what you confirmed
+// happened — the difference is the whole point of the weekly review, and no
+// calendar app shows it. Confirmations live in `activity` rows keyed
+// day|occurrence|category so they survive timezones and block edits.
+
+const doneDetail = (day, occ) => `${day}|${occ.key}|${occ.category_id || 'none'}`;
+
+export function isBlockDone(occ, day) {
+  const prefix = `${day}|${occ.key}|`;
+  return S.activity.some(a => a.user_id === S.user?.id && a.kind === 'block-done'
+    && String(a.detail || '').startsWith(prefix));
+}
+
+export function markBlockDone(occ, day) {
+  if (isBlockDone(occ, day)) return;
+  save('activity', {
+    kind: 'block-done', detail: doneDetail(day, occ),
+    minutes: occ.end - occ.start, at: new Date().toISOString()
+  }, { silent: true });
+  notify('review');
+}
+
+export function unmarkBlockDone(occ, day) {
+  const prefix = `${day}|${occ.key}|`;
+  const row = S.activity.find(a => a.kind === 'block-done' && String(a.detail || '').startsWith(prefix));
+  if (row) remove('activity', row.id);
+}
+
+// Planned vs confirmed minutes per category across a list of days.
+export function categoryTotals(days) {
+  const planned = {}, actual = {};
+  days.forEach(day => occurrencesOn(day).forEach(o => {
+    const k = o.category_id || 'none';
+    planned[k] = (planned[k] || 0) + (o.end - o.start);
+  }));
+  S.activity.filter(a => a.user_id === S.user?.id && a.kind === 'block-done').forEach(a => {
+    const parts = String(a.detail || '').split('|');
+    if (!days.includes(parts[0])) return;
+    const k = parts[2] || 'none';
+    actual[k] = (actual[k] || 0) + (a.minutes || 0);
+  });
+  return { planned, actual };
+}
+
+export function goalHours(goalId, days) {
+  let mins = 0;
+  days.forEach(day => occurrencesOn(day).forEach(o => { if (o.goal_id === goalId) mins += o.end - o.start; }));
+  return mins;
+}
+
+// Anything already scheduled and marked protected blocks new overlaps.
+export function protectedClash(day, start, end, ignoreKey = null) {
+  return occurrencesOn(day).find(o =>
+    o.protected && o.key !== ignoreKey && o.start < end && start < o.end) || null;
 }

@@ -12,7 +12,7 @@ const SHELL = [
   './js/images.js', './js/support.js', './js/timer.js', './js/sheets.js',
   './js/ics.js', './js/onboarding.js', './js/notify.js',
   './js/view.today.js', './js/view.calendar.js', './js/view.tasks.js',
-  './js/view.goals.js', './js/view.team.js', './js/view.settings.js'
+  './js/view.goals.js', './js/view.review.js', './js/view.team.js', './js/view.settings.js'
 ];
 
 self.addEventListener('install', e => {

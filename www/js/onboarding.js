@@ -2,7 +2,7 @@
 // goals) shown once on first sign-in, and reachable any time from the Goals
 // screen via "Ideas". Nothing here calls out to a network; it's a static
 // starter set meant to unblock "what should I even set as a goal".
-import { S, save, savePrefs } from './state.js';
+import { S, save, savePrefs, mine } from './state.js';
 import { t } from './i18n.js';
 import { esc } from './util.js';
 import { openSheet, closeSheet, haptic, registerActions, toast, $ } from './ui.js';
@@ -50,12 +50,31 @@ function showSuggestions(firstRun) {
   const items = areas.flatMap(k => SUGGESTIONS[k].map(title => ({ area: k, title })));
   openSheet({
     title: 'Goal ideas',
-    body: `<div class="list">${items.map(it => `
+    body: `<p class="sheet-msg">Tap any that resonate — you can edit them later.</p>
+      <div class="list">${items.map(it => `
       <button class="rail-goal tap" style="width:100%;text-align:left;background:var(--surface-2);border-radius:10px;padding:10px" data-act="addSuggested" data-title="${esc(it.title)}" data-area="${it.area}">
         <span style="flex:1">${esc(it.title)}</span><span class="dim">＋</span>
       </button>`).join('')}</div>`,
-    footer: `<button class="btn ghost" data-act="finishOnboarding" data-first="${firstRun ? 1 : 0}">${esc(t('common.done'))}</button>`
+    footer: `<button class="btn primary" data-act="finishOnboarding" data-first="${firstRun ? 1 : 0}">${esc(t('common.done'))}</button>`
   });
+}
+
+// Starter categories, offered at the end of first run so a brand-new account
+// has something to colour-code with instead of an empty picker.
+const STARTER_CATS = [
+  { name: 'Deep work', color: '#F2994A' },
+  { name: 'Meetings', color: '#6FA8FF' },
+  { name: 'Health', color: '#3ECFB2' },
+  { name: 'Family', color: '#E86AA6' }
+];
+
+function finishFirstRun() {
+  if (!mine('categories').length) {
+    STARTER_CATS.forEach((c, i) => save('categories', { name: c.name, color: c.color, sort: i }));
+  }
+  savePrefs({ onboarded: true });
+  closeSheet();
+  toast('You\u2019re set — add your first block on Today', 'good');
 }
 
 registerActions({
@@ -70,5 +89,5 @@ registerActions({
     haptic('success'); toast(t('msg.saved'), 'good');
     node.setAttribute('disabled', 'true'); node.querySelector('span:last-child').textContent = '✓';
   },
-  finishOnboarding: d => { if (d.first === '1') savePrefs({ onboarded: true }); closeSheet(); }
+  finishOnboarding: d => { if (d.first === '1') finishFirstRun(); else closeSheet(); }
 });

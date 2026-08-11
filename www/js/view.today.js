@@ -1,10 +1,10 @@
 // Today — the screen the app opens on. A full 24-hour spine (never a 9-to-5
 // window), what is running now, what is next, and gaps you can still use.
 // Tap a gap to fill it; tap a block to edit it; hold a block for quick actions.
-import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp, openTasks, mine, goalProgress, taskScore } from './state.js';
+import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp, openTasks, mine, goalProgress, taskScore, isBlockDone, markBlockDone, unmarkBlockDone } from './state.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINUTES, hexA, snap } from './util.js';
-import { openBlockSheet, openQuickAdd } from './sheets.js';
+import { openBlockSheet, openQuickAdd, parsePhrase } from './sheets.js';
 import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
@@ -56,6 +56,8 @@ function spine() {
     const color = catColor(o.category_id);
     const width = 100 / laneCount;
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
+    const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
+    const done = isBlockDone(o, S.day);
     return `<button class="block tap${running ? ' running' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
       style="top:${top}px;height:${h}px;left:calc(${o.lane * width}%);width:calc(${width}% - 6px);
              background:${hexA(color, .16)};border-color:${hexA(color, .42)}">
@@ -65,7 +67,9 @@ function spine() {
         ${h > 46 ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
       </span>
       ${o.image_path ? `<img class="block-img" data-img="${esc(o.image_path)}" alt="">` : ''}
-      ${o.kind === 'routine' ? '<span class="block-flag" title="Routine">↻</span>' : ''}
+      ${o.protected ? '<span class="protect-flag" title="Protected">\u{1F512}</span>' : ''}
+      ${o.kind === 'routine' ? '<span class="block-flag" title="Routine">\u21bb</span>' : ''}
+      ${past && h > 34 ? `<span class="block-confirm${done ? ' on' : ''}" data-act="confirmBlock" data-key="${esc(o.key)}">\u2713</span>` : ''}
     </button>`;
   }).join('');
 
@@ -176,6 +180,11 @@ export default {
       <div class="pad">
       ${dayStrip()}
       <div class="today-main">
+        <div class="nl-bar">
+          <input class="input" id="nlInput" autocomplete="off" autocapitalize="sentences"
+                 placeholder="Gym 6–7am · Draft brief tomorrow 45m">
+          <button class="btn primary sm" data-act="nlCommit">${esc(t('common.add'))}</button>
+        </div>
         <div class="stat-row">
           <div class="stat"><div class="stat-n">${esc(fmtDur(committed))}</div><div class="stat-l">${esc(t('today.committed'))}</div></div>
           <div class="stat"><div class="stat-n good">${esc(fmtDur(free))}</div><div class="stat-l">${esc(t('today.open'))}</div></div>
@@ -191,8 +200,7 @@ export default {
           ${next ? `
             <div class="next-title">${esc(next.title)}</div>
             <div class="next-time mono">${esc(fmtRange(next.start, next.end, S.prefs.clock24))}</div>
-          ` : `<div class="next-empty">${esc(t('today.nothingLeft'))}</div>`}
-          <div class="btn-row">
+          ` : `<div class="next-empty">${esc(t('today.nothingLeft'))}</div>`}          <div class="btn-row">
             <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="${next ? esc(next.title) : ''}">${esc(t('today.startFocus'))}</button>
             ${timer.running || timer.remaining < timer.minutes * 60
               ? `<button class="btn ghost sm mono" data-act="gotoTimer">${esc(timerChip())}</button>` : ''}
@@ -214,13 +222,45 @@ export default {
       spineEl.parentElement?.scrollTo?.({});
     });
     installBlockDrag(root);
+    const nl = $('#nlInput', root);
+    if (nl) nl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); commitNL(); }
+    });
     this._offTimer = onTimer(() => { const chip = $('[data-act=gotoTimer]', root); if (chip) chip.textContent = timerChip(); });
   },
 
   onUnmount() { this._offTimer?.(); }
 };
 
+// Natural language is the fastest way in: one line becomes a block or a
+// task, whichever the phrase implies. Same parser the quick-add sheet uses.
+function commitNL() {
+  const input = $('#nlInput');
+  const p = parsePhrase(input?.value);
+  if (!p) { toast('Try "Gym 6–7am" or "Call mum tomorrow 30m"', 'warn'); return; }
+  if (p.type === 'block') {
+    save('events', { title: p.title, day: p.day, start_min: p.start, end_min: p.end, category_id: p.category_id });
+    toast(`${p.title} · ${fmtTime(p.start, S.prefs.clock24)}`, 'good');
+  } else {
+    save('tasks', { title: p.title, due_date: p.day, est_min: p.est_min, category_id: p.category_id, importance: 5, urgency: 5 });
+    toast(`Task: ${p.title}`, 'good');
+  }
+  input.value = '';
+  haptic('success');
+  window.cadenceRerender();
+}
+
 registerActions({
+  nlCommit: () => commitNL(),
+  confirmBlock: (d, node, ev) => {
+    ev.stopPropagation();
+    node.dataset.justDragged = '';
+    const occ = occurrencesOn(S.day).find(o => o.key === d.key);
+    if (!occ) return;
+    if (isBlockDone(occ, S.day)) { unmarkBlockDone(occ, S.day); haptic('light'); }
+    else { markBlockDone(occ, S.day); haptic('success'); }
+    window.cadenceRerender();
+  },
   pickDay: d => { window.cadenceGoDay(d.day); },
   spineTap: (d, node, ev) => {
     if (ev.target !== node) return;
@@ -232,6 +272,7 @@ registerActions({
   openBlock: (d, node) => {
     // Ignore the click that always follows a drag gesture.
     if (d.justDragged) { delete node.dataset.justDragged; return; }
+    if (node.closest('.block-confirm')) return;
     const occ = occurrencesOn(S.day).find(o => o.key === d.key);
     if (occ) openBlockSheet({ occ, day: S.day });
   },

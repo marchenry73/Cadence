@@ -32,9 +32,8 @@ function row(task) {
   const cat = catById(task.category_id);
   const steps = Array.isArray(task.checklist) ? task.checklist : [];
   const overdue = task.due_date && task.due_date < todayISO() && !task.done_at;
-  return `<div class="swipe-row" data-swipe data-swipe-right="taskComplete" data-swipe-left="taskSchedule" data-id="${task.id}">
+  return `<div class="swipe-row" data-swipe data-swipe-right="taskComplete" data-id="${task.id}">
     <div class="swipe-under left"><span>✓ ${esc(t('common.done'))}</span></div>
-    <div class="swipe-under right"><span>${esc(t('task.schedule'))} →</span></div>
     <button class="task-row tap" data-act="editTask" data-id="${task.id}">
       <span class="task-check${task.done_at ? ' on' : ''}" data-act="toggleTask" data-id="${task.id}"></span>
       <span class="task-main">
@@ -70,7 +69,11 @@ export default {
           <div class="list">${overdue.map(row).join('')}</div>` : ''}
         <div class="section-head"><span class="eyebrow">${esc(t('task.open'))}</span></div>
         ${open.length ? `<div class="list">${open.map(row).join('')}</div>`
-          : `<div class="empty-state">${esc(t('task.empty'))}<br><span class="dim">${esc(t('task.swipeHint'))}</span></div>`}
+          : `<div class="empty-state big">
+              <div style="font-size:34px;margin-bottom:10px">✅</div>
+              <b>Nothing open</b><br>
+              <span class="dim">Type what needs doing in the bar on Today — “Call the bank tomorrow 20m” — and it lands here.</span>
+            </div>`}
       ` : `<div class="list">${done.length ? done.map(row).join('') : `<div class="empty-state">${esc(t('task.empty'))}</div>`}</div>`}
     </div>`;
   },

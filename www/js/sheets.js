@@ -1,6 +1,6 @@
 // Every editor in the app. Sheets, not pages: they slide up over the current
 // screen, keep its context visible behind them, and drag away.
-import { S, save, remove, catById, categories, freeGaps, overlapsOn, logActivity } from './state.js';
+import { S, save, remove, catById, categories, freeGaps, overlapsOn, protectedClash, mine, logActivity } from './state.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field } from './ui.js';
@@ -22,6 +22,11 @@ const catOptions = selected => `<select class="input" name="category_id">
 
 // ------------------------------------------------------------------ blocks
 
+const goalOptions = selected => `<select class="input" name="goal_id">
+  <option value="">${esc(t('common.none'))}</option>
+  ${mine('goals').map(g => `<option value="${g.id}"${g.id === selected ? ' selected' : ''}>${esc(g.title)}</option>`).join('')}
+</select>`;
+
 export function openBlockSheet(opts = {}) {
   const occ = opts.occ || null;
   const day = opts.day || S.day;
@@ -36,6 +41,8 @@ export function openBlockSheet(opts = {}) {
     end: occ ? occ.end : (opts.end ?? (opts.start ?? 540) + 60),
     title: occ?.title || opts.title || '',
     category_id: occ?.category_id || null,
+    goal_id: occ?.goal_id || null,
+    protectedTime: !!occ?.protected,
     notes: occ?.notes || ''
   };
 
@@ -58,6 +65,11 @@ export function openBlockSheet(opts = {}) {
         ${[15, 30, 60, 120].map(m => `<button type="button" class="chip tap" data-act="blockLen" data-min="${m}">${m < 60 ? m + 'm' : (m / 60) + 'h'}</button>`).join('')}
       </div>
       ${field(t('block.category'), catOptions(draft.category_id))}
+      ${field('Serves which goal?', goalOptions(draft.goal_id), 'Hours land in your weekly review')}
+      <button type="button" class="toggle-row tap" data-act="toggleProtect">
+        <span>🔒 Protect this time<br><span class="dim small">Nothing else can be booked over it</span></span>
+        <span class="switch${draft.protectedTime ? ' on' : ''}"></span>
+      </button>
       ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(draft.notes)}</textarea>`)}
       <div class="field">
         <span class="field-label">${esc(t('block.image'))}</span>
@@ -130,7 +142,6 @@ export function openTaskSheet(taskId = null) {
       </div>`,
     footer: `
       ${task ? `<button class="btn ghost danger-text" data-act="taskDelete">${esc(t('common.delete'))}</button>` : ''}
-      ${task && !task.done_at ? `<button class="btn ghost" data-act="taskToCalendar">${esc(t('task.schedule'))}</button>` : ''}
       <button class="btn primary" data-act="taskSave">${esc(t('common.save'))}</button>`
   });
 }
@@ -316,6 +327,12 @@ export const sheetActions = {
     node.parentNode.querySelectorAll('.seg-item').forEach(b => b.classList.toggle('on', b === node));
   },
 
+  toggleProtect: (d, node) => {
+    draft.protectedTime = !draft.protectedTime;
+    node.querySelector('.switch').classList.toggle('on', draft.protectedTime);
+    haptic('light');
+  },
+
   blockLen: d => {
     const root = $('#sheet');
     const start = minsFrom(readForm(root).start, draft.start);
@@ -355,9 +372,22 @@ export const sheetActions = {
     if (!title) { toast(t('block.title'), 'warn'); return; }
     const start = minsFrom(f.start, draft.start);
     const end = Math.max(start + 5, minsFrom(f.end, draft.end));
+
+    // Protected time is the whole promise of the feature: refuse the save
+    // rather than quietly double-booking over it.
+    const ignore = draft.id ? (draft.kind === 'routine' ? 'r:' + draft.routine_id + ':' + draft.day : 'e:' + draft.id) : null;
+    const clash = protectedClash(draft.day, start, end, ignore);
+    if (clash && !draft.protectedTime) {
+      toast(`🔒 ${clash.title} is protected ${fmtRange(clash.start, clash.end, S.prefs.clock24)}`, 'warn');
+      haptic('warn');
+      return;
+    }
+
     const patch = {
       title, start_min: start, end_min: end,
       category_id: f.category_id || null,
+      goal_id: f.goal_id || null,
+      protected: !!draft.protectedTime,
       notes: (f.notes || '').trim() || null
     };
 
