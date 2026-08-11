@@ -50,18 +50,6 @@ function icon(name) {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
 }
 
-// Showing up counts, but only once a day and only two points — the score
-// has to stay something you earn by doing, not by opening the app.
-function awardDailyLogin() {
-  const today = new Date().toISOString().slice(0, 10);
-  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
-    && String(a.at || '').slice(0, 10) === today);
-  if (already) return;
-  logActivity('login', today);
-  const n = streakNow();
-  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
-}
-
 // ------------------------------------------------------------------ boot
 
 async function boot() {
@@ -103,18 +91,6 @@ async function afterSignIn() {
   startReminderWatch();
   awardDailyLogin();
   setTimeout(() => maybeShowOnboarding(), 600);
-}
-
-// Showing up counts, but only once a day and only two points — the score
-// has to stay something you earn by doing, not by opening the app.
-function awardDailyLogin() {
-  const today = new Date().toISOString().slice(0, 10);
-  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
-    && String(a.at || '').slice(0, 10) === today);
-  if (already) return;
-  logActivity('login', today);
-  const n = streakNow();
-  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ auth screen
@@ -174,18 +150,6 @@ function paintAuth(mode, error = '') {
       paintAuth(mode, err.message || t('msg.somethingWrong'));
     } finally { btn.disabled = false; }
   });
-}
-
-// Showing up counts, but only once a day and only two points — the score
-// has to stay something you earn by doing, not by opening the app.
-function awardDailyLogin() {
-  const today = new Date().toISOString().slice(0, 10);
-  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
-    && String(a.at || '').slice(0, 10) === today);
-  if (already) return;
-  logActivity('login', today);
-  const n = streakNow();
-  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ shell + router
