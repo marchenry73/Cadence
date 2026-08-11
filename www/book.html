@@ -62,8 +62,18 @@ let link=null, booked=[], selDay=0, selSlot=null, days=[];
 
 function busyOn(date){
   const dow=date.getDay(), key=isoDate(date), out=[];
-  for(const r of (link.routines||[])) if((r.days||[]).includes(dow)) out.push([toMin(r.start),toMin(r.end)]);
-  for(const e of (link.events||[])) if(e.date===key) out.push([toMin(e.start),toMin(e.end)]);
+  // Same resolution order as occurrencesOn() in js/state.js: one-off events
+  // win, then routines that are neither skipped on this date nor already
+  // replaced by an event carrying their routine_id.
+  const dayEvents=(link.events||[]).filter(e=>e.date===key);
+  const overridden=new Set(dayEvents.map(e=>e.routine_id).filter(Boolean));
+  for(const e of dayEvents) out.push([toMin(e.start),toMin(e.end)]);
+  for(const r of (link.routines||[])){
+    if(!(r.days||[]).includes(dow)) continue;
+    if((r.skips||[]).includes(key)) continue;
+    if(overridden.has(r.id)) continue;
+    out.push([toMin(r.start),toMin(r.end)]);
+  }
   for(const b of booked){ const s=new Date(b.starts_at); if(isoDate(s)===key)
     out.push([s.getHours()*60+s.getMinutes(), new Date(b.ends_at).getHours()*60+new Date(b.ends_at).getMinutes()]) }
   return out.sort((a,b)=>a[0]-b[0]);
