@@ -319,6 +319,15 @@ function commitQuickAdd() {
 
 // ------------------------------------------------------------------ actions
 
+// Planning tomorrow the night before is the single habit that makes the rest
+// work, so it earns points — once per day planned, not once per block.
+function awardPlanAhead(day) {
+  if (!day || day <= todayISO()) return;
+  const already = S.activity.some(a => a.user_id === S.user?.id
+    && a.kind === 'plan-ahead' && a.detail === day);
+  if (!already) logActivity('plan-ahead', day);
+}
+
 export const sheetActions = {
   sheetClose: () => closeSheet(),
 
@@ -404,6 +413,7 @@ export const sheetActions = {
         routine_id: draft.routine_id || null, image_path: draft.image_path || null
       });
     }
+    awardPlanAhead(draft.day);
     haptic('success');
     closeSheet();
     toast(t('msg.saved'), 'good');

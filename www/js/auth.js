@@ -102,3 +102,31 @@ export async function deleteAccount() {
     location.reload();
   }
 }
+
+
+// ------------------------------------------------------------------ OAuth
+// Google sign-in. Enable the provider once in Supabase (Authentication ->
+// Providers -> Google) and this works on web and in the Android WebView.
+// Redirect comes back to wherever the app is running, so no per-build config.
+export async function signInWithProvider(provider = 'google') {
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: location.origin + location.pathname,
+      // Calendar scope is requested up front so the same consent covers
+      // reading the user's Google Calendar later.
+      scopes: provider === 'google'
+        ? 'email profile https://www.googleapis.com/auth/calendar.readonly' : undefined,
+      queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined
+    }
+  });
+  if (error) throw error;
+  return data;
+}
+
+// The Google access token Supabase hands back after OAuth — what a live
+// calendar import needs. Null when the user signed in with a password.
+export async function providerToken() {
+  const { data } = await sb.auth.getSession();
+  return data?.session?.provider_token || null;
+}

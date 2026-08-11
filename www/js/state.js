@@ -10,7 +10,9 @@ export const DEFAULT_PREFS = {
   lang: 'en', theme: 'dark', accent: '#F2994A', density: 'comfortable',
   focus_start: 540, focus_end: 1020, week_starts: 0, slot_min: 15, buffer_min: 0,
   clock24: false, reminders: true, haptics: true, tone: 'chime', remind_lead: 5,
-  tabs: ['today', 'calendar', 'tasks', 'goals', 'settings'], onboarded: false
+  tabs: ['today', 'calendar', 'tasks', 'goals', 'settings'], onboarded: false,
+  nickname: null, leaderboard_opt_in: true,
+  ideal_statement: '', ideal_areas: [], ideal_set_at: null
 };
 
 export const S = {

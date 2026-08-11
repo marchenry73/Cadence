@@ -115,6 +115,7 @@ export function openSheet({ title = '', body = '', footer = '', onMount, dismiss
     wrap.style.transform = 'translateY(0)';
   });
   sheetStack.push({ dismissable });
+  installSheetGlobals();
   installSheetDrag(wrap, dismissable);
   onMount?.(wrap);
   // Autofocus the first field, but never on touch — it yanks the keyboard up
@@ -138,12 +139,31 @@ export function closeSheet() {
   sheetStack.pop();
 }
 
+// A sheet must always have a way out: tap the scrim, press Escape, hit ✕,
+// or drag it down. "dismissable:false" now only means "don't close by
+// accident" — it never means trapped.
+let sheetGlobals = false;
+function installSheetGlobals() {
+  if (sheetGlobals) return;
+  sheetGlobals = true;
+  document.addEventListener('click', ev => {
+    if (ev.target.id === 'scrim' && sheetStack.length) closeSheet();
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && sheetStack.length) { ev.preventDefault(); closeSheet(); }
+  });
+}
+
 function installSheetDrag(wrap, dismissable) {
   const grip = $('.sheet-grip', wrap);
   const head = $('.sheet-head', wrap);
+  const bodyEl = $('.sheet-body', wrap);
   let startY = null, dy = 0;
   const down = e => {
-    if (!dismissable) return;
+    // Drag from the body only when it is already scrolled to the top,
+    // otherwise the gesture belongs to the scroller.
+    if (e.currentTarget === bodyEl && bodyEl.scrollTop > 2) return;
+    if (e.target.closest('input,textarea,select,button')) return;
     startY = e.clientY; dy = 0;
     wrap.style.transition = 'none';
     wrap.setPointerCapture?.(e.pointerId);
@@ -162,7 +182,7 @@ function installSheetDrag(wrap, dismissable) {
       wrap.style.transform = 'translateY(0)';
     }
   };
-  [grip, head].forEach(node => {
+  [grip, head, bodyEl].filter(Boolean).forEach(node => {
     node.addEventListener('pointerdown', down);
     node.addEventListener('pointermove', move);
     node.addEventListener('pointerup', up);

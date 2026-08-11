@@ -6,8 +6,10 @@ import { esc } from './util.js';
 import { ACCENTS } from './config.js';
 import { signOut, deleteAccount, saveProfile } from './auth.js';
 import { openCategorySheet } from './sheets.js';
-import { submitTicket, myTickets } from './support.js';
+import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus } from './support.js';
 import { storageUsed } from './images.js';
+import { openIdealSheet, idealIsSet, ideal } from './ideal.js';
+import { importGoogle, googleConnected } from './google.js';
 import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
 import { TONES, playTone, requestNotifications, notificationsAllowed, shadeEnabled, setShade, postTaskSummary, isNative } from './notify.js';
 import { openTasks } from './state.js';
@@ -108,14 +110,29 @@ export default {
       <div class="card">
         <p class="dim small">Works with Google Calendar, Outlook and Apple Calendar through .ics files.</p>
         <div class="btn-stack">
+          <button class="btn ghost" id="gcalBtn" style="display:none" data-act="importGoogleCal">Import from Google Calendar</button>
           <button class="btn ghost" data-act="importCalendar">Import a calendar (.ics)</button>
           <button class="btn ghost" data-act="exportCalendar">Export / share my calendar (.ics)</button>
         </div>
       </div>
 
+      <div class="section-head"><span class="eyebrow">Progress &amp; the weekly board</span></div>
+      <div class="card">
+        <button class="btn ghost" data-act="editIdeal">${idealIsSet() ? 'Edit my ideal self' : 'Define my ideal self'}</button>
+        ${idealIsSet() ? `<p class="dim small">${esc(ideal().statement || 'No statement written yet.')}</p>` : ''}
+        ${field('Leaderboard nickname', `<input class="input" name="nickname" value="${esc(S.prefs.nickname || '')}"
+          placeholder="e.g. marc_h" autocomplete="off" autocapitalize="none">`,
+          'The only thing other people see. Leave it empty to stay off the board.')}
+        <button class="toggle-row tap" data-act="prefToggle" data-name="leaderboard_opt_in">
+          <span>Show me on the weekly board</span>
+          <span class="switch${S.prefs.leaderboard_opt_in === false ? '' : ' on'}"></span>
+        </button>
+      </div>
+
       <div class="section-head"><span class="eyebrow">${esc(t('set.support'))}</span></div>
       <div class="card">
         <button class="btn ghost" data-act="openSupport">${esc(t('sup.support'))}</button>
+        <button class="btn ghost" id="adminInbox" style="display:none" data-act="openInbox">Support inbox — all users</button>
       </div>
 
       <div class="section-head"><span class="eyebrow">${esc(t('set.account'))}</span></div>
@@ -127,8 +144,35 @@ export default {
 
       <div class="version-row dim small">Cadence v${esc(CONFIG.version)} · ${esc(CONFIG.build)}</div>
     </div>`;
+  },
+  async onMount(root) {
+    const nick = root.querySelector('input[name=nickname]');
+    if (nick) nick.addEventListener('change', () => {
+      const v = String(nick.value || '').trim().replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 20);
+      nick.value = v;
+      savePrefs({ nickname: v || null });
+      toast(v ? 'Nickname saved' : 'You are off the board', 'good');
+    });
+    if (await googleConnected()) { const g = root.querySelector('#gcalBtn'); if (g) g.style.display = ''; }
+    if (await isAdmin()) { const b = root.querySelector('#adminInbox'); if (b) b.style.display = ''; }
   }
 };
+
+const KIND_LABEL = { support: 'Help', feedback: 'Idea', bug: 'Bug' };
+let inboxRows = [];
+
+function inboxList(rows) {
+  if (!rows.length) return `<div class="empty-state">No messages yet.</div>`;
+  return `<div class="list">${rows.map((r, i) => `
+    <button class="rail-goal tap" style="width:100%;text-align:left;background:var(--surface-2);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:flex-start"
+      data-act="openTicket" data-i="${i}">
+      <span style="flex:1">
+        <span style="display:block;font-weight:700">${esc(r.subject || '(no subject)')}</span>
+        <span class="dim small">${esc(KIND_LABEL[r.kind] || r.kind)} · ${esc(r.email || 'no email')} · ${esc(new Date(r.created_at).toLocaleDateString())}</span>
+      </span>
+      ${r.status && r.status !== 'open' ? '<span class="dim small">✓</span>' : '<span class="live">new</span>'}
+    </button>`).join('')}</div>`;
+}
 
 registerActions({
   prefSeg: d => { savePrefs({ [d.name]: /^\d+$/.test(d.value) ? Number(d.value) : d.value }); haptic('light'); window.cadenceRerender(); },
@@ -185,6 +229,48 @@ registerActions({
       onMount: root => { root.dataset.kind = 'support'; }
     });
   },
+  editIdeal: () => openIdealSheet(),
+
+  importGoogleCal: async (d, node) => {
+    node.setAttribute('disabled', 'true');
+    try {
+      const n = await importGoogle({ days: 30 });
+      haptic('success');
+      toast(n ? `${n} events imported from Google` : 'Nothing new to import', n ? 'good' : 'warn');
+      window.cadenceRerender();
+    } catch (err) { toast(err.message || t('msg.somethingWrong'), 'warn'); }
+    finally { node.removeAttribute('disabled'); }
+  },
+
+  editNickname: () => { window.cadenceGoRoute('settings'); setTimeout(() => document.querySelector('input[name=nickname]')?.focus(), 400); },
+
+  openInbox: async () => {
+    openSheet({ title: 'Support inbox', full: true, body: '<div class="dim">Loading…</div>' });
+    inboxRows = await allTickets();
+    const body = document.querySelector('#sheet .sheet-body');
+    if (body) body.innerHTML = inboxList(inboxRows);
+  },
+
+  openTicket: d => {
+    const r = inboxRows[Number(d.i)];
+    if (!r) return;
+    const diag = r.diagnostics ? JSON.stringify(r.diagnostics, null, 1) : '';
+    const mail = `mailto:?subject=${encodeURIComponent('Re: ' + (r.subject || 'Cadence'))}&body=${encodeURIComponent((r.body || '') + '\n\n— from ' + (r.email || 'unknown') + '\nTicket ' + r.id)}`;
+    openSheet({
+      title: r.subject || '(no subject)',
+      body: `<p class="dim small">${esc(KIND_LABEL[r.kind] || r.kind)} · ${esc(r.email || 'no email')} · ${esc(new Date(r.created_at).toLocaleString())}</p>
+        <p class="sheet-msg" style="white-space:pre-wrap">${esc(r.body || '')}</p>
+        ${diag ? `<details><summary class="dim small">Device details</summary><pre class="dim small mono" style="white-space:pre-wrap">${esc(diag)}</pre></details>` : ''}`,
+      footer: `<a class="btn ghost" href="${mail}">Forward to my email</a>
+               <button class="btn primary" data-act="ticketDone" data-id="${r.id}">Mark handled</button>`
+    });
+  },
+
+  ticketDone: async d => {
+    try { await setTicketStatus(d.id, 'closed'); haptic('success'); closeSheet(); toast('Marked handled', 'good'); }
+    catch { toast(t('msg.somethingWrong'), 'warn'); }
+  },
+
   supKindPick: (d, node) => {
     const sheet = node.closest('.sheet');
     sheet.dataset.kind = d.value;

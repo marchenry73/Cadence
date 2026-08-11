@@ -40,7 +40,8 @@ export function openInterestSheet(firstRun = false) {
     body: `<p class="sheet-msg">Pick a few areas — I'll suggest goals for each.</p>
       <div class="chip-row">${INTERESTS.map(([k, l]) =>
         `<button type="button" class="chip tap" data-act="toggleInterest" data-k="${k}">${esc(l)}</button>`).join('')}</div>`,
-    footer: `<button class="btn primary" data-act="showSuggestions" data-first="${firstRun ? 1 : 0}">Show ideas</button>`
+    footer: `<button class="btn ghost" data-act="skipOnboarding" data-first="${firstRun ? 1 : 0}">${firstRun ? 'Skip for now' : t('common.cancel')}</button>
+             <button class="btn primary" data-act="showSuggestions" data-first="${firstRun ? 1 : 0}">Show ideas</button>`
   });
 }
 
@@ -89,5 +90,8 @@ registerActions({
     haptic('success'); toast(t('msg.saved'), 'good');
     node.setAttribute('disabled', 'true'); node.querySelector('span:last-child').textContent = '✓';
   },
-  finishOnboarding: d => { if (d.first === '1') finishFirstRun(); else closeSheet(); }
+  finishOnboarding: d => { if (d.first === '1') finishFirstRun(); else closeSheet(); },
+  // Nobody gets trapped in first run: skipping still marks the account
+  // onboarded, so it does not reappear on every launch.
+  skipOnboarding: d => { if (d.first === '1') finishFirstRun(); else closeSheet(); }
 });

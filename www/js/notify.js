@@ -7,13 +7,48 @@ import { S, savePrefs, occurrencesOn } from './state.js';
 import { todayISO, minutesNow, fmtTime } from './util.js';
 import { haptic, toast } from './ui.js';
 
+// Notes are [frequency, startSeconds, options]:
+//   w  wave shape (sine | square | triangle | sawtooth)
+//   d  duration in seconds     g  peak gain     s  slide to this frequency
 export const TONES = {
-  chime:  { label: 'Chime',  notes: [[660, 0], [880, .14]] },
-  ping:   { label: 'Ping',   notes: [[1320, 0]] },
-  rise:   { label: 'Rise',   notes: [[440, 0], [554, .1], [659, .2]] },
-  soft:   { label: 'Soft',   notes: [[392, 0], [392, .18]] },
-  alert:  { label: 'Alert',  notes: [[880, 0], [660, .12], [880, .24]] },
-  none:   { label: 'Silent', notes: [] }
+  chime:   { label: 'Chime',      notes: [[660, 0], [880, .14]] },
+  ping:    { label: 'Ping',       notes: [[1320, 0]] },
+  rise:    { label: 'Rise',       notes: [[440, 0], [554, .1], [659, .2]] },
+  soft:    { label: 'Soft',       notes: [[392, 0], [392, .18]] },
+
+  arcade:  { label: 'Arcade ⭐',   notes: [
+    [523, 0, { w: 'square', d: .09 }], [659, .08, { w: 'square', d: .09 }],
+    [784, .16, { w: 'square', d: .09 }], [1047, .24, { w: 'square', d: .22 }]] },
+
+  coin:    { label: 'Coin 🪙',     notes: [
+    [988, 0, { w: 'square', d: .07 }], [1319, .07, { w: 'square', d: .3 }]] },
+
+  levelup: { label: 'Level up 🎉', notes: [
+    [523, 0, { w: 'triangle', d: .1 }], [659, .09, { w: 'triangle', d: .1 }],
+    [784, .18, { w: 'triangle', d: .1 }], [1047, .27, { w: 'triangle', d: .12 }],
+    [1319, .36, { w: 'triangle', d: .35, g: .26 }]] },
+
+  fanfare: { label: 'Fanfare 🎺',  notes: [
+    [392, 0, { w: 'sawtooth', d: .14, g: .16 }], [392, .16, { w: 'sawtooth', d: .12, g: .16 }],
+    [523, .3, { w: 'sawtooth', d: .18, g: .18 }], [659, .5, { w: 'sawtooth', d: .45, g: .2 }]] },
+
+  bloop:   { label: 'Bloop 💧',    notes: [[300, 0, { w: 'sine', d: .28, s: 900, g: .3 }]] },
+
+  wobble:  { label: 'Wobble 🛸',   notes: [
+    [220, 0, { w: 'sawtooth', d: .18, s: 660 }], [660, .16, { w: 'sawtooth', d: .18, s: 220 }],
+    [220, .32, { w: 'sawtooth', d: .24, s: 880 }]] },
+
+  marimba: { label: 'Marimba 🪘',  notes: [
+    [523, 0, { w: 'triangle', d: .22 }], [784, .1, { w: 'triangle', d: .22 }],
+    [1047, .2, { w: 'triangle', d: .4 }]] },
+
+  drumroll:{ label: 'Drum roll 🥁', notes: [
+    [160, 0, { w: 'square', d: .05, g: .18 }], [160, .07, { w: 'square', d: .05, g: .18 }],
+    [160, .14, { w: 'square', d: .05, g: .2 }], [160, .21, { w: 'square', d: .05, g: .22 }],
+    [220, .3, { w: 'square', d: .35, g: .26 }]] },
+
+  alert:   { label: 'Alert',      notes: [[880, 0], [660, .12], [880, .24]] },
+  none:    { label: 'Silent',     notes: [] }
 };
 
 let ctx = null;
@@ -28,17 +63,27 @@ export function playTone(name = S.prefs.tone || 'chime') {
   if (!tone.notes.length) return;
   const ac = audio();
   if (!ac) return;
-  tone.notes.forEach(([freq, at]) => {
+  tone.notes.forEach(([freq, at, o = {}]) => {
+    const dur = o.d ?? 0.7, peak = o.g ?? 0.22;
     const osc = ac.createOscillator(), gain = ac.createGain();
     osc.connect(gain); gain.connect(ac.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
+    osc.type = o.w || 'sine';
     const t0 = ac.currentTime + at;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (o.s) osc.frequency.exponentialRampToValueAtTime(o.s, t0 + dur);
     gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.7);
-    osc.start(t0); osc.stop(t0 + 0.75);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
   });
+}
+
+// Little celebration cues the app plays itself — never the reminder tone,
+// so a win never sounds like a nag.
+export function playCue(kind = 'done') {
+  const map = { done: 'coin', badge: 'levelup', level: 'fanfare', streak: 'arcade' };
+  if (S.prefs.tone === 'none') return;
+  playTone(map[kind] || 'coin');
 }
 
 export async function requestNotifications() {

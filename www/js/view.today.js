@@ -8,6 +8,7 @@ import { openBlockSheet, openQuickAdd, parsePhrase } from './sheets.js';
 import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
+import { playCue } from './notify.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -120,47 +121,59 @@ function installBlockDrag(root) {
   const spineEl = $('#spine', root);
   if (!spineEl) return;
   const pph = Number(spineEl.dataset.pph) || 68;
-  let dragging = null, startY = 0, origTop = 0, moved = false;
+  let dragging = null, startY = 0, startX = 0, origTop = 0, moved = false, dayShift = 0;
+  const SIDE = 64;   // px sideways before it counts as "move to another day"
 
   spineEl.addEventListener('pointerdown', e => {
     const el = e.target.closest('.block');
     if (!el) return;
-    dragging = el; startY = e.clientY; origTop = parseFloat(el.style.top) || 0; moved = false;
+    dragging = el; startY = e.clientY; startX = e.clientX;
+    origTop = parseFloat(el.style.top) || 0; moved = false; dayShift = 0;
     el.setPointerCapture?.(e.pointerId);
   });
 
   spineEl.addEventListener('pointermove', e => {
     if (!dragging) return;
     const dy = e.clientY - startY;
-    if (!moved && Math.abs(dy) < 5) return;
+    const dx = e.clientX - startX;
+    if (!moved && Math.abs(dy) < 5 && Math.abs(dx) < 5) return;
     moved = true;
     dragging.style.zIndex = '30';
     dragging.style.opacity = '.92';
     const max = spineEl.offsetHeight - dragging.offsetHeight;
     dragging.style.top = Math.max(0, Math.min(max, origTop + dy)) + 'px';
+    dragging.style.transform = `translateX(${Math.max(-120, Math.min(120, dx))}px)`;
+    const shift = Math.abs(dx) < SIDE ? 0 : (dx > 0 ? 1 : -1);
+    if (shift !== dayShift) { dayShift = shift; if (shift) haptic('light'); }
+    dragging.classList.toggle('drag-to-day', !!dayShift);
+    dragging.dataset.dayHint = dayShift
+      ? dateLabel(addDays(S.day, dayShift), { weekday: 'short' }) : '';
   });
 
   const finish = () => {
     if (!dragging) return;
     const el = dragging; dragging = null;
-    el.style.zIndex = ''; el.style.opacity = '';
+    const shift = dayShift; dayShift = 0;
+    el.style.zIndex = ''; el.style.opacity = ''; el.style.transform = '';
+    el.classList.remove('drag-to-day'); el.dataset.dayHint = '';
     if (!moved) return;
     el.dataset.justDragged = '1';
     const occ = occurrencesOn(S.day).find(o => o.key === el.dataset.key);
     if (!occ) return;
     const dur = occ.end - occ.start;
+    const targetDay = shift ? addDays(S.day, shift) : S.day;
     const newStart = Math.max(0, Math.min(DAY_MINUTES - dur, snap((parseFloat(el.style.top) / pph) * 60, 15)));
-    if (newStart === occ.start) return;
+    if (newStart === occ.start && targetDay === S.day) return;
     if (occ.kind === 'routine') {
       save('events', {
-        title: occ.title, day: S.day, start_min: newStart, end_min: newStart + dur,
+        title: occ.title, day: targetDay, start_min: newStart, end_min: newStart + dur,
         category_id: occ.category_id, routine_id: occ.routine_id, notes: occ.notes
       });
     } else {
-      save('events', { id: occ.id, start_min: newStart, end_min: newStart + dur });
+      save('events', { id: occ.id, day: targetDay, start_min: newStart, end_min: newStart + dur });
     }
     haptic('success');
-    toast(t('msg.saved'), 'good');
+    toast(shift ? `Moved to ${dateLabel(targetDay, { weekday: 'short' })}` : t('msg.saved'), 'good');
   };
   spineEl.addEventListener('pointerup', finish);
   spineEl.addEventListener('pointercancel', finish);
@@ -254,6 +267,7 @@ registerActions({
   nlCommit: () => commitNL(),
   confirmBlock: (d, node, ev) => {
     ev.stopPropagation();
+    playCue('done');
     node.dataset.justDragged = '';
     const occ = occurrencesOn(S.day).find(o => o.key === d.key);
     if (!occ) return;

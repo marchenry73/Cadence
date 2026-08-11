@@ -5,10 +5,12 @@ import { CONFIG } from './config.js';
 import { initNet, sb, onSyncState, outboxCount } from './net.js';
 import { S, onChange, loadFromCache, syncNow, startRealtime, notify, savePrefs } from './state.js';
 import { setLang, currentLang, t } from './i18n.js';
-import { currentSession, onAuthChange, signIn, signUp, resetPassword, usernameAvailable, ensureProfile } from './auth.js';
+import { currentSession, onAuthChange, signIn, signUp, resetPassword, usernameAvailable, ensureProfile, signInWithProvider } from './auth.js';
 import { loadWorkspace } from './org.js';
 import { installDelegation, installEdgeBack, installPullToRefresh, installKeyboardInset, swapScreen, toast, haptic, registerActions, readForm, $ , closeSheet} from './ui.js';
 import { installErrorCapture } from './support.js';
+import { logActivity } from './state.js';
+import { streakNow } from './gamify.js';
 import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
 import { hydrateImages } from './images.js';
@@ -46,6 +48,18 @@ function icon(name) {
     chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
+}
+
+// Showing up counts, but only once a day and only two points — the score
+// has to stay something you earn by doing, not by opening the app.
+function awardDailyLogin() {
+  const today = new Date().toISOString().slice(0, 10);
+  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
+    && String(a.at || '').slice(0, 10) === today);
+  if (already) return;
+  logActivity('login', today);
+  const n = streakNow();
+  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ boot
@@ -87,7 +101,20 @@ async function afterSignIn() {
   window.addEventListener('online', () => syncNow().catch(() => {}));
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
   startReminderWatch();
+  awardDailyLogin();
   setTimeout(() => maybeShowOnboarding(), 600);
+}
+
+// Showing up counts, but only once a day and only two points — the score
+// has to stay something you earn by doing, not by opening the app.
+function awardDailyLogin() {
+  const today = new Date().toISOString().slice(0, 10);
+  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
+    && String(a.at || '').slice(0, 10) === today);
+  if (already) return;
+  logActivity('login', today);
+  const n = streakNow();
+  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ auth screen
@@ -113,11 +140,20 @@ function paintAuth(mode, error = '') {
       ${!forgot ? `<div class="field"><input class="input" name="password" type="password" placeholder="${t('auth.password')}" autocomplete="${signup ? 'new-password' : 'current-password'}"></div>` : ''}
       <button class="btn primary" type="submit" style="width:100%">${forgot ? t('auth.reset') : signup ? t('auth.signUp') : t('auth.signIn')}</button>
     </form>
-    ${!forgot ? `<div class="auth-switch"><a href="#" id="authForgot">${t('auth.forgot')}</a></div>` : ''}
+    ${!forgot ? `<div class="auth-or"><span>or</span></div>
+      <button type="button" class="btn google" id="authGoogle">
+        <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6 0-1.2-.2-1.7H9v3.4h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-switch"><a href="#" id="authForgot">${t('auth.forgot')}</a></div>` : ''}
     <div class="auth-switch"><a href="#" id="authFlip">${signup ? t('auth.haveAccount') : t('auth.noAccount')}</a></div>`;
 
   $('#authFlip', host).onclick = e => { e.preventDefault(); paintAuth(signup ? 'signin' : 'signup'); };
   $('#authForgot', host)?.addEventListener('click', e => { e.preventDefault(); paintAuth('forgot'); });
+  $('#authGoogle', host)?.addEventListener('click', async () => {
+    try { await signInWithProvider('google'); }
+    catch (err) { paintAuth(mode, err.message || t('msg.somethingWrong')); }
+  });
   $('#authForm', host).addEventListener('submit', async e => {
     e.preventDefault();
     const f = readForm(host);
@@ -138,6 +174,18 @@ function paintAuth(mode, error = '') {
       paintAuth(mode, err.message || t('msg.somethingWrong'));
     } finally { btn.disabled = false; }
   });
+}
+
+// Showing up counts, but only once a day and only two points — the score
+// has to stay something you earn by doing, not by opening the app.
+function awardDailyLogin() {
+  const today = new Date().toISOString().slice(0, 10);
+  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
+    && String(a.at || '').slice(0, 10) === today);
+  if (already) return;
+  logActivity('login', today);
+  const n = streakNow();
+  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ shell + router
@@ -217,6 +265,18 @@ function updateSyncPill({ state, pending }) {
     : state === 'syncing' ? t('app.syncing')
     : state === 'pending' ? t('app.pending', { n: pending })
     : t('app.synced');
+}
+
+// Showing up counts, but only once a day and only two points — the score
+// has to stay something you earn by doing, not by opening the app.
+function awardDailyLogin() {
+  const today = new Date().toISOString().slice(0, 10);
+  const already = S.activity.some(a => a.user_id === S.user?.id && a.kind === 'login'
+    && String(a.at || '').slice(0, 10) === today);
+  if (already) return;
+  logActivity('login', today);
+  const n = streakNow();
+  if (n >= 2) setTimeout(() => toast(`${n} day streak — keep it alive`, 'good'), 1200);
 }
 
 // ------------------------------------------------------------------ globals used by views

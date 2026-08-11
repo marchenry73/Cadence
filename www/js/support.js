@@ -61,6 +61,31 @@ export async function submitTicket({ kind, subject, body }) {
   if (error) throw error;
 }
 
+let adminCache = null;
+
+// Am I the owner of this app? Answered by the database, not by the client.
+export async function isAdmin() {
+  if (adminCache !== null) return adminCache;
+  const { data, error } = await sb.rpc('is_admin');
+  adminCache = !error && !!data;
+  return adminCache;
+}
+
+// Every ticket from every user — returns [] for anyone who is not an admin,
+// because row-level security filters it server-side.
+export async function allTickets() {
+  const { data, error } = await sb.from('support_tickets')
+    .select('id, kind, subject, body, status, email, created_at, diagnostics')
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) return [];
+  return data || [];
+}
+
+export async function setTicketStatus(id, status) {
+  const { error } = await sb.from('support_tickets').update({ status }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function myTickets() {
   const { data, error } = await sb.from('support_tickets')
     .select('id, kind, subject, status, created_at')
