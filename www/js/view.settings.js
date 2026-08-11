@@ -167,8 +167,10 @@ function inboxList(rows) {
     <button class="rail-goal tap" style="width:100%;text-align:left;background:var(--surface-2);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:flex-start"
       data-act="openTicket" data-i="${i}">
       <span style="flex:1">
-        <span style="display:block;font-weight:700">${esc(r.subject || '(no subject)')}</span>
-        <span class="dim small">${esc(KIND_LABEL[r.kind] || r.kind)} · ${esc(r.email || 'no email')} · ${esc(new Date(r.created_at).toLocaleDateString())}</span>
+        <span style="display:block;font-weight:700">#${r.ticket_no || '–'} · ${esc(r.subject || '(no subject)')}</span>
+        <span class="dim small">${esc(r.full_name || r.username || 'unknown')}
+          ${r.customer_no ? '· C' + r.customer_no : ''} · ${esc(KIND_LABEL[r.kind] || r.kind)}
+          · ${esc(r.platform || 'web')} · ${esc(new Date(r.created_at).toLocaleDateString())}</span>
       </span>
       ${r.status && r.status !== 'open' ? '<span class="dim small">✓</span>' : '<span class="live">new</span>'}
     </button>`).join('')}</div>`;
@@ -257,8 +259,16 @@ registerActions({
     const diag = r.diagnostics ? JSON.stringify(r.diagnostics, null, 1) : '';
     const mail = `mailto:?subject=${encodeURIComponent('Re: ' + (r.subject || 'Cadence'))}&body=${encodeURIComponent((r.body || '') + '\n\n— from ' + (r.email || 'unknown') + '\nTicket ' + r.id)}`;
     openSheet({
-      title: r.subject || '(no subject)',
-      body: `<p class="dim small">${esc(KIND_LABEL[r.kind] || r.kind)} · ${esc(r.email || 'no email')} · ${esc(new Date(r.created_at).toLocaleString())}</p>
+      title: `#${r.ticket_no || '–'} ${r.subject || '(no subject)'}`,
+      body: `<div class="ticket-who">
+          <div><span class="dim small">Name</span><span>${esc(r.full_name || '(not given)')}</span></div>
+          <div><span class="dim small">Username</span><span>@${esc(r.username || '?')}</span></div>
+          <div><span class="dim small">Customer</span><span class="mono">C${r.customer_no || '?'}</span></div>
+          <div><span class="dim small">Email</span><span>${esc(r.email || '(none)')}</span></div>
+          <div><span class="dim small">On</span><span>${esc(r.platform || 'web')} · v${esc(r.app_version || '?')}</span></div>
+          <div><span class="dim small">Sent</span><span>${esc(new Date(r.created_at).toLocaleString())}</span></div>
+        </div>
+        <p class="dim small mono">user id ${esc(r.user_id || '')}</p>
         <p class="sheet-msg" style="white-space:pre-wrap">${esc(r.body || '')}</p>
         ${diag ? `<details><summary class="dim small">Device details</summary><pre class="dim small mono" style="white-space:pre-wrap">${esc(diag)}</pre></details>` : ''}`,
       footer: `<a class="btn ghost" href="${mail}">Forward to my email</a>

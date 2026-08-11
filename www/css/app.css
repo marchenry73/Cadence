@@ -428,3 +428,7 @@ body.sheet-open{ overflow:hidden; }
 .btn.google{ width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
   background:#fff; color:#1f1f1f; font-weight:600; border:1px solid #dadce0; }
 .btn.google:hover{ background:#f7f8f8; }
+
+.ticket-who{ display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-bottom:12px; }
+.ticket-who > div{ display:grid; gap:1px; font-size:13px; min-width:0; }
+.ticket-who span:last-child{ overflow-wrap:anywhere; }

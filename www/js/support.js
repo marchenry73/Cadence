@@ -28,6 +28,7 @@ export function recentErrors() { return errorLog.slice(); }
 
 export async function diagnostics() {
   const cap = window.Capacitor;
+  const nav = navigator;
   return {
     app_version: CONFIG.version,
     build: CONFIG.build,
@@ -35,9 +36,19 @@ export async function diagnostics() {
     native: !!cap?.isNativePlatform?.(),
     user_agent: navigator.userAgent,
     language: S.prefs.lang,
+    ui_language: nav.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    username: S.profile?.username || null,
+    full_name: S.profile?.full_name || null,
+    customer_no: S.profile?.customer_no || null,
+    signed_in_with: S.user?.app_metadata?.provider || 'password',
+    account_created: S.user?.created_at || null,
     screen: `${screen.width}x${screen.height}@${devicePixelRatio}`,
     viewport: `${innerWidth}x${innerHeight}`,
-    online: navigator.onLine,
+    online: nav.onLine,
+    connection: nav.connection?.effectiveType || null,
+    installed_pwa: matchMedia('(display-mode: standalone)').matches,
+    url: location.href,
     queued_writes: await outboxCount(),
     route: S.route,
     counts: {
@@ -55,7 +66,9 @@ export async function submitTicket({ kind, subject, body }) {
     kind,
     subject: subject.trim(),
     body: body.trim(),
-    diagnostics: kind === 'bug' ? await diagnostics() : { app_version: CONFIG.version, platform: window.Capacitor?.getPlatform?.() || 'web' }
+    // Every ticket carries the full picture now — knowing who is asking and
+    // what they are running matters as much for an idea as for a crash.
+    diagnostics: await diagnostics()
   };
   const { error } = await sb.from('support_tickets').insert(row);
   if (error) throw error;
@@ -75,7 +88,7 @@ export async function isAdmin() {
 // because row-level security filters it server-side.
 export async function allTickets() {
   const { data, error } = await sb.from('support_tickets')
-    .select('id, kind, subject, body, status, email, created_at, diagnostics')
+    .select('*')
     .order('created_at', { ascending: false }).limit(200);
   if (error) return [];
   return data || [];
