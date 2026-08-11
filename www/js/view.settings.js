@@ -8,10 +8,7 @@ import { signOut, deleteAccount, saveProfile } from './auth.js';
 import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets } from './support.js';
 import { storageUsed } from './images.js';
-<<<<<<< Updated upstream
-=======
 import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
->>>>>>> Stashed changes
 import { CONFIG } from './config.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented } from './ui.js';
 
@@ -73,8 +70,6 @@ export default {
         ${toggleRow(t('set.reminders'), 'reminders', S.prefs.reminders)}
       </div>
 
-<<<<<<< Updated upstream
-=======
       <div class="section-head"><span class="eyebrow">${esc(t('nav.calendar'))} — import &amp; share</span></div>
       <div class="card">
         <p class="dim small">Works with Google Calendar, Outlook and Apple Calendar through .ics files.</p>
@@ -84,7 +79,6 @@ export default {
         </div>
       </div>
 
->>>>>>> Stashed changes
       <div class="section-head"><span class="eyebrow">${esc(t('set.support'))}</span></div>
       <div class="card">
         <button class="btn ghost" data-act="openSupport">${esc(t('sup.support'))}</button>
@@ -110,8 +104,6 @@ registerActions({
   addCat: () => openCategorySheet(),
   editCat: d => openCategorySheet(d.id),
 
-<<<<<<< Updated upstream
-=======
   exportCalendar: () => { downloadICS(); haptic('success'); toast('Calendar file downloaded', 'good'); },
   importCalendar: async () => {
     const file = await pickICSFile();
@@ -124,7 +116,6 @@ registerActions({
     } catch { toast(t('msg.somethingWrong'), 'warn'); }
   },
 
->>>>>>> Stashed changes
   openSupport: () => {
     let kind = 'support';
     openSheet({

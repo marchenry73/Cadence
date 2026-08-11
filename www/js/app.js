@@ -9,10 +9,7 @@ import { currentSession, onAuthChange, signIn, signUp, resetPassword, usernameAv
 import { loadWorkspace } from './org.js';
 import { installDelegation, installEdgeBack, installPullToRefresh, installKeyboardInset, swapScreen, toast, haptic, registerActions, readForm, $ , closeSheet} from './ui.js';
 import { installErrorCapture } from './support.js';
-<<<<<<< Updated upstream
-=======
 import { maybeShowOnboarding } from './onboarding.js';
->>>>>>> Stashed changes
 import { hydrateImages } from './images.js';
 import { openQuickAdd } from './sheets.js';
 import { debounce } from './util.js';
@@ -32,10 +29,6 @@ const NAV = [
   ['calendar', t('nav.calendar'), icon('cal')],
   ['tasks', t('nav.tasks'), icon('check')],
   ['goals', t('nav.goals'), icon('flag')],
-<<<<<<< Updated upstream
-  ['team', t('nav.team'), icon('team')],
-=======
->>>>>>> Stashed changes
   ['settings', t('nav.settings'), icon('gear')]
 ];
 
@@ -89,10 +82,7 @@ async function afterSignIn() {
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
-<<<<<<< Updated upstream
-=======
   setTimeout(() => maybeShowOnboarding(), 600);
->>>>>>> Stashed changes
 }
 
 // ------------------------------------------------------------------ auth screen

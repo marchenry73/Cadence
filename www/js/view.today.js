@@ -108,8 +108,6 @@ function desktopRail() {
 function todayISOdow() { return new Date(fromISOLocal(todayISO())).getDay(); }
 function fromISOLocal(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
 
-<<<<<<< Updated upstream
-=======
 // Drag a block up or down to reschedule it. Snaps to 15 minutes, keeps the
 // duration, and clamps inside the 24h day. A routine occurrence dragged on a
 // single day becomes a one-off override for that day (the series is left
@@ -164,7 +162,6 @@ function installBlockDrag(root) {
   spineEl.addEventListener('pointercancel', finish);
 }
 
->>>>>>> Stashed changes
 export default {
   id: 'today',
 
@@ -214,10 +211,7 @@ export default {
       root.closest('.screen-scroll')?.scrollTo({ top: 0 });
       spineEl.parentElement?.scrollTo?.({});
     });
-<<<<<<< Updated upstream
-=======
     installBlockDrag(root);
->>>>>>> Stashed changes
     this._offTimer = onTimer(() => { const chip = $('[data-act=gotoTimer]', root); if (chip) chip.textContent = timerChip(); });
   },
 
@@ -233,13 +227,9 @@ registerActions({
     const min = snap(((ev.clientY - rect.top) / pph) * 60, 15);
     openBlockSheet({ day: S.day, start: Math.max(0, Math.min(1410, min)) });
   },
-<<<<<<< Updated upstream
-  openBlock: (d) => {
-=======
   openBlock: (d, node) => {
     // Ignore the click that always follows a drag gesture.
     if (d.justDragged) { delete node.dataset.justDragged; return; }
->>>>>>> Stashed changes
     const occ = occurrencesOn(S.day).find(o => o.key === d.key);
     if (occ) openBlockSheet({ occ, day: S.day });
   },

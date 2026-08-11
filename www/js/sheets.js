@@ -96,11 +96,6 @@ function showClash(root) {
 
 // ------------------------------------------------------------------ tasks
 
-<<<<<<< Updated upstream
-export function openTaskSheet(taskId = null) {
-  const task = taskId ? S.tasks.find(x => x.id === taskId) : null;
-  draft = { id: task?.id || null };
-=======
 const checklistHTML = items => items.map((c, i) => `
   <div class="ms-row" style="display:flex;align-items:center;gap:8px">
     <button type="button" class="ms-check${c.done ? ' on' : ''}" data-act="chkToggle" data-i="${i}"></button>
@@ -111,7 +106,6 @@ const checklistHTML = items => items.map((c, i) => `
 export function openTaskSheet(taskId = null) {
   const task = taskId ? S.tasks.find(x => x.id === taskId) : null;
   draft = { id: task?.id || null, checklist: Array.isArray(task?.checklist) ? task.checklist.map(c => ({ ...c })) : [] };
->>>>>>> Stashed changes
   openSheet({
     title: task ? t('task.edit') : t('task.new'),
     body: `
@@ -125,9 +119,6 @@ export function openTaskSheet(taskId = null) {
         ${field(t('task.importance'), rangeInput('importance', task?.importance ?? 5))}
         ${field(t('task.urgency'), rangeInput('urgency', task?.urgency ?? 5))}
       </div>
-<<<<<<< Updated upstream
-      ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(task?.notes || '')}</textarea>`)}`,
-=======
       ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(task?.notes || '')}</textarea>`)}
       <div class="field">
         <span class="field-label">Steps</span>
@@ -137,7 +128,6 @@ export function openTaskSheet(taskId = null) {
           <button type="button" class="btn ghost sm" data-act="chkAdd">${esc(t('common.add'))}</button>
         </div>
       </div>`,
->>>>>>> Stashed changes
     footer: `
       ${task ? `<button class="btn ghost danger-text" data-act="taskDelete">${esc(t('common.delete'))}</button>` : ''}
       ${task && !task.done_at ? `<button class="btn ghost" data-act="taskToCalendar">${esc(t('task.schedule'))}</button>` : ''}
@@ -420,10 +410,7 @@ export const sheetActions = {
       category_id: f.category_id || null,
       importance: Number(f.importance) || 5,
       urgency: Number(f.urgency) || 5,
-<<<<<<< Updated upstream
-=======
       checklist: draft.checklist || [],
->>>>>>> Stashed changes
       notes: (f.notes || '').trim() || null
     });
     haptic('success');
@@ -431,8 +418,6 @@ export const sheetActions = {
     toast(t('msg.saved'), 'good');
   },
 
-<<<<<<< Updated upstream
-=======
   chkAdd: () => {
     const input = $('#chkInput');
     const text = (input?.value || '').trim();
@@ -454,7 +439,6 @@ export const sheetActions = {
     $('#checklistList').innerHTML = checklistHTML(draft.checklist);
   },
 
->>>>>>> Stashed changes
   taskDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;
