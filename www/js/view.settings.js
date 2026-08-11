@@ -6,7 +6,7 @@ import { esc } from './util.js';
 import { ACCENTS } from './config.js';
 import { signOut, deleteAccount, saveProfile } from './auth.js';
 import { openCategorySheet } from './sheets.js';
-import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus } from './support.js';
+import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus, ticketThread, replyToTicket } from './support.js';
 import { storageUsed } from './images.js';
 import { openIdealSheet, idealIsSet, ideal } from './ideal.js';
 import { importGoogle, googleConnected } from './google.js';
@@ -132,6 +132,7 @@ export default {
       <div class="section-head"><span class="eyebrow">${esc(t('set.support'))}</span></div>
       <div class="card">
         <button class="btn ghost" data-act="openSupport">${esc(t('sup.support'))}</button>
+        <button class="btn ghost" data-act="openMyTickets">My messages</button>
         <button class="btn ghost" id="adminInbox" style="display:none" data-act="openInbox">Support inbox — all users</button>
       </div>
 
@@ -159,6 +160,22 @@ export default {
 };
 
 const KIND_LABEL = { support: 'Help', feedback: 'Idea', bug: 'Bug' };
+
+// Both sides render the same thread; only the side it leans to changes.
+async function loadThread(root, ticket, viewingAsAdmin) {
+  const host = root.querySelector('#thread');
+  if (!host || !ticket) return;
+  const msgs = await ticketThread(ticket.id);
+  const first = `<div class="msg them"><p>${esc(ticket.body || '')}</p>
+    <span class="msg-at dim">${esc(new Date(ticket.created_at).toLocaleString())}</span></div>`;
+  host.innerHTML = first + (msgs.map(m => {
+    const mineSide = viewingAsAdmin ? m.from_admin : !m.from_admin;
+    return `<div class="msg ${mineSide ? 'me' : 'them'}">
+      <p>${esc(m.body)}</p>
+      <span class="msg-at dim">${m.from_admin ? 'Support' : 'Customer'} · ${esc(new Date(m.created_at).toLocaleString())}</span>
+    </div>`;
+  }).join('') || '');
+}
 let inboxRows = [];
 
 function inboxList(rows) {
@@ -246,6 +263,24 @@ registerActions({
 
   editNickname: () => { window.cadenceGoRoute('settings'); setTimeout(() => document.querySelector('input[name=nickname]')?.focus(), 400); },
 
+  openMyTickets: async () => {
+    openSheet({ title: 'My messages', full: true, body: '<div class="dim">Loading…</div>' });
+    inboxRows = await myTickets();
+    const body = document.querySelector('#sheet .sheet-body');
+    if (!body) return;
+    body.innerHTML = inboxRows.length
+      ? `<div class="list">${inboxRows.map((r, i) => `
+          <button class="rail-goal tap" style="width:100%;text-align:left;background:var(--surface-2);border-radius:10px;padding:10px"
+            data-act="openTicket" data-i="${i}" data-mine="1">
+            <span style="flex:1">
+              <span style="display:block;font-weight:700">#${r.ticket_no || '–'} · ${esc(r.subject || '(no subject)')}</span>
+              <span class="dim small">${esc(KIND_LABEL[r.kind] || r.kind)} · ${esc(new Date(r.created_at).toLocaleDateString())}</span>
+            </span>
+            ${r.status === 'answered' ? '<span class="live">answered</span>' : ''}
+          </button>`).join('')}</div>`
+      : '<div class="empty-state">You have not written to us yet.</div>';
+  },
+
   openInbox: async () => {
     openSheet({ title: 'Support inbox', full: true, body: '<div class="dim">Loading…</div>' });
     inboxRows = await allTickets();
@@ -270,10 +305,34 @@ registerActions({
         </div>
         <p class="dim small mono">user id ${esc(r.user_id || '')}</p>
         <p class="sheet-msg" style="white-space:pre-wrap">${esc(r.body || '')}</p>
-        ${diag ? `<details><summary class="dim small">Device details</summary><pre class="dim small mono" style="white-space:pre-wrap">${esc(diag)}</pre></details>` : ''}`,
+        ${diag ? `<details><summary class="dim small">Device details</summary><pre class="dim small mono" style="white-space:pre-wrap">${esc(diag)}</pre></details>` : ''}
+        <div class="section-head"><span class="eyebrow">Conversation</span></div>
+        <div id="thread" class="thread"><div class="dim small">Loading…</div></div>
+        <div class="reply-row">
+          <textarea class="input" id="replyBox" rows="2" placeholder="Write a reply…"></textarea>
+          <button class="btn primary sm" data-act="sendReply" data-id="${r.id}" data-admin="${d.mine ? '0' : '1'}">Send</button>
+        </div>`,
       footer: `<a class="btn ghost" href="${mail}">Forward to my email</a>
-               <button class="btn primary" data-act="ticketDone" data-id="${r.id}">Mark handled</button>`
+               <button class="btn primary" data-act="ticketDone" data-id="${r.id}">Mark handled</button>`,
+      onMount: root => loadThread(root, r, !d.mine)
     });
+  },
+
+  sendReply: async (d, node) => {
+    const sheet = node.closest('.sheet');
+    const box = sheet.querySelector('#replyBox');
+    const body = (box?.value || '').trim();
+    if (!body) return;
+    node.setAttribute('disabled', 'true');
+    try {
+      await replyToTicket(d.id, body, d.admin === '1');
+      box.value = '';
+      haptic('success');
+      const r = inboxRows.find(x => x.id === d.id);
+      await loadThread(sheet, r, d.admin === '1');
+      toast('Sent', 'good');
+    } catch { toast(t('msg.somethingWrong'), 'warn'); }
+    finally { node.removeAttribute('disabled'); }
   },
 
   ticketDone: async d => {

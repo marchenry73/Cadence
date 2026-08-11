@@ -99,9 +99,27 @@ export async function setTicketStatus(id, status) {
   if (error) throw error;
 }
 
+// One conversation per ticket. Both sides read and write the same thread;
+// row-level security decides who may see which one.
+export async function ticketThread(ticketId) {
+  const { data, error } = await sb.from('support_messages')
+    .select('id, body, from_admin, created_at, author_id')
+    .eq('ticket_id', ticketId)
+    .order('created_at', { ascending: true });
+  if (error) return [];
+  return data || [];
+}
+
+export async function replyToTicket(ticketId, body, fromAdmin = false) {
+  const { error } = await sb.from('support_messages').insert({
+    ticket_id: ticketId, author_id: S.user.id, from_admin: fromAdmin, body: body.trim()
+  });
+  if (error) throw error;
+}
+
 export async function myTickets() {
   const { data, error } = await sb.from('support_tickets')
-    .select('id, kind, subject, status, created_at')
+    .select('id, ticket_no, kind, subject, body, status, created_at')
     .order('created_at', { ascending: false }).limit(20);
   if (error) return [];
   return data || [];
