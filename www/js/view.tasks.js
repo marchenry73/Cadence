@@ -1,14 +1,45 @@
 // Tasks — swipe right to complete, swipe left to schedule. Sorted by the
 // importance/urgency score so the top of the list is always the right thing
 // to do next, not just the oldest thing.
+<<<<<<< Updated upstream
 import { S, mine, openTasks, overdueTasks, taskScore, catById, save, remove } from './state.js';
+=======
+import { S, mine, openTasks, overdueTasks, taskScore, catById, save, remove, freeGaps } from './state.js';
+>>>>>>> Stashed changes
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtDur, todayISO } from './util.js';
 import { openTaskSheet } from './sheets.js';
 import { registerActions, haptic, toast, installRowSwipes } from './ui.js';
 
+<<<<<<< Updated upstream
 function row(task) {
   const cat = catById(task.category_id);
+=======
+// Fill today's free time with the tasks that matter most: highest
+// importance/urgency score first, each dropped into the earliest gap big
+// enough to hold its estimate. Gaps are recomputed after every placement, so
+// nothing double-books.
+function placeTasksInGaps() {
+  const list = openTasks().sort((a, b) => taskScore(b) - taskScore(a));
+  let placed = 0;
+  for (const task of list) {
+    const need = task.est_min || 30;
+    const gap = freeGaps(S.day, need)[0];
+    if (!gap) break;
+    save('events', {
+      title: task.title, day: S.day,
+      start_min: gap[0], end_min: Math.min(1440, gap[0] + need),
+      category_id: task.category_id || null
+    });
+    placed++;
+  }
+  return placed;
+}
+
+function row(task) {
+  const cat = catById(task.category_id);
+  const steps = Array.isArray(task.checklist) ? task.checklist : [];
+>>>>>>> Stashed changes
   const overdue = task.due_date && task.due_date < todayISO() && !task.done_at;
   return `<div class="swipe-row" data-swipe data-swipe-right="taskComplete" data-swipe-left="taskSchedule" data-id="${task.id}">
     <div class="swipe-under left"><span>✓ ${esc(t('common.done'))}</span></div>
@@ -21,6 +52,10 @@ function row(task) {
           ${cat ? `<i class="dot" style="background:${cat.color}"></i>${esc(cat.name)}` : ''}
           ${task.due_date ? `<span class="${overdue ? 'danger-text' : ''}">${esc(dateLabel(task.due_date, { month: 'short', day: 'numeric' }))}</span>` : ''}
           <span>${esc(fmtDur(task.est_min || 30))}</span>
+<<<<<<< Updated upstream
+=======
+          ${steps.length ? `<span class="mono">${steps.filter(s => s.done).length}/${steps.length}</span>` : ''}
+>>>>>>> Stashed changes
         </span>
       </span>
     </button>
@@ -40,6 +75,12 @@ export default {
           data-act="taskFilter" data-f="${f}">${esc(t('task.' + f))}</button>`).join('')}
       </div>
       ${S.taskFilter === 'open' ? `
+<<<<<<< Updated upstream
+=======
+        <div class="btn-row" style="margin-bottom:4px">
+          <button class="btn ghost sm" data-act="autoSchedule">⚡ Fill today's free time</button>
+        </div>
+>>>>>>> Stashed changes
         ${overdue.length ? `<div class="section-head"><span class="eyebrow danger-text">${esc(t('task.overdue'))}</span></div>
           <div class="list">${overdue.map(row).join('')}</div>` : ''}
         <div class="section-head"><span class="eyebrow">${esc(t('task.open'))}</span></div>
@@ -65,5 +106,15 @@ registerActions({
     const task = S.tasks.find(x => x.id === d.id);
     if (task && !task.done_at) save('tasks', { id: task.id, done_at: new Date().toISOString() });
   },
+<<<<<<< Updated upstream
   taskSchedule: d => openTaskSheet(d.id)
+=======
+  taskSchedule: d => openTaskSheet(d.id),
+  autoSchedule: () => {
+    const n = placeTasksInGaps();
+    haptic(n ? 'success' : 'warn');
+    toast(n ? `${n} scheduled` : t('today.nothingLeft'), n ? 'good' : 'warn');
+    window.cadenceRerender();
+  }
+>>>>>>> Stashed changes
 });

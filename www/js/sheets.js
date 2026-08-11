@@ -96,9 +96,22 @@ function showClash(root) {
 
 // ------------------------------------------------------------------ tasks
 
+<<<<<<< Updated upstream
 export function openTaskSheet(taskId = null) {
   const task = taskId ? S.tasks.find(x => x.id === taskId) : null;
   draft = { id: task?.id || null };
+=======
+const checklistHTML = items => items.map((c, i) => `
+  <div class="ms-row" style="display:flex;align-items:center;gap:8px">
+    <button type="button" class="ms-check${c.done ? ' on' : ''}" data-act="chkToggle" data-i="${i}"></button>
+    <span style="flex:1;${c.done ? 'text-decoration:line-through;opacity:.55' : ''}">${esc(c.text)}</span>
+    <button type="button" class="icon-btn" data-act="chkRemove" data-i="${i}">✕</button>
+  </div>`).join('');
+
+export function openTaskSheet(taskId = null) {
+  const task = taskId ? S.tasks.find(x => x.id === taskId) : null;
+  draft = { id: task?.id || null, checklist: Array.isArray(task?.checklist) ? task.checklist.map(c => ({ ...c })) : [] };
+>>>>>>> Stashed changes
   openSheet({
     title: task ? t('task.edit') : t('task.new'),
     body: `
@@ -112,7 +125,19 @@ export function openTaskSheet(taskId = null) {
         ${field(t('task.importance'), rangeInput('importance', task?.importance ?? 5))}
         ${field(t('task.urgency'), rangeInput('urgency', task?.urgency ?? 5))}
       </div>
+<<<<<<< Updated upstream
       ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(task?.notes || '')}</textarea>`)}`,
+=======
+      ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(task?.notes || '')}</textarea>`)}
+      <div class="field">
+        <span class="field-label">Steps</span>
+        <div id="checklistList">${checklistHTML(draft.checklist)}</div>
+        <div class="field-row" style="margin-top:6px">
+          <input class="input" id="chkInput" placeholder="Add a step" autocomplete="off">
+          <button type="button" class="btn ghost sm" data-act="chkAdd">${esc(t('common.add'))}</button>
+        </div>
+      </div>`,
+>>>>>>> Stashed changes
     footer: `
       ${task ? `<button class="btn ghost danger-text" data-act="taskDelete">${esc(t('common.delete'))}</button>` : ''}
       ${task && !task.done_at ? `<button class="btn ghost" data-act="taskToCalendar">${esc(t('task.schedule'))}</button>` : ''}
@@ -395,6 +420,10 @@ export const sheetActions = {
       category_id: f.category_id || null,
       importance: Number(f.importance) || 5,
       urgency: Number(f.urgency) || 5,
+<<<<<<< Updated upstream
+=======
+      checklist: draft.checklist || [],
+>>>>>>> Stashed changes
       notes: (f.notes || '').trim() || null
     });
     haptic('success');
@@ -402,6 +431,30 @@ export const sheetActions = {
     toast(t('msg.saved'), 'good');
   },
 
+<<<<<<< Updated upstream
+=======
+  chkAdd: () => {
+    const input = $('#chkInput');
+    const text = (input?.value || '').trim();
+    if (!text) return;
+    draft.checklist.push({ text, done: false });
+    input.value = '';
+    $('#checklistList').innerHTML = checklistHTML(draft.checklist);
+    haptic('light');
+  },
+  chkToggle: d => {
+    const i = Number(d.i);
+    if (!draft.checklist[i]) return;
+    draft.checklist[i].done = !draft.checklist[i].done;
+    $('#checklistList').innerHTML = checklistHTML(draft.checklist);
+    haptic('light');
+  },
+  chkRemove: d => {
+    draft.checklist.splice(Number(d.i), 1);
+    $('#checklistList').innerHTML = checklistHTML(draft.checklist);
+  },
+
+>>>>>>> Stashed changes
   taskDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;

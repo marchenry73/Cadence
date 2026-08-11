@@ -108,6 +108,63 @@ function desktopRail() {
 function todayISOdow() { return new Date(fromISOLocal(todayISO())).getDay(); }
 function fromISOLocal(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
 
+<<<<<<< Updated upstream
+=======
+// Drag a block up or down to reschedule it. Snaps to 15 minutes, keeps the
+// duration, and clamps inside the 24h day. A routine occurrence dragged on a
+// single day becomes a one-off override for that day (the series is left
+// alone) — same rule as "edit just today" in the block sheet.
+function installBlockDrag(root) {
+  const spineEl = $('#spine', root);
+  if (!spineEl) return;
+  const pph = Number(spineEl.dataset.pph) || 68;
+  let dragging = null, startY = 0, origTop = 0, moved = false;
+
+  spineEl.addEventListener('pointerdown', e => {
+    const el = e.target.closest('.block');
+    if (!el) return;
+    dragging = el; startY = e.clientY; origTop = parseFloat(el.style.top) || 0; moved = false;
+    el.setPointerCapture?.(e.pointerId);
+  });
+
+  spineEl.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dy = e.clientY - startY;
+    if (!moved && Math.abs(dy) < 5) return;
+    moved = true;
+    dragging.style.zIndex = '30';
+    dragging.style.opacity = '.92';
+    const max = spineEl.offsetHeight - dragging.offsetHeight;
+    dragging.style.top = Math.max(0, Math.min(max, origTop + dy)) + 'px';
+  });
+
+  const finish = () => {
+    if (!dragging) return;
+    const el = dragging; dragging = null;
+    el.style.zIndex = ''; el.style.opacity = '';
+    if (!moved) return;
+    el.dataset.justDragged = '1';
+    const occ = occurrencesOn(S.day).find(o => o.key === el.dataset.key);
+    if (!occ) return;
+    const dur = occ.end - occ.start;
+    const newStart = Math.max(0, Math.min(DAY_MINUTES - dur, snap((parseFloat(el.style.top) / pph) * 60, 15)));
+    if (newStart === occ.start) return;
+    if (occ.kind === 'routine') {
+      save('events', {
+        title: occ.title, day: S.day, start_min: newStart, end_min: newStart + dur,
+        category_id: occ.category_id, routine_id: occ.routine_id, notes: occ.notes
+      });
+    } else {
+      save('events', { id: occ.id, start_min: newStart, end_min: newStart + dur });
+    }
+    haptic('success');
+    toast(t('msg.saved'), 'good');
+  };
+  spineEl.addEventListener('pointerup', finish);
+  spineEl.addEventListener('pointercancel', finish);
+}
+
+>>>>>>> Stashed changes
 export default {
   id: 'today',
 
@@ -157,6 +214,10 @@ export default {
       root.closest('.screen-scroll')?.scrollTo({ top: 0 });
       spineEl.parentElement?.scrollTo?.({});
     });
+<<<<<<< Updated upstream
+=======
+    installBlockDrag(root);
+>>>>>>> Stashed changes
     this._offTimer = onTimer(() => { const chip = $('[data-act=gotoTimer]', root); if (chip) chip.textContent = timerChip(); });
   },
 
@@ -172,7 +233,13 @@ registerActions({
     const min = snap(((ev.clientY - rect.top) / pph) * 60, 15);
     openBlockSheet({ day: S.day, start: Math.max(0, Math.min(1410, min)) });
   },
+<<<<<<< Updated upstream
   openBlock: (d) => {
+=======
+  openBlock: (d, node) => {
+    // Ignore the click that always follows a drag gesture.
+    if (d.justDragged) { delete node.dataset.justDragged; return; }
+>>>>>>> Stashed changes
     const occ = occurrencesOn(S.day).find(o => o.key === d.key);
     if (occ) openBlockSheet({ occ, day: S.day });
   },

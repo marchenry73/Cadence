@@ -4,6 +4,10 @@ import { S, mine, goalMilestones, goalCheckins, goalProgress, goalStale, save, r
 import { t, dateLabel } from './i18n.js';
 import { esc } from './util.js';
 import { openGoalSheet, openCheckinSheet } from './sheets.js';
+<<<<<<< Updated upstream
+=======
+import { openInterestSheet } from './onboarding.js';
+>>>>>>> Stashed changes
 import { registerActions, haptic, toast, confirmSheet } from './ui.js';
 
 const HORIZONS = ['quarter', 'year', 'life'];
@@ -42,6 +46,12 @@ export default {
   render() {
     const goals = mine('goals');
     return `<div class="pad">
+<<<<<<< Updated upstream
+=======
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn ghost sm" data-act="openIdeas">💡 Ideas</button>
+      </div>
+>>>>>>> Stashed changes
       <div class="segmented">
         <button class="seg-item${S.goalArea === 'all' ? ' on' : ''}" data-act="goalArea" data-a="all">${esc(t('common.all'))}</button>
         ${HORIZONS.map(h => `<button class="seg-item${S.goalArea === h ? ' on' : ''}" data-act="goalArea" data-a="${h}">${h}</button>`).join('')}
@@ -55,6 +65,10 @@ export default {
 
 registerActions({
   goalArea: d => { S.goalArea = d.a; window.cadenceRerender(); },
+<<<<<<< Updated upstream
+=======
+  openIdeas: () => openInterestSheet(false),
+>>>>>>> Stashed changes
   editGoal: d => openGoalSheet(d.id),
   addCheckin: d => openCheckinSheet(d.id),
   addMilestone: d => {
