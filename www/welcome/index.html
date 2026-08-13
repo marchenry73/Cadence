@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence — plan your day, see your week</title>
+<meta name="description" content="Cadence turns your calendar into a place you actually plan from: the full 24-hour day, tasks that rank themselves, goals that don't go quiet, and a weekly review that tells you the truth.">
+<meta name="theme-color" content="#F6EEE4">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<link rel="stylesheet" href="../css/app.css">
+<style>
+  body{ user-select:auto; -webkit-user-select:auto; overflow-y:auto; }
+  a{ text-decoration:none; }
+
+  .wl-wrap{ max-width:1040px; margin:0 auto; padding:0 24px; }
+
+  .wl-nav{ display:flex; align-items:center; justify-content:space-between; padding:22px 0; }
+  .wl-wordmark{ font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-.01em; }
+  .wl-nav .btn{ flex:none; padding:9px 18px; font-size:13.5px; }
+
+  .wl-hero{ padding:56px 0 40px; display:grid; grid-template-columns:1fr; gap:40px; align-items:center; }
+  @media (min-width:860px){ .wl-hero{ grid-template-columns:1fr 380px; padding:80px 0 60px; } }
+  .wl-hero h1{ font-family:var(--font-serif); font-size:44px; line-height:1.1; margin:0 0 18px; letter-spacing:-.01em; text-wrap:balance; max-width:14ch; }
+  @media (min-width:860px){ .wl-hero h1{ font-size:52px; } }
+  .wl-sub{ color:var(--text-dim); font-size:17px; line-height:1.6; max-width:46ch; margin:0 0 28px; }
+  .wl-cta-row{ display:flex; gap:12px; flex-wrap:wrap; }
+  .wl-cta-row .btn{ flex:none; padding:14px 24px; font-size:15px; }
+  .wl-hint{ color:var(--text-faint); font-size:12.5px; margin-top:14px; }
+
+  /* -------- hero mockup: built from the app's real component classes,
+     not a photo, so it never drifts out of sync with the product. -------- */
+  .wl-mock{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:16px; box-shadow:var(--shadow); }
+  .wl-mock .eyebrow{ margin-bottom:2px; }
+  .wl-mock-strip{ display:flex; gap:5px; margin-bottom:12px; }
+  .wl-mock-day{ flex:1; text-align:center; padding:6px 2px; border-radius:12px; font-size:10px; color:var(--text-faint); }
+  .wl-mock-day.on{ background:var(--surface-2); color:var(--text); }
+  .wl-mock-day b{ display:block; font-size:13px; font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+
+  .wl-section{ padding:44px 0; border-top:1px solid var(--border); }
+  .wl-section h2{ font-family:var(--font-serif); font-size:26px; margin:0 0 8px; text-wrap:balance; }
+  .wl-section .wl-lede{ color:var(--text-dim); font-size:15px; max-width:52ch; margin:0 0 32px; line-height:1.6; }
+
+  .wl-grid{ display:grid; grid-template-columns:1fr; gap:16px; }
+  @media (min-width:640px){ .wl-grid{ grid-template-columns:1fr 1fr; } }
+  .wl-feat{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .wl-feat h3{ font-size:16px; margin:0 0 8px; font-weight:700; }
+  .wl-feat p{ color:var(--text-dim); font-size:13.5px; line-height:1.6; margin:0; }
+
+  .wl-band{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:32px 28px; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between; }
+  .wl-band p{ margin:0; color:var(--text-dim); font-size:14px; max-width:40ch; }
+  .wl-band strong{ color:var(--text); }
+
+  footer{ padding:32px 0 48px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
+    color:var(--text-faint); font-size:12.5px; }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="wl-wrap">
+  <nav class="wl-nav">
+    <span class="wl-wordmark">Cadence</span>
+    <a class="btn primary sm" href="../">Sign in</a>
+  </nav>
+
+  <section class="wl-hero">
+    <div>
+      <h1>Your day, run with intention.</h1>
+      <p class="wl-sub">Cadence turns your calendar into a place you actually plan from — the full 24-hour day, tasks that rank themselves, and goals that don't quietly die in a list.</p>
+      <div class="wl-cta-row">
+        <a class="btn primary" href="../">Open Cadence</a>
+      </div>
+      <p class="wl-hint">Free to start · syncs across web and Android · works offline</p>
+    </div>
+
+    <div class="wl-mock" aria-hidden="true">
+      <div class="wl-mock-strip">
+        <div class="wl-mock-day">MON<b>10</b></div>
+        <div class="wl-mock-day">TUE<b>11</b></div>
+        <div class="wl-mock-day on">WED<b>12</b></div>
+        <div class="wl-mock-day">THU<b>13</b></div>
+        <div class="wl-mock-day">FRI<b>14</b></div>
+      </div>
+      <div class="card next" style="margin:0 0 10px">
+        <div class="card-head">
+          <span class="eyebrow">Up next</span>
+          <span class="dim mono" style="font-size:12px">9:00 AM</span>
+        </div>
+        <div class="next-title">Deep work — Q3 roadmap</div>
+        <div class="next-time mono">9:00 – 11:00 AM</div>
+      </div>
+      <div class="card" style="margin:0 0 10px">
+        <div class="eyebrow">Goal · Read 24 books</div>
+        <div class="goal-bar"><div class="goal-bar-fill" style="width:58%"></div></div>
+        <div class="goal-row"><span class="mono">14 of 24</span><span class="mono dim">58%</span></div>
+      </div>
+      <div class="list">
+        <div class="task-row" style="border-radius:12px">
+          <span class="task-check on"></span>
+          <span class="task-main"><span class="task-title strike">Morning workout</span></span>
+        </div>
+        <div class="task-row" style="border-radius:12px">
+          <span class="task-check"></span>
+          <span class="task-main"><span class="task-title">Call Mom</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wl-section">
+    <h2>Built around how a day actually goes</h2>
+    <p class="wl-lede">Not a grid of 9-to-5 boxes. Not a list that only grows. Four things Cadence does that most calendar and to-do apps don't.</p>
+    <div class="wl-grid">
+      <div class="wl-feat">
+        <h3>The whole 24 hours</h3>
+        <p>The Today view is a full day, midnight to midnight — not a business-hours window. Routines repeat on their own; drag a block up, down, or to another day and it reschedules itself.</p>
+      </div>
+      <div class="wl-feat">
+        <h3>Tasks that rank themselves</h3>
+        <p>Every task is scored by importance and urgency, so the top of the list is always the right thing to do next. "Fill today's free time" drops the highest-scored tasks straight into your open gaps.</p>
+      </div>
+      <div class="wl-feat">
+        <h3>Goals that don't go quiet</h3>
+        <p>Goals break down into milestones that roll up into real progress — not a guess. Check-ins keep the long ones honest, and a goal that's gone two weeks without movement says so.</p>
+      </div>
+      <div class="wl-feat">
+        <h3>The truth, once a week</h3>
+        <p>The weekly review compares what you planned against what you confirmed actually happened, category by category — the gap most calendars never show you.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wl-section">
+    <div class="wl-band">
+      <p><strong>One account, every device.</strong> Sign in on the web or Android and your day follows you — changes sync in the background, and everything still works when you lose signal.</p>
+      <a class="btn ghost sm" href="../">Open Cadence →</a>
+    </div>
+  </section>
+
+  <footer>
+    <span>Cadence</span>
+    <a href="../">Sign in</a>
+  </footer>
+</div>
+
+</body>
+</html>

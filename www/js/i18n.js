@@ -73,7 +73,7 @@ export const EN = {
   'team.personalStays': 'Your personal data stays private. Only workspace members see each other\u2019s schedule.',
 
   'set.appearance': 'Appearance', 'set.theme': 'Theme', 'set.dark': 'Dark',
-  'set.light': 'Light', 'set.accent': 'Accent', 'set.density': 'Density',
+  'set.light': 'Light', 'set.system': 'System', 'set.accent': 'Accent', 'set.density': 'Density',
   'set.comfortable': 'Comfortable', 'set.compact': 'Compact',
   'set.language': 'Language', 'set.clock24': '24-hour clock',
   'set.weekStart': 'Week starts', 'set.focusWindow': 'Focus hours',

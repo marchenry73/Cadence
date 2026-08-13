@@ -215,11 +215,19 @@ function go(route) {
 }
 
 function applyTheme() {
-  document.documentElement.dataset.theme = S.prefs.theme;
+  // 'system' leaves [data-theme] unset so the CSS prefers-color-scheme
+  // query decides; 'light'/'dark' pin it regardless of the OS setting.
+  if (S.prefs.theme === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = S.prefs.theme;
   document.documentElement.style.setProperty('--accent', S.prefs.accent);
   const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue(S.prefs.theme === 'light' ? '--bg' : '--bg').trim() || '#0B0D14';
+  if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#F6EEE4';
 }
+
+// Live-follow the OS theme while S.prefs.theme is 'system'.
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (S.prefs.theme === 'system') applyTheme();
+});
 
 function updateSyncPill({ state, pending }) {
   const pill = $('#syncPill'), label = $('#syncLabel');

@@ -25,14 +25,14 @@ function toggleRow(label, name, on) {
 // Starter categories most people end up creating anyway — one tap each
 // beats typing them, and consistent names make the week view readable.
 const SUGGESTED_CATS = [
-  { name: 'Deep work', color: '#F2994A' },
-  { name: 'Meetings', color: '#6FA8FF' },
-  { name: 'Admin', color: '#9497AC' },
-  { name: 'Health', color: '#3ECFB2' },
-  { name: 'Family', color: '#E86AA6' },
-  { name: 'Learning', color: '#7C6AF0' },
-  { name: 'Errands', color: '#F0C674' },
-  { name: 'Rest', color: '#8FD46A' }
+  { name: 'Deep work', color: '#E8604A' },
+  { name: 'Meetings', color: '#4F86C6' },
+  { name: 'Admin', color: '#8A7E70' },
+  { name: 'Health', color: '#3E8E7E' },
+  { name: 'Family', color: '#C15B7C' },
+  { name: 'Learning', color: '#8670B3' },
+  { name: 'Errands', color: '#C97A3A' },
+  { name: 'Rest', color: '#8FA84E' }
 ];
 
 export default {
@@ -43,7 +43,7 @@ export default {
       <div class="card">
         <div class="row-label">${esc(t('set.theme'))}</div>
         <div class="segmented">
-          ${['dark', 'light'].map(th => `<button class="seg-item${S.prefs.theme === th ? ' on' : ''}" data-act="prefSeg" data-name="theme" data-value="${th}">${esc(t('set.' + th))}</button>`).join('')}
+          ${['system', 'light', 'dark'].map(th => `<button class="seg-item${S.prefs.theme === th ? ' on' : ''}" data-act="prefSeg" data-name="theme" data-value="${th}">${esc(t('set.' + th))}</button>`).join('')}
         </div>
         <div class="row-label">${esc(t('set.accent'))}</div>
         <div class="swatches">${ACCENTS.map(c => `<button class="swatch${S.prefs.accent === c ? ' on' : ''}" style="background:${c}" data-act="prefColor" data-value="${c}"></button>`).join('')}</div>
