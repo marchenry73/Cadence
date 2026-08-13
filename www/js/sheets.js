@@ -1,6 +1,7 @@
 // Every editor in the app. Sheets, not pages: they slide up over the current
 // screen, keep its context visible behind them, and drag away.
-import { S, save, remove, catById, categories, freeGaps, overlapsOn, protectedClash, mine, logActivity } from './state.js';
+import { S, save, remove, catById, categories, freeGaps, overlapsOn, protectedClash, mine, logActivity, goalMilestones } from './state.js';
+import { CATEGORY_COLORS } from './config.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field } from './ui.js';
@@ -174,12 +175,16 @@ export function openGoalSheet(goalId = null) {
 }
 
 export function openCheckinSheet(goalId) {
-  draft = { goal_id: goalId };
   const g = S.goals.find(x => x.id === goalId);
+  // Goals with milestones get their progress from the milestone checklist —
+  // a separate slider here would silently do nothing when saved, so only
+  // offer it for goals that don't have milestones to fall back on.
+  const hasMilestones = goalMilestones(goalId).length > 0;
+  draft = { goal_id: goalId, hasMilestones };
   openSheet({
     title: t('goal.addCheckin'),
     body: `
-      ${field(t('goal.progress'), rangeInput('progress', g?.progress ?? 0).replace('min="1" max="10"', 'min="0" max="100" step="5"'))}
+      ${hasMilestones ? '' : field(t('goal.progress'), rangeInput('progress', g?.progress ?? 0).replace('min="1" max="10"', 'min="0" max="100" step="5"'))}
       ${field(t('block.notes'), `<textarea class="input" name="note" rows="3"></textarea>`)}`,
     footer: `<button class="btn primary" data-act="checkinSave">${esc(t('common.save'))}</button>`
   });
@@ -189,8 +194,8 @@ export function openCheckinSheet(goalId) {
 
 export function openCategorySheet(catId = null) {
   const c = catId ? catById(catId) : null;
-  draft = { id: c?.id || null, color: c?.color || '#7C6AF0' };
-  const palette = ['#7C6AF0', '#3ECFB2', '#FF8462', '#6FA8FF', '#F0C674', '#E86AA6', '#8FD46A'];
+  draft = { id: c?.id || null, color: c?.color || CATEGORY_COLORS[0] };
+  const palette = CATEGORY_COLORS;
   openSheet({
     title: c ? t('common.edit') : t('set.addCategory'),
     body: `
@@ -535,7 +540,9 @@ export const sheetActions = {
       goal_id: draft.goal_id, at: new Date().toISOString(),
       progress: Number(f.progress) || 0, note: (f.note || '').trim() || null
     });
-    save('goals', { id: draft.goal_id, progress: Number(f.progress) || 0 });
+    // Only goals without milestones use the manual progress field — for
+    // milestone goals, goalProgress() always derives it from the checklist.
+    if (!draft.hasMilestones) save('goals', { id: draft.goal_id, progress: Number(f.progress) || 0 });
     haptic('success');
     closeSheet();
   },

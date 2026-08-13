@@ -3,6 +3,7 @@
 // screen via "Ideas". Nothing here calls out to a network; it's a static
 // starter set meant to unblock "what should I even set as a goal".
 import { S, save, savePrefs, mine } from './state.js';
+import { CATEGORY_COLORS } from './config.js';
 import { t } from './i18n.js';
 import { esc } from './util.js';
 import { openSheet, closeSheet, haptic, registerActions, toast, $ } from './ui.js';
@@ -63,10 +64,10 @@ function showSuggestions(firstRun) {
 // Starter categories, offered at the end of first run so a brand-new account
 // has something to colour-code with instead of an empty picker.
 const STARTER_CATS = [
-  { name: 'Deep work', color: '#F2994A' },
-  { name: 'Meetings', color: '#6FA8FF' },
-  { name: 'Health', color: '#3ECFB2' },
-  { name: 'Family', color: '#E86AA6' }
+  { name: 'Deep work', color: CATEGORY_COLORS[0] },
+  { name: 'Meetings', color: CATEGORY_COLORS[3] },
+  { name: 'Health', color: CATEGORY_COLORS[1] },
+  { name: 'Family', color: CATEGORY_COLORS[5] }
 ];
 
 function finishFirstRun() {

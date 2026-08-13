@@ -170,7 +170,13 @@ registerActions({
   calMode: d => { S.calMode = d.mode; window.cadenceRerender(); },
   pickDayFromWeek: d => window.cadenceGoDay(d.day, 'today'),
   pickDayFromMonth: d => window.cadenceGoDay(d.day, 'today'),
-  monthShift: d => { S.day = addDays(S.day, Number(d.dir) * 28); window.cadenceRerender(); },
+  // Real calendar-month arithmetic, not a fixed day offset — a 28/30/31-day
+  // jump drifts and can even fail to cross into the next month at all.
+  monthShift: d => {
+    const cur = fromISO(S.day);
+    S.day = iso(new Date(cur.getFullYear(), cur.getMonth() + Number(d.dir), 1));
+    window.cadenceRerender();
+  },
   openBlockOn: (d, node) => {
     if (d.justDragged) { delete node.dataset.justDragged; return; }   // ignore the click after a drag
     const occ = occurrencesOn(d.day).find(o => o.key === d.key);

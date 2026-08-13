@@ -98,6 +98,16 @@ function desktopRail() {
   const week = Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i - todayISOdow()));
   return `<div class="desktop-rail">
     <div class="rail-card">
+      <h3>${esc(t('today.yourDay'))}</h3>
+      <div class="rail-week">${week.map(d => {
+        const load = dayLoad(d);
+        return `<button class="rw-cell tap${d === todayISO() ? ' today' : ''}" data-act="pickDay" data-day="${d}">
+          <span class="dim" style="font-size:9px">${esc(dateLabel(d, { weekday: 'narrow' }))}</span>
+          <span class="rw-dot" style="background:var(--accent);opacity:${load ? Math.min(1, load / 480) : .15}"></span>
+        </button>`;
+      }).join('')}</div>
+    </div>
+    <div class="rail-card">
       <h3>${esc(t('nav.tasks'))}</h3>
       ${tasks.length ? tasks.map(tk => `<button class="rail-task tap" data-act="editTaskFromRail" data-id="${tk.id}">
         <span class="task-check${tk.done_at ? ' on' : ''}" style="width:16px;height:16px"></span>${esc(tk.title)}</button>`).join('')

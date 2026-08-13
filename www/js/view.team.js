@@ -23,7 +23,7 @@ function memberRow(m) {
   return `<div class="member-row">
     <span class="avatar">${esc(initials(name))}</span>
     <span class="member-main">
-      <span class="member-name">${esc(name)}${m.user_id === S.user.id ? ' · ' + esc(t('common.you') || 'you') : ''}</span>
+      <span class="member-name">${esc(name)}${m.user_id === S.user.id ? ' · ' + esc(t('common.you')) : ''}</span>
       <span class="member-sub ${status.busy ? 'busy-text' : 'good-text'}">
         ${status.busy ? esc(t('team.busy', { t: fmtRange(0, status.until, S.prefs.clock24).split('–')[1]?.trim() || '' })) : esc(t('team.free'))}
       </span>
@@ -51,7 +51,7 @@ export default {
         <p class="dim small">${esc(t('team.personalStays'))}</p>
         ${canManage(S.role) ? `<div class="code-row">
           <span class="code mono">${esc(S.org.join_code)}</span>
-          <button class="btn ghost sm" data-act="copyCode">${esc(t('common.search') && 'Copy') || 'Copy'}</button>
+          <button class="btn ghost sm" data-act="copyCode">${esc(t('common.copy'))}</button>
         </div>` : ''}
       </div>
       <div class="section-head"><span class="eyebrow">${esc(t('team.members'))}</span></div>
