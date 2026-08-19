@@ -11,7 +11,7 @@ const SHELL = [
   './js/state.js', './js/i18n.js', './js/ui.js', './js/auth.js', './js/org.js',
   './js/images.js', './js/support.js', './js/timer.js', './js/sheets.js',
   './js/ics.js', './js/onboarding.js', './js/notify.js',
-  './js/gamify.js', './js/ideal.js', './js/google.js',
+  './js/gamify.js', './js/ideal.js', './js/google.js', './js/update.js',
   './js/view.today.js', './js/view.calendar.js', './js/view.tasks.js',
   './js/view.goals.js', './js/view.review.js', './js/view.team.js', './js/view.settings.js'
 ];
@@ -29,9 +29,15 @@ self.addEventListener('activate', e => {
 
 // Network-first for navigations and same-origin JS/CSS (so a deploy is live
 // immediately); cache-first fallback keeps the app bootable offline.
+//
+// /downloads/ is excluded from the shell cache on purpose: it's a multi-MB
+// APK, not app code, and has no reason to sit in Cache Storage just because
+// someone tapped the update link — fetch it, don't keep it.
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.includes('/downloads/')) return;
 
   e.respondWith(
     fetch(req, { cache: 'no-store' }).then(res => {

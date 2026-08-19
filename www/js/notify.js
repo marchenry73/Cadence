@@ -148,9 +148,9 @@ export function stopReminderWatch() { clearInterval(watching); watching = null; 
 // account, so it lives in localStorage rather than synced prefs.
 const SHADE_KEY = 'cadence.taskShade';
 
-export const shadeEnabled = () => localStorage.getItem(SHADE_KEY) === '1';
+export const shadeEnabled = () => !S.guest && localStorage.getItem(SHADE_KEY) === '1';
 export function setShade(on) {
-  localStorage.setItem(SHADE_KEY, on ? '1' : '0');
+  if (!S.guest) localStorage.setItem(SHADE_KEY, on ? '1' : '0');
   if (on) postTaskSummary(); else clearTaskSummary();
 }
 

@@ -7,8 +7,13 @@ android {
         applicationId "com.yourname.kingdomos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Android decides whether a new APK counts as an "update" using
+        // versionCode alone — not versionName, not CONFIG.version in the web
+        // app. It must go UP by at least 1 on every build that gets
+        // redistributed, or the system installer can refuse to install it
+        // over the existing copy. Bump both together with CONFIG.version.
+        versionCode 2
+        versionName "2.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

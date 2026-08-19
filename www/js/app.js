@@ -13,6 +13,7 @@ import { logActivity } from './state.js';
 import { streakNow } from './gamify.js';
 import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
+import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
 import { openQuickAdd } from './sheets.js';
 import { debounce } from './util.js';
@@ -102,6 +103,10 @@ function guestBoot() {
   S.guest = true;
   S.user = { id: 'guest', email: null };
   S.profile = { user_id: 'guest', username: 'guest', full_name: null };
+  // timer.js reads localStorage at module-init time, before this function
+  // ever runs — a leftover timer from a real session on this same device
+  // would otherwise bleed into a "blank slate" guest session.
+  resetTimer(25);
   applyTheme();
   renderShell();
   renderRoute(0);

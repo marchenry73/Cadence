@@ -17,99 +17,102 @@ These are genuine differentiators, not table stakes:
 
 ---
 
-## Table stakes we're MISSING (users will expect these)
+## Table stakes: status (this section had gone stale — several "missing" items below had actually shipped)
 
-Ordered by how badly their absence hurts.
+Ordered by how badly the remaining gaps hurt.
 
-| Gap | Why it matters | Effort |
+| Gap | Status | Why it matters | Effort |
+|---|---|---|---|
+| **Search** | Still missing | No way to find "that block I made last month." Painful past a few weeks of data. | Low |
+| **Recurring end dates** | Partial — single-occurrence skip exists (`routines.skip_dates`); no "series ends on this date" | Routines run forever with no "until Dec 31." | Low–Medium |
+| **Time zones** | Still missing | Any team spanning zones breaks immediately. Blocking issue for selling to distributed companies. | Medium |
+| **Multi-day / all-day events** | Still missing | Vacations, conferences, deadlines. Currently impossible to represent. | Medium |
+| **Undo** | Still missing | Deleting a routine is instant and permanent. Every mature app has undo. | Low |
+| **Keyboard shortcuts** | Still missing | Power users judge productivity tools on this within five minutes. | Low |
+| ~~Reminders / notifications~~ | **Shipped** — `notify.js`: local reminders, tone selection, native notifications, task-shade | | |
+| ~~Drag to reschedule~~ | **Shipped** — both Today's spine and the calendar week view support it | | |
+| ~~Month view~~ | **Shipped** — `view.calendar.js` week/month/agenda modes | | |
+| ~~Calendar import~~ | **Shipped** — both .ics (`ics.js`) and Google Calendar (`google.js`) | | |
+
+---
+
+## Goal-app features: status
+
+The goals layer shipped since this doc was first written — most of this section was
+wrong. What's actually still missing:
+
+| Gap | Status | Why it matters | Effort |
+|---|---|---|---|
+| **Check-in prompts** | Partial — manual "Add check-in" exists; nothing *scheduled* nudges you to do it | Without a prompt, goals rot silently between check-ins. | Medium (needs scheduled jobs) |
+| **Progress history** | Still missing | Charts over weeks/months, not just current %. | Low |
+| **Vision board** | Still missing | Images + target dates. Emotional pull, drives daily opens. | Medium (needs file storage) |
+| ~~Goals with tiers~~ | **Shipped** — quarter / year / life horizons | | |
+| ~~Goal → milestone chain~~ | **Shipped** — milestones roll up into goal progress automatically | | |
+| ~~Streaks / habit tracking~~ | **Shipped** — `gamify.js`: streaks, badges, monthly challenge, weekly leaderboard | | |
+
+---
+
+## Business features: status (blocking sales to companies)
+
+| Gap | Status | Why it matters |
 |---|---|---|
-| **Reminders / notifications** | The #1 reason people use a calendar at all. Currently Cadence can't tell you anything is happening. | Medium |
-| **Drag to reschedule** | Every calendar has it. Editing via a form feels dated the moment someone compares. | Medium |
-| **Month view** | Week + day only right now. Month is how people think about anything beyond ~10 days. | Low |
-| **Search** | No way to find "that block I made last month." Painful past a few weeks of data. | Low |
-| **Recurring end dates / exceptions** | Routines run forever with no "until Dec 31" and no "skip this one week." Real schedules have exceptions. | Low–Medium |
-| **Time zones** | Any team spanning zones breaks immediately. Blocking issue for selling to distributed companies. | Medium |
-| **Multi-day / all-day events** | Vacations, conferences, deadlines. Currently impossible to represent. | Medium |
-| **Calendar import (.ics / Google)** | People won't retype their existing calendar. This is the #1 adoption blocker for switching tools. | Medium–High |
-| **Undo** | Deleting a routine is instant and permanent. Every mature app has undo. | Low |
-| **Keyboard shortcuts** | Power users judge productivity tools on this within five minutes. | Low |
+| **Billing / subscriptions** | Still missing | Cannot charge anyone today. |
+| **Audit log** | Still missing | Enterprise buyers ask for this in security review. |
+| **Data export per workspace** | Still missing | GDPR/CCPA requests and customer trust. |
+| **Email verification flow polish** | Still missing | Confirmation emails currently use Supabase defaults, unbranded. |
+| ~~Password reset~~ | **Shipped** — "Forgot password" on the sign-in screen, `resetPassword()` in `auth.js` | |
+| ~~Admin controls / roles~~ | **Shipped** — owner/admin/member/viewer roles, `setRole`/`removeMember` in `org.js` + `view.team.js` | |
+
+Also new since this doc was written and not previously anticipated: **guest mode** ("Continue
+as guest," nothing persisted) and an Android APK with an in-app update checker. Neither was on
+this list because neither was being considered as a Cadence feature at the time — both help
+adoption (guest mode removes signup friction for evaluation; the APK+updater gives Android
+users a real distribution path without waiting on a Play Store submission), even though
+neither directly moves the "sellable to companies" needle this document is scoped to.
 
 ---
 
-## Goal-app features we're missing
+## Recommended build order (revised — most of Phases 1–4 already shipped)
 
-Cadence currently has no goals layer at all.
+What's actually left, grouped into shippable phases.
 
-| Gap | Why it matters | Effort |
-|---|---|---|
-| **Goals with tiers** | Short-term / this year / life goals. The core ask. | Medium |
-| **Goal → milestone → task chain** | The thing that makes goals stick. Progress must roll up automatically. | Medium |
-| **Streaks / habit tracking** | Habitica and Strides built entire businesses on this. Strong retention driver. | Low–Medium |
-| **Check-in prompts** | Scheduled reflection. Without it, goals rot silently. | Medium (needs scheduled jobs) |
-| **Progress history** | Charts over weeks/months, not just current %. | Low |
-| **Vision board** | Images + target dates. Emotional pull, drives daily opens. | Medium (needs file storage) |
-
----
-
-## Business features missing (blocking sales to companies)
-
-| Gap | Why it matters |
-|---|---|
-| **Billing / subscriptions** | Cannot charge anyone today. |
-| **Admin controls** | Owners can't manage members, reassign, or remove people. |
-| **Roles & permissions** | Everyone in a workspace is effectively equal. |
-| **Audit log** | Enterprise buyers ask for this in security review. |
-| **Data export per workspace** | GDPR/CCPA requests and customer trust. |
-| **Password reset** | *Currently missing entirely — users who forget a password are locked out permanently.* |
-| **Email verification flow polish** | Confirmation emails currently use Supabase defaults, unbranded. |
-
-**Note:** password reset is arguably the most urgent item on this entire document. It's small
-work and its absence is a hard failure for real users.
-
----
-
-## Recommended build order
-
-Grouped into shippable phases rather than a flat list.
-
-**Phase 1 — Don't embarrass yourself (do before any real users)**
-1. Password reset
-2. Search
-3. Undo on delete
-4. Month view
-5. Recurring end dates + single-occurrence skip
+**Phase 1 — Don't embarrass yourself**
+1. Search
+2. Undo on delete
+3. Recurring series end date (skip-a-single-occurrence already works)
 
 **Phase 2 — Meet expectations**
-6. Reminders / notifications (web push + Android local)
-7. Drag to reschedule
-8. All-day and multi-day events
-9. Time zone support
-10. Keyboard shortcuts
+4. All-day and multi-day events
+5. Time zone support
+6. Keyboard shortcuts
 
 **Phase 3 — The reason people choose Cadence**
-11. Goals: tiers, milestones, task linkage
-12. Streaks and check-ins
-13. Progress history charts
-14. Voice reminders
+7. Scheduled check-in prompts (manual check-ins already work)
+8. Progress history charts
+9. Voice reminders
 
 **Phase 4 — Make money**
-15. Stripe billing and plan tiers
-16. Admin controls and roles
-17. Calendar import (.ics, then Google/Outlook)
+10. Stripe billing and plan tiers
+11. Audit log
+12. Data export per workspace
 
 **Phase 5 — Differentiate**
-18. Mini AI assistant
-19. Vision board
-20. Full two-way calendar sync
+13. Mini AI assistant
+14. Vision board
+15. Full two-way calendar sync
 
 ---
 
 ## Honest assessment
 
-Cadence today is a solid **prototype with two genuinely novel ideas** (gap-filling and
-live team availability). It is not yet a product a company would pay for, mostly because
-of Phase 1 and the missing billing.
+This assessment is overdue for an update: Cadence has moved well past "prototype." Reminders,
+drag-to-reschedule, month view, calendar import (.ics + Google), password reset, the full goals
+layer (tiers, milestones, streaks, check-ins), roles/admin controls, guest mode, and an Android
+distribution path with in-app updates are all shipped and working. The two original
+differentiators (gap-filling, live team availability) are still the most novel ideas here, but
+they're no longer standing alone.
 
-The fastest path to a sellable product is *not* adding more features — it's finishing
-Phase 1, adding reminders, and putting billing in. A tool that does five things reliably
-sells better than one that does twenty things partially.
+What's actually blocking a sale to a company today is narrower than this document used to
+suggest: **billing** (there's no way to charge anyone) and the smaller Phase 1/2 items above.
+Nothing on the current list is a hard failure for real individual users the way missing
+password reset used to be.

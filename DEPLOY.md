@@ -1,89 +1,79 @@
-# Deploying Cadence to a real website
+# Deploying Cadence
 
-Right now Cadence only runs on your computer at `localhost`. This puts it on a public
-URL that anyone can sign into.
-
-**Time:** about 20 minutes. **Cost:** free to start.
+Cadence is already live at **https://marchenry73.github.io/Cadence/** via GitHub Pages —
+not Vercel (an earlier version of this doc described a Vercel setup that was never
+actually used; ignore any mention of it elsewhere).
 
 ---
 
-## Step 1 — Run the v3 database changes
+## How a deploy happens
 
-Open your SQL editor:
+Every push to `main` triggers `.github/workflows/pages.yml`, which publishes the whole
+`www/` folder to GitHub Pages automatically — typically live within a minute or two.
+There is no manual upload step. `git push`, then check the Actions tab if you want to
+watch it happen.
+
+The landing page is at `/welcome/`; the app itself is at the root (`/`) — Capacitor's
+`server.url` in `capacitor.config.json` points the Android app straight at that root
+URL, so it must keep serving the sign-in screen, not the landing page.
+
+---
+
+## Building the Android APK
+
+The web app and the Android app are the same code — Capacitor just wraps the live site
+in a native shell. To produce an installable APK:
+
+```
+npm install
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+The result is `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+**If the build fails with an `AccessDeniedException` or "unable to delete directory"
+error inside `android/app/build/`:** this project lives inside a OneDrive-synced
+folder, and OneDrive locks files while Gradle is trying to write/delete them. Either
+pause OneDrive sync during the build, or build from a copy of the project outside any
+synced folder (e.g. a plain temp directory) and copy the resulting APK back.
+
+After a successful build, two places need the new file, both by simple overwrite (same
+filename every time, so the links below never change):
+
+1. `www/downloads/cadence-latest.apk` in this repo, then commit and push — this is what
+   `https://marchenry73.github.io/Cadence/downloads/cadence-latest.apk` serves.
+2. `G:\My Drive\Professional Documents\Projects\Cadence\cadence-latest.apk` — Google
+   Drive Desktop syncs this automatically, no manual upload needed.
+
+**Also bump three version numbers together**, or the update-checker and Android's own
+update mechanism will disagree with each other:
+- `www/js/config.js` → `CONFIG.version`
+- `www/version.json` → `version` (this is what the in-app "Update available" banner
+  actually compares against — it's fetched fresh, never cached)
+- `android/app/build.gradle` → `versionCode` (must increase by at least 1) and
+  `versionName`. Android uses `versionCode` — not `versionName`, not
+  `CONFIG.version` — to decide whether a new APK counts as an update; forgetting this
+  one means people can't install the new build over the old one.
+
+This build is **debug-signed**, fine for sideloading or handing to testers. A Play
+Store submission needs a proper release signing key — a separate, one-time step (see
+`README.md` Part 3 for the general shape of it) not yet set up on this project.
+
+---
+
+## Database changes
+
+Run new `supabase-schema-*.sql` files in the Supabase SQL Editor:
 https://supabase.com/dashboard/project/eznsmotrmzeryduwkuuf/sql/new
 
-Paste and run `supabase-schema-v3-profiles.sql`. This adds usernames and profiles.
-
-You'll get the "destructive operations" warning again — it's the same `drop policy`
-pattern as before, recreating security rules. No data is deleted. Click Run query.
-
----
-
-## Step 2 — Put the code on GitHub
-
-Deploy services pull from GitHub. If you don't have an account, make one at github.com.
-
-1. Go to https://github.com/new
-2. Repository name: `cadence`
-3. Set it to **Private** (your Supabase URL is in the code — not secret, but no reason to publish it)
-4. Click "Create repository"
-5. On the next screen, click "uploading an existing file"
-6. Drag in the contents of your `kingdomos` folder — **but not** the `node_modules` or
-   `android` folders (they're large and get rebuilt automatically)
-7. Click "Commit changes"
-
----
-
-## Step 3 — Deploy with Vercel
-
-1. Go to https://vercel.com and sign in **with your GitHub account**
-2. Click "Add New" → "Project"
-3. Find your `cadence` repository, click "Import"
-4. Under **Framework Preset**, choose **Other**
-5. Under **Root Directory**, click Edit and select the `www` folder
-6. Click "Deploy"
-
-About a minute later you'll get a live URL like `cadence-xyz.vercel.app`. That address
-works for anyone, anywhere.
-
----
-
-## Step 4 — Point Supabase at your new address
-
-Supabase needs to know your real URL so confirmation and password-reset emails link
-to the right place.
-
-1. Go to your Supabase project → Authentication → URL Configuration
-2. Set **Site URL** to your Vercel address (e.g. `https://cadence-xyz.vercel.app`)
-3. Under **Redirect URLs**, add the same address
-4. Save
-
-Without this, password reset emails will send people to `localhost` and fail.
-
----
-
-## Step 5 — Test it properly
-
-Open your live URL on your **phone**, on mobile data (not your home wifi). That proves
-it works from anywhere, not just your network.
-
-Create a second test account with a different email to check the signup flow end to end.
-
----
-
-## Optional — your own domain
-
-1. Buy a domain (Namecheap, Cloudflare, Google Domains — roughly $10–15/year)
-2. In Vercel: Project → Settings → Domains → Add
-3. Vercel shows you exactly which DNS records to create at your registrar
-4. Update the Supabase Site URL from step 4 to the new domain
-
----
-
-## Updating after this
-
-Once connected, updates are automatic: change a file, push to GitHub, and Vercel
-redeploys in under a minute. No manual upload step.
+**Known gap:** the core tables (`categories`, `routines`, `events`, `tasks`, `goals`,
+`milestones`, `checkins`, `activity`, `prefs`) were created directly in the SQL Editor
+early on and were never captured as a migration file here — so the live schema and its
+RLS policies can't currently be reviewed or rebuilt from this repo. `dump-live-schema.sql`
+has a ready-to-run query for pulling the real structure back out; run it and check the
+result in as a baseline migration when there's a spare few minutes.
 
 ---
 
@@ -91,5 +81,4 @@ redeploys in under a minute. No manual upload step.
 
 - **Privacy policy and terms** — required by app stores and expected by business buyers
 - **Billing** (Stripe) — currently no way to take payment
-- **Password reset tested end to end** — now built, but verify it works on the live URL
 - See `GAP-ANALYSIS.md` for the full list of what's missing before this is sellable

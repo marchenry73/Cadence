@@ -169,7 +169,7 @@ export default {
         <div class="eyebrow">Update available — v${esc(info.version)}</div>
         ${info.notes ? `<p class="dim small">${esc(info.notes)}</p>` : ''}
         ${info.apkUrl
-          ? `<a class="btn primary sm" href="${esc(info.apkUrl)}" target="_blank" rel="noopener">Download v${esc(info.version)}</a>`
+          ? `<button class="btn primary sm" data-act="downloadUpdate" data-url="${esc(info.apkUrl)}">Download v${esc(info.version)}</button>`
           : `<p class="dim small">Download link coming soon.</p>`}
       </div>`;
     });
@@ -378,6 +378,18 @@ registerActions({
 
   doSignOut: async () => { const ok = await confirmSheet({ title: t('set.signOut'), message: '', confirm: t('set.signOut'), danger: false }); if (ok) signOut(); },
   exitGuest: () => location.reload(),
+
+  // Capacitor's WebView doesn't support multiple windows, so a plain
+  // target="_blank" link can silently try to load the APK inside the app
+  // itself instead of downloading it. Route through the Browser plugin
+  // (a real system browser / Custom Tab) when running natively; on the
+  // web build window.Capacitor is undefined and a normal new-tab open
+  // does exactly what target="_blank" always did.
+  downloadUpdate: async (d) => {
+    const Browser = window.Capacitor?.Plugins?.Browser;
+    if (Browser) await Browser.open({ url: d.url });
+    else window.open(d.url, '_blank', 'noopener');
+  },
 
   openDelete: () => {
     openSheet({

@@ -1,8 +1,0 @@
-{
-  "appId": "com.yourname.kingdomos",
-  "appName": "KingdomOS",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  }
-}

@@ -20,6 +20,7 @@ function load() {
 }
 
 function persist() {
+  if (S.guest) return;
   try { localStorage.setItem(KEY, JSON.stringify(timer)); } catch {}
 }
 
