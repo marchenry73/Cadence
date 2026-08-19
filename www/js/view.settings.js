@@ -381,13 +381,18 @@ registerActions({
 
   // Capacitor's WebView doesn't support multiple windows, so a plain
   // target="_blank" link can silently try to load the APK inside the app
-  // itself instead of downloading it. Route through the Browser plugin
-  // (a real system browser / Custom Tab) when running natively; on the
-  // web build window.Capacitor is undefined and a normal new-tab open
-  // does exactly what target="_blank" always did.
+  // itself instead of downloading it. The Browser plugin (Chrome Custom
+  // Tab) was the first fix tried here — it launches correctly but Custom
+  // Tabs handle file downloads inconsistently, and on-device testing
+  // confirmed the download silently fails through it. Share.share()
+  // instead hands the URL to a full external app via a real Android
+  // intent (the user picks Chrome, or anything else, from the sheet) —
+  // that's a normal, unrestricted browser session, not an embedded tab.
+  // On web, window.Capacitor is undefined and a plain new-tab open does
+  // exactly what it always did.
   downloadUpdate: async (d) => {
-    const Browser = window.Capacitor?.Plugins?.Browser;
-    if (Browser) await Browser.open({ url: d.url });
+    const Share = window.Capacitor?.Plugins?.Share;
+    if (Share) await Share.share({ url: d.url, dialogTitle: 'Open with…' });
     else window.open(d.url, '_blank', 'noopener');
   },
 

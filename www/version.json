@@ -1,6 +1,6 @@
 {
-  "version": "2.2.1",
+  "version": "2.2.0",
   "build": "2026-08-19",
-  "notes": "TEST — checking that the in-app update banner and download work on a real device. Safe to ignore.",
+  "notes": "Guest mode, Daybreak redesign, and a round of bug fixes.",
   "apkUrl": "https://marchenry73.github.io/Cadence/downloads/cadence-latest.apk"
 }

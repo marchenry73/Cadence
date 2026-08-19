@@ -12,7 +12,7 @@ android {
         // app. It must go UP by at least 1 on every build that gets
         // redistributed, or the system installer can refuse to install it
         // over the existing copy. Bump both together with CONFIG.version.
-        versionCode 2
+        versionCode 3
         versionName "2.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
