@@ -14,7 +14,7 @@ import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
 import { TONES, playTone, requestNotifications, notificationsAllowed, shadeEnabled, setShade, postTaskSummary, isNative } from './notify.js';
 import { openTasks } from './state.js';
 import { CONFIG } from './config.js';
-import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented } from './ui.js';
+import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented, guestBlocked } from './ui.js';
 
 function toggleRow(label, name, on) {
   return `<button class="toggle-row tap" data-act="prefToggle" data-name="${name}">
@@ -120,27 +120,33 @@ export default {
       <div class="card">
         <button class="btn ghost" data-act="editIdeal">${idealIsSet() ? 'Edit my ideal self' : 'Define my ideal self'}</button>
         ${idealIsSet() ? `<p class="dim small">${esc(ideal().statement || 'No statement written yet.')}</p>` : ''}
+        ${S.guest ? `<p class="dim small" style="margin-top:10px">${esc(t('guest.blocked'))} — the weekly board needs somewhere to save your score.</p>` : `
         ${field('Leaderboard nickname', `<input class="input" name="nickname" value="${esc(S.prefs.nickname || '')}"
           placeholder="e.g. marc_h" autocomplete="off" autocapitalize="none">`,
           'The only thing other people see. Leave it empty to stay off the board.')}
         <button class="toggle-row tap" data-act="prefToggle" data-name="leaderboard_opt_in">
           <span>Show me on the weekly board</span>
           <span class="switch${S.prefs.leaderboard_opt_in === false ? '' : ' on'}"></span>
-        </button>
+        </button>`}
       </div>
 
       <div class="section-head"><span class="eyebrow">${esc(t('set.support'))}</span></div>
       <div class="card">
         <button class="btn ghost" data-act="openSupport">${esc(t('sup.support'))}</button>
-        <button class="btn ghost" data-act="openMyTickets">My messages</button>
-        <button class="btn ghost" id="adminInbox" style="display:none" data-act="openInbox">Support inbox — all users</button>
+        ${S.guest ? '' : `<button class="btn ghost" data-act="openMyTickets">My messages</button>
+        <button class="btn ghost" id="adminInbox" style="display:none" data-act="openInbox">Support inbox — all users</button>`}
       </div>
 
       <div class="section-head"><span class="eyebrow">${esc(t('set.account'))}</span></div>
       <div class="card">
-        <div class="dim small mono">${esc(S.user?.email || '')}</div>
-        <button class="btn ghost" data-act="doSignOut">${esc(t('set.signOut'))}</button>
-        <button class="btn ghost danger-text" data-act="openDelete">${esc(t('set.deleteAccount'))}</button>
+        ${S.guest ? `
+          <p class="dim small">${esc(t('guest.bannerBody'))}</p>
+          <button class="btn primary" data-act="exitGuest">${esc(t('guest.exit'))}</button>
+        ` : `
+          <div class="dim small mono">${esc(S.user?.email || '')}</div>
+          <button class="btn ghost" data-act="doSignOut">${esc(t('set.signOut'))}</button>
+          <button class="btn ghost danger-text" data-act="openDelete">${esc(t('set.deleteAccount'))}</button>
+        `}
       </div>
 
       <div class="version-row dim small">Cadence v${esc(CONFIG.version)} · ${esc(CONFIG.build)}</div>
@@ -154,6 +160,7 @@ export default {
       savePrefs({ nickname: v || null });
       toast(v ? 'Nickname saved' : 'You are off the board', 'good');
     });
+    if (S.guest) return;
     if (await googleConnected()) { const g = root.querySelector('#gcalBtn'); if (g) g.style.display = ''; }
     if (await isAdmin()) { const b = root.querySelector('#adminInbox'); if (b) b.style.display = ''; }
   }
@@ -347,6 +354,7 @@ registerActions({
     sheet.querySelector('#supDiagHint').style.display = d.value === 'bug' ? '' : 'none';
   },
   supSend: async (d, node) => {
+    if (guestBlocked()) return;
     const sheet = node.closest('.sheet');
     const kind = sheet.dataset.kind || 'support';
     const f = readForm(sheet);
@@ -356,6 +364,7 @@ registerActions({
   },
 
   doSignOut: async () => { const ok = await confirmSheet({ title: t('set.signOut'), message: '', confirm: t('set.signOut'), danger: false }); if (ok) signOut(); },
+  exitGuest: () => location.reload(),
 
   openDelete: () => {
     openSheet({

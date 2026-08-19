@@ -93,6 +93,25 @@ async function afterSignIn() {
   setTimeout(() => maybeShowOnboarding(), 600);
 }
 
+// Never touches Supabase or IndexedDB — no initNet(), no loadFromCache(),
+// no ensureProfile/syncNow/loadWorkspace/startRealtime. The synthetic user
+// id just gives save()'s row.user_id something consistent to filter on in
+// memory; state.js's guest guard is what actually stops anything from
+// being written anywhere.
+function guestBoot() {
+  S.guest = true;
+  S.user = { id: 'guest', email: null };
+  S.profile = { user_id: 'guest', username: 'guest', full_name: null };
+  applyTheme();
+  renderShell();
+  renderRoute(0);
+  installEdgeBack(() => { if (S.route !== 'today') go('today'); });
+  startReminderWatch();
+  awardDailyLogin();
+  setTimeout(() => toast(t('guest.bannerBody'), 'warn'), 500);
+  setTimeout(() => maybeShowOnboarding(), 2200);
+}
+
 // ------------------------------------------------------------------ auth screen
 
 function renderAuth() {
@@ -122,10 +141,12 @@ function paintAuth(mode, error = '') {
         Continue with Google
       </button>
       <div class="auth-switch"><a href="#" id="authForgot">${t('auth.forgot')}</a></div>` : ''}
-    <div class="auth-switch"><a href="#" id="authFlip">${signup ? t('auth.haveAccount') : t('auth.noAccount')}</a></div>`;
+    <div class="auth-switch"><a href="#" id="authFlip">${signup ? t('auth.haveAccount') : t('auth.noAccount')}</a></div>
+    ${!forgot ? `<div class="auth-switch"><a href="#" id="authGuest">${t('auth.continueGuest')}</a></div>` : ''}`;
 
   $('#authFlip', host).onclick = e => { e.preventDefault(); paintAuth(signup ? 'signin' : 'signup'); };
   $('#authForgot', host)?.addEventListener('click', e => { e.preventDefault(); paintAuth('forgot'); });
+  $('#authGuest', host)?.addEventListener('click', e => { e.preventDefault(); guestBoot(); });
   $('#authGoogle', host)?.addEventListener('click', async () => {
     try { await signInWithProvider('google'); }
     catch (err) { paintAuth(mode, err.message || t('msg.somethingWrong')); }
@@ -166,7 +187,7 @@ function renderShell() {
       <div class="main-col">
         <div class="topbar">
           <h1 id="routeTitle"></h1>
-          <span class="sync-pill" id="syncPill"><i class="dot"></i><span id="syncLabel">${t('app.synced')}</span></span>
+          <span class="sync-pill${S.guest ? ' guest' : ''}" id="syncPill"><i class="dot"></i><span id="syncLabel">${S.guest ? t('app.guest') : t('app.synced')}</span></span>
         </div>
         <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
       </div>
@@ -178,7 +199,7 @@ function renderShell() {
     <div id="ptr"></div>
     <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>`;
 
-  installPullToRefresh($('#scroller'), () => syncNow().catch(() => {}));
+  installPullToRefresh($('#scroller'), () => S.guest ? Promise.resolve() : syncNow().catch(() => {}));
 
   onChange(debounce(reason => {
     if (reason === 'prefs') applyTheme();

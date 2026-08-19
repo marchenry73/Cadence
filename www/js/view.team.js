@@ -6,7 +6,7 @@ import { t } from './i18n.js';
 import { esc, fmtRange, initials } from './util.js';
 import { createWorkspace, joinWorkspace, leaveWorkspace, setRole, removeMember, rotateJoinCode, canManage, ROLES } from './org.js';
 import { occurrencesOn, catColor } from './state.js';
-import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field } from './ui.js';
+import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, guestBlocked } from './ui.js';
 import { todayISO, minutesNow } from './util.js';
 
 function memberStatus(userId) {
@@ -63,6 +63,7 @@ export default {
 
 registerActions({
   teamCreate: () => {
+    if (guestBlocked()) return;
     openSheet({
       title: t('team.create'),
       body: field(t('block.title'), `<input class="input" name="name" autocomplete="off" placeholder="Acme Inc.">`),
@@ -76,6 +77,7 @@ registerActions({
     catch (e) { toast(e.message, 'warn'); }
   },
   teamJoin: () => {
+    if (guestBlocked()) return;
     openSheet({
       title: t('team.join'),
       body: field(t('team.code'), `<input class="input" name="code" autocomplete="off" style="text-transform:uppercase" maxlength="6">`),

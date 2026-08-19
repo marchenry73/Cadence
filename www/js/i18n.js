@@ -102,6 +102,13 @@ export const EN = {
   'auth.reset': 'Send reset link', 'auth.haveAccount': 'I already have an account',
   'auth.noAccount': 'Create an account', 'auth.tagline': 'Plan your day, see your week.',
   'auth.checking': 'Checking', 'auth.taken': 'Taken', 'auth.free': 'Available',
+  'auth.continueGuest': 'Continue as guest',
+
+  'app.guest': 'Guest — not saved',
+  'guest.blocked': 'Create an account for this',
+  'guest.bannerTitle': "You're browsing as a guest",
+  'guest.bannerBody': 'Nothing you do in this session is saved anywhere — not on this device, not in the cloud. Close the tab and it’s gone. Create an account any time to keep it.',
+  'guest.exit': 'Exit guest mode',
 
   'timer.focus': 'Focus', 'timer.start': 'Start', 'timer.pause': 'Pause',
   'timer.reset': 'Reset', 'timer.finished': 'Focus finished',

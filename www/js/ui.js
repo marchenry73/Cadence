@@ -25,6 +25,17 @@ export function haptic(kind = 'light') {
   if (navigator.vibrate) navigator.vibrate(kind === 'success' ? [8, 40, 12] : kind === 'heavy' ? 18 : 8);
 }
 
+// ---------------------------------------------------------------- guest
+
+// Call at the top of any action that needs a real account (team, the
+// weekly board, support tickets, image uploads). Returns true — and tells
+// the guest why — so the caller can just `if (guestBlocked()) return;`.
+export function guestBlocked(message = t('guest.blocked')) {
+  if (!S.guest) return false;
+  toast(message, 'warn');
+  return true;
+}
+
 // ---------------------------------------------------------------- actions
 
 const actions = new Map();

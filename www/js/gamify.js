@@ -164,7 +164,7 @@ export function nickname() {
 }
 
 export async function publishScore({ weekStart, points, streak, efficiency }) {
-  if (!S.user?.id || !S.prefs.nickname || S.prefs.leaderboard_opt_in === false) return;
+  if (S.guest || !S.user?.id || !S.prefs.nickname || S.prefs.leaderboard_opt_in === false) return;
   await sb.from('scores').upsert({
     user_id: S.user.id, week_start: weekStart, nickname: S.prefs.nickname,
     points, streak, efficiency, updated_at: new Date().toISOString()

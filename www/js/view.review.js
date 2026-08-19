@@ -205,6 +205,10 @@ export default {
 
     const card = root.querySelector('#boardCard');
     if (!card) return;
+    if (S.guest) {
+      card.innerHTML = `<p class="dim small">${esc(t('guest.blocked'))} — the weekly board needs somewhere to save your score.</p>`;
+      return;
+    }
     if (!S.prefs.nickname) {
       card.innerHTML = `<p class="dim small">Pick a nickname to join the weekly board — it is the only thing other people see.</p>
         <button class="btn ghost sm" data-act="editNickname">Choose a nickname</button>`;

@@ -1,7 +1,7 @@
 {
-  "name": "kingdomos",
+  "name": "cadence",
   "version": "1.0.0",
-  "description": "KingdomOS - Personal life operating system",
+  "description": "Cadence - plan your day, see your week",
   "scripts": {
     "sync": "npx cap sync",
     "open:ios": "npx cap open ios",

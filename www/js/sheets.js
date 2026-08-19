@@ -4,7 +4,7 @@ import { S, save, remove, catById, categories, freeGaps, overlapsOn, protectedCl
 import { CATEGORY_COLORS } from './config.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
-import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field } from './ui.js';
+import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field, guestBlocked } from './ui.js';
 import { uploadImage, deleteImage, pickFile, hydrateImages } from './images.js';
 import { startTimer } from './timer.js';
 
@@ -356,6 +356,7 @@ export const sheetActions = {
   },
 
   blockImageAdd: async () => {
+    if (guestBlocked()) return;
     const file = await pickFile();
     if (!file) return;
     const slot = $('#imgSlot');

@@ -1,4 +1,4 @@
-# KingdomOS — Build & Launch Guide
+# Cadence — Build & Launch Guide
 
 Everything below is in order. Do them in sequence — each step unlocks the next.
 

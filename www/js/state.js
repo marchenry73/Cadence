@@ -21,6 +21,10 @@ export const S = {
   org: null,
   role: null,
   members: [],
+  // True for a "Continue as guest" session: no account, no network, and —
+  // the whole point — nothing written to IndexedDB or Supabase. See the
+  // guards in save()/remove()/savePrefs() below.
+  guest: false,
   prefs: { ...DEFAULT_PREFS },
   categories: [], routines: [], events: [], tasks: [],
   goals: [], milestones: [], checkins: [], activity: [],
@@ -114,9 +118,10 @@ export function save(table, patch, { silent = false } = {}) {
   };
   delete row._local;
   if (existing) list[list.indexOf(existing)] = row; else list.push(row);
-  enqueue(table, row);
+  // Guest sessions live in memory only — never queued for Supabase, never
+  // written to IndexedDB, gone the moment the tab closes.
+  if (!S.guest) { enqueue(table, row); cacheSet(table, S[table]); }
   if (!silent) notify('save:' + table);
-  cacheSet(table, S[table]);
   return row;
 }
 
@@ -128,17 +133,18 @@ export function remove(table, id) {
   if (!row) return;
   const tomb = { ...row, deleted_at: now(), updated_at: now() };
   S[table] = list.filter(r => r.id !== id);
-  enqueue(table, tomb);
+  if (!S.guest) { enqueue(table, tomb); cacheSet(table, S[table]); }
   notify('remove:' + table);
-  cacheSet(table, S[table]);
 }
 
 export function savePrefs(patch) {
   S.prefs = { ...S.prefs, ...patch };
-  const row = { ...S.prefs, user_id: S.user?.id, updated_at: now() };
-  delete row.id;
-  enqueue('prefs', row);
-  cacheSet('prefs', S.prefs);
+  if (!S.guest) {
+    const row = { ...S.prefs, user_id: S.user?.id, updated_at: now() };
+    delete row.id;
+    enqueue('prefs', row);
+    cacheSet('prefs', S.prefs);
+  }
   notify('prefs');
 }
 
