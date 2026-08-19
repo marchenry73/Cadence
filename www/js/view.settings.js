@@ -15,6 +15,7 @@ import { TONES, playTone, requestNotifications, notificationsAllowed, shadeEnabl
 import { openTasks } from './state.js';
 import { CONFIG } from './config.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented, guestBlocked } from './ui.js';
+import { checkForUpdate } from './update.js';
 
 function toggleRow(label, name, on) {
   return `<button class="toggle-row tap" data-act="prefToggle" data-name="${name}">
@@ -149,6 +150,7 @@ export default {
         `}
       </div>
 
+      <div id="updateRow"></div>
       <div class="version-row dim small">Cadence v${esc(CONFIG.version)} · ${esc(CONFIG.build)}</div>
     </div>`;
   },
@@ -159,6 +161,17 @@ export default {
       nick.value = v;
       savePrefs({ nickname: v || null });
       toast(v ? 'Nickname saved' : 'You are off the board', 'good');
+    });
+    checkForUpdate().then(info => {
+      const row = root.querySelector('#updateRow');
+      if (!row || !info) return;
+      row.innerHTML = `<div class="card" style="border-color:var(--accent)">
+        <div class="eyebrow">Update available — v${esc(info.version)}</div>
+        ${info.notes ? `<p class="dim small">${esc(info.notes)}</p>` : ''}
+        ${info.apkUrl
+          ? `<a class="btn primary sm" href="${esc(info.apkUrl)}" target="_blank" rel="noopener">Download v${esc(info.version)}</a>`
+          : `<p class="dim small">Download link coming soon.</p>`}
+      </div>`;
     });
     if (S.guest) return;
     if (await googleConnected()) { const g = root.querySelector('#gcalBtn'); if (g) g.style.display = ''; }
