@@ -2,8 +2,8 @@
 // The anon key is a public client key by design; row-level security is what
 // protects the data. Never put a service_role key in this file.
 export const CONFIG = {
-  version: '2.2.0',
-  build: '2026-08-19',
+  version: '2.3.0',
+  build: '2026-08-20',
   supabaseUrl: 'https://eznsmotrmzeryduwkuuf.supabase.co',
   supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bnNtb3RybXplcnlkdXdrdXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTk4MTMsImV4cCI6MjEwMTY5NTgxM30.bdAmERDDmZwl9Pve4Jz9zjBU9dtHqUHgjzvN_wDEd5k',
   imageBucket: 'block-images',
