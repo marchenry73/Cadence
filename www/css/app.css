@@ -5,6 +5,7 @@
    Settings) asks for dusk via [data-theme]. */
 
 @font-face { font-family: 'IBM Plex Mono'; src: local('IBM Plex Mono'); font-display: swap; }
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root{
   --bg:#F6EEE4; --bg-2:#F0E6D8; --surface:#FFFCF7; --surface-2:#F0E6D8;
@@ -12,12 +13,18 @@
   --text:#2B2420; --text-dim:#8A7E70; --text-faint:#B5A996;
   --accent:#E8604A; --accent-2:#C94C36; --accent-weak:rgba(232,96,74,.14);
   --good:#5E8563; --warn:#C97A3A; --danger:#C6432E;
+  /* Monarch-style tinted tile family — a distinct hue per surfaced
+     category (goals, streak) instead of everything sharing the accent. */
+  --moss:#4F8467; --moss-tint:#DCEBE1;
+  --peri:#6E75C4; --peri-tint:#E2E2F3;
+  --honey:#BD8A2B; --honey-tint:#F3E7CB;
   --radius:16px; --radius-sm:10px; --radius-lg:22px;
   --shadow: 0 12px 28px rgba(43,28,20,.14);
   --kb:0px;
   --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px);
-  --font-display: 'Century Gothic', 'Avenir Next', 'Poppins', ui-sans-serif, -apple-system, sans-serif;
+  --font-display: 'Instrument Sans', 'Century Gothic', 'Avenir Next', ui-sans-serif, -apple-system, sans-serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: ui-serif, Charter, 'Iowan Old Style', Georgia, serif;
   color-scheme: light;
 }
@@ -33,6 +40,9 @@
     --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#6B5F63;
     --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
     --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
+    --moss:#6FB593; --moss-tint:#20362A;
+    --peri:#9BA1E8; --peri-tint:#282A47;
+    --honey:#E3AC52; --honey-tint:#3A2E17;
     --shadow: 0 12px 28px rgba(0,0,0,.4);
     color-scheme: dark;
   }
@@ -43,6 +53,9 @@
   --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#6B5F63;
   --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
   --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
+  --moss:#6FB593; --moss-tint:#20362A;
+  --peri:#9BA1E8; --peri-tint:#282A47;
+  --honey:#E3AC52; --honey-tint:#3A2E17;
   --shadow: 0 12px 28px rgba(0,0,0,.4);
   color-scheme: dark;
 }
@@ -51,7 +64,7 @@
 html,body{ height:100%; overscroll-behavior:none; }
 body{
   margin:0; background:var(--bg); color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Archivo',"Segoe UI",Roboto,sans-serif;
+  font-family:var(--font-body);
   font-size:16px; line-height:1.4;
   user-select:none; -webkit-user-select:none;
 }
@@ -86,15 +99,15 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .sync-pill.guest .dot{ background:var(--warn); }
 @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
 
-/* -------- bottom tab bar -------- */
-.tabbar{ position:absolute; left:0; right:0; bottom:0; display:flex; padding:6px 8px calc(8px + var(--safe-b)); gap:2px;
-  background:color-mix(in oklch, var(--surface), transparent 6%); backdrop-filter:blur(20px);
-  border-top:1px solid var(--border); z-index:20; }
-.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px 6px; border-radius:14px; color:var(--text-faint); min-height:52px; justify-content:center; }
-.tab.on{ color:var(--accent); }
-.tab svg{ width:23px; height:23px; }
-.tab span{ font-size:10.5px; font-weight:600; }
-.fab{ position:absolute; right:16px; bottom:calc(74px + var(--safe-b)); width:56px; height:56px; border-radius:50%;
+/* -------- bottom tab bar: a floating pill, not a flush-to-edge bar -------- */
+.tabbar{ position:absolute; left:14px; right:14px; bottom:calc(10px + var(--safe-b)); display:flex; padding:6px; gap:2px;
+  background:var(--surface); backdrop-filter:blur(20px); border-radius:22px;
+  border:1px solid var(--border); box-shadow:0 16px 32px -10px rgba(0,0,0,.28); z-index:20; }
+.tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px 6px; border-radius:14px; color:var(--text-faint); min-height:48px; justify-content:center; }
+.tab.on{ color:var(--accent); background:color-mix(in oklab, var(--accent) 12%, transparent); }
+.tab svg{ width:21px; height:21px; }
+.tab span{ font-size:10px; font-weight:700; }
+.fab{ position:absolute; right:16px; bottom:calc(84px + var(--safe-b)); width:56px; height:56px; border-radius:50%;
   background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px;
   box-shadow:0 10px 24px color-mix(in oklab, var(--accent) 45%, transparent); z-index:19; }
 
@@ -122,19 +135,57 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .btn-row{ display:flex; gap:8px; margin-top:12px; }
 .btn-stack{ display:flex; flex-direction:column; gap:10px; }
 
-.section-head{ padding:16px 2px 8px; }
+.section-head{ padding:16px 2px 8px; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
 
-/* -------- spine (24h) -------- */
-.spine{ position:relative; margin:0 0 0 54px; }
+/* -------- hero: the "right now" panel that leads Today -------- */
+.hero{ border-radius:var(--radius-lg); padding:18px 18px 16px; margin-bottom:14px; position:relative; overflow:hidden;
+  background:linear-gradient(155deg, var(--hero-a, var(--accent)), color-mix(in oklab, var(--hero-a, var(--accent)) 70%, var(--peri)));
+  color:#fff; }
+.hero::after{ content:''; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.10); pointer-events:none; }
+.hero.hero-empty{ background:var(--surface); color:var(--text); border:1px solid var(--border); }
+.hero-eyebrow{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; opacity:.85; display:flex; align-items:center; gap:6px; position:relative; }
+.hero-eyebrow i{ width:6px; height:6px; border-radius:50%; background:#fff; animation:pulse 1.4s infinite; }
+.hero-empty .hero-eyebrow{ color:var(--text-dim); }
+.hero-title{ font-family:var(--font-display); font-size:21px; font-weight:700; margin:8px 0 2px; letter-spacing:-.01em; position:relative; }
+.hero-time{ font-size:12.5px; opacity:.85; margin-bottom:12px; position:relative; }
+.hero-empty .hero-time{ color:var(--text-dim); opacity:1; }
+.hero-bar{ height:5px; border-radius:6px; background:rgba(255,255,255,.28); overflow:hidden; margin-bottom:4px; }
+.hero-bar i{ display:block; height:100%; background:#fff; border-radius:6px; }
+.hero .btn-row{ position:relative; }
+.hero .btn.ghost{ background:rgba(255,255,255,.2); color:#fff; }
+
+/* -------- tiles: soft-tinted goal/streak stats surfaced on Today -------- */
+.tiles{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; margin-bottom:14px; scrollbar-width:none; }
+.tiles::-webkit-scrollbar{ display:none; }
+.tile{ flex:0 0 auto; width:122px; border-radius:16px; padding:12px 13px; display:flex; flex-direction:column; gap:8px; color:var(--text); }
+.tile.t-moss{ background:var(--moss-tint); }
+.tile.t-peri{ background:var(--peri-tint); }
+.tile.t-honey{ background:var(--honey-tint); }
+.tile-ring{ width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+.tile-label{ font-size:11.5px; font-weight:700; line-height:1.25; }
+.tile-sub{ font-size:10px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+
+/* -------- mini task list: hairline rows on Today, not stacked cards -------- */
+.tasks-mini{ border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; margin-bottom:8px; }
+.trow-mini{ display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:left; }
+.trow-mini:last-child{ border-bottom:none; }
+.trow-mini .task-check{ width:18px; height:18px; }
+.ttitle-mini{ font-size:13px; font-weight:600; flex:1; }
+.ttitle-mini.strike{ text-decoration:line-through; opacity:.55; }
+
+/* -------- spine (24h): a real grid — banded hours, solid-filled blocks,
+   like a calendar meant to be read at a glance, not a sparse floating list. */
+.spine{ position:relative; margin:0 0 0 54px; border-radius:var(--radius); overflow:hidden; }
 .hour{ position:absolute; left:-54px; right:0; height:0; border-top:1px solid var(--border); }
 .hour-label{ position:absolute; left:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:right; padding-right:8px; }
 .spine-focus{ position:absolute; left:0; right:0; background:color-mix(in oklch, var(--accent), transparent 94%); border-radius:8px; pointer-events:none; }
-.gap{ position:absolute; left:0; right:0; border:1px dashed var(--border-2); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12px; }
-.block{ position:absolute; border:1px solid; border-radius:10px; display:flex; align-items:stretch; overflow:hidden; text-align:left; padding:0; }
-.block-bar{ width:3px; flex-shrink:0; }
+.gap{ position:absolute; left:0; right:0; border:1px dashed var(--border-2); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12px; z-index:1; }
+.block{ position:absolute; border:none; border-radius:10px; display:flex; align-items:stretch; overflow:hidden; text-align:left; padding:0; z-index:1;
+  box-shadow:0 2px 6px rgba(0,0,0,.12); }
+.block-bar{ width:4px; flex-shrink:0; background:rgba(255,255,255,.35) !important; }
 .block-body{ flex:1; min-width:0; padding:5px 8px; display:flex; flex-direction:column; gap:1px; }
-.block-title{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.block-time{ font-size:11px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+.block-title{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; }
+.block-time{ font-size:11px; color:rgba(255,255,255,.8); font-family:'IBM Plex Mono',monospace; }
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
 .block-flag{ position:absolute; top:3px; right:5px; font-size:11px; opacity:.7; }
 .block.running{ box-shadow:0 0 0 2px var(--accent); }

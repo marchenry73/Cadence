@@ -3,12 +3,13 @@
 // Tap a gap to fill it; tap a block to edit it; hold a block for quick actions.
 import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp, openTasks, mine, goalProgress, taskScore, isBlockDone, markBlockDone, unmarkBlockDone } from './state.js';
 import { t, dateLabel } from './i18n.js';
-import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINUTES, hexA, snap } from './util.js';
+import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINUTES, snap } from './util.js';
 import { openBlockSheet, openQuickAdd, parsePhrase } from './sheets.js';
 import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
+import { streakNow } from './gamify.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -26,6 +27,93 @@ function dayStrip() {
   }).join('')}</div>`;
 }
 
+// The hero panel that leads the screen: what's running right now, or what's
+// next. Solid color instead of a bordered card — the one thing on Today that
+// should read before anything else, the way the whole redesign is built
+// around "what matters most gets the most visual weight."
+function hero(next, isToday, timer) {
+  if (!next) {
+    return `<div class="hero hero-empty">
+      <div class="hero-eyebrow">${esc(t('today.nextUp'))}</div>
+      <div class="hero-title">${esc(t('today.nothingLeft'))}</div>
+      <div class="btn-row">
+        <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="">${esc(t('today.startFocus'))}</button>
+      </div>
+    </div>`;
+  }
+  const color = catColor(next.category_id);
+  const running = isToday && next.start <= minutesNow();
+  const showTimerChip = timer.running || timer.remaining < timer.minutes * 60;
+  const timerBtn = showTimerChip
+    ? `<button class="btn ghost sm mono" data-act="gotoTimer">${esc(timerChip())}</button>` : '';
+
+  if (running) {
+    const total = next.end - next.start;
+    const elapsed = minutesNow() - next.start;
+    const pct = Math.max(3, Math.min(100, Math.round(elapsed / total * 100)));
+    return `<div class="hero" style="--hero-a:${color}">
+      <div class="hero-eyebrow"><i></i>${esc(t('today.nowRunning'))}</div>
+      <div class="hero-title">${esc(next.title)}</div>
+      <div class="hero-time mono">${esc(fmtRange(next.start, next.end, S.prefs.clock24))} · ${esc(fmtDur(next.end - minutesNow()))} left</div>
+      <div class="hero-bar"><i style="width:${pct}%"></i></div>
+      <div class="btn-row">
+        <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="${esc(next.title)}">${esc(t('today.startFocus'))}</button>
+        ${timerBtn}
+      </div>
+    </div>`;
+  }
+  return `<div class="hero" style="--hero-a:${color}">
+    <div class="hero-eyebrow">${esc(t('today.nextUp'))}</div>
+    <div class="hero-title">${esc(next.title)}</div>
+    <div class="hero-time mono">${esc(fmtRange(next.start, next.end, S.prefs.clock24))}</div>
+    <div class="btn-row">
+      <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="${esc(next.title)}">${esc(t('today.startFocus'))}</button>
+      ${timerBtn}
+    </div>
+  </div>`;
+}
+
+// Goals used to be invisible unless you opened a separate tab. This puts
+// the two most relevant ones — plus the streak, which was buried in Review
+// — right on the screen you actually open first.
+function tileRow(committed) {
+  const goals = mine('goals').slice(0, 2);
+  const tints = ['t-moss', 't-peri'];
+  const rings = ['--moss', '--peri'];
+  const goalTiles = goals.map((g, i) => {
+    const pct = goalProgress(g);
+    return `<button class="tile ${tints[i % 2]} tap" data-act="gotoGoals">
+      <div class="tile-ring" style="background:conic-gradient(var(${rings[i % 2]}) 0 ${pct}%, color-mix(in oklab, var(${rings[i % 2]}) 25%, transparent) 0)">${pct}%</div>
+      <div class="tile-label">${esc(g.title)}</div>
+      <div class="tile-sub">${esc(g.area || '')}</div>
+    </button>`;
+  }).join('');
+  const streak = streakNow();
+  const streakPct = Math.min(100, streak * (100 / 7));
+  const streakTile = `<div class="tile t-honey">
+    <div class="tile-ring" style="background:conic-gradient(var(--honey) 0 ${streakPct}%, color-mix(in oklab, var(--honey) 25%, transparent) 0)">${streak}</div>
+    <div class="tile-label">Day streak</div>
+    <div class="tile-sub">${esc(fmtDur(committed))} today</div>
+  </div>`;
+  return `<div class="tiles">${goalTiles}${streakTile}</div>`;
+}
+
+// A handful of the highest-scored open tasks, right under the day — the
+// mobile view previously had no task visibility at all outside a separate
+// tab. Desktop already had this via the rail; now everyone does.
+function taskListMini() {
+  const open = openTasks();
+  if (!open.length) return '';
+  const top = open.slice().sort((a, b) => taskScore(b) - taskScore(a)).slice(0, 3);
+  return `
+    <div class="section-head"><span class="eyebrow">${esc(t('nav.tasks'))}</span><span class="dim small mono">${open.length} ${esc(t('task.open'))}</span></div>
+    <div class="tasks-mini">${top.map(tk => `
+      <button class="trow-mini tap" data-act="editTaskFromRail" data-id="${tk.id}">
+        <span class="task-check${tk.done_at ? ' on' : ''}"></span>
+        <span class="ttitle-mini${tk.done_at ? ' strike' : ''}">${esc(tk.title)}</span>
+      </button>`).join('')}</div>`;
+}
+
 function spine() {
   const pph = pxPerHour();
   const height = 24 * pph;
@@ -34,6 +122,9 @@ function spine() {
   const focusTop = (S.prefs.focus_start / 60) * pph;
   const focusHeight = Math.max(0, (S.prefs.focus_end - S.prefs.focus_start) / 60 * pph);
   const compact = S.prefs.density === 'compact';
+  // Alternating 2-hour bands, computed here since the CSS has no clean way
+  // to band zero-height, absolutely-positioned hour markers.
+  const band = `repeating-linear-gradient(to bottom, var(--surface-2) 0, var(--surface-2) ${pph}px, transparent ${pph}px, transparent ${pph * 2}px)`;
 
   const hours = Array.from({ length: 25 }, (_, h) => {
     const hide = compact && h % 2 === 1 && h !== 24;
@@ -61,8 +152,8 @@ function spine() {
     const done = isBlockDone(o, S.day);
     return `<button class="block tap${running ? ' running' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
       style="top:${top}px;height:${h}px;left:calc(${o.lane * width}%);width:calc(${width}% - 6px);
-             background:${hexA(color, .16)};border-color:${hexA(color, .42)}">
-      <span class="block-bar" style="background:${color}"></span>
+             background:${color}">
+      <span class="block-bar"></span>
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>
         ${h > 46 ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
@@ -85,7 +176,7 @@ function spine() {
       </button>`;
     }).join('');
 
-  return `<div class="spine" id="spine" style="height:${height}px" data-act="spineTap" data-pph="${pph}">
+  return `<div class="spine" id="spine" style="height:${height}px;background:${band}" data-act="spineTap" data-pph="${pph}">
     <div class="spine-focus" style="top:${focusTop}px;height:${focusHeight}px"></div>
     ${hours}${gaps}${blocks}
     ${isToday ? `<div class="nowline" id="nowline" style="top:${(minutesNow() / 60) * pph}px"><i></i></div>` : ''}
@@ -208,30 +299,14 @@ export default {
                  placeholder="Gym 6–7am · Draft brief tomorrow 45m">
           <button class="btn primary sm" data-act="nlCommit">${esc(t('common.add'))}</button>
         </div>
-        <div class="stat-row">
-          <div class="stat"><div class="stat-n">${esc(fmtDur(committed))}</div><div class="stat-l">${esc(t('today.committed'))}</div></div>
-          <div class="stat"><div class="stat-n good">${esc(fmtDur(free))}</div><div class="stat-l">${esc(t('today.open'))}</div></div>
-        </div>
 
-        <div class="card next">
-          <div class="card-head">
-            <span class="eyebrow">${esc(t('today.nextUp'))}</span>
-            ${next ? (isToday && next.start <= minutesNow()
-              ? `<span class="live">${esc(t('today.nowRunning'))}</span>`
-              : `<span class="dim mono">${esc(fmtTime(next.start, S.prefs.clock24))}</span>`) : ''}
-          </div>
-          ${next ? `
-            <div class="next-title">${esc(next.title)}</div>
-            <div class="next-time mono">${esc(fmtRange(next.start, next.end, S.prefs.clock24))}</div>
-          ` : `<div class="next-empty">${esc(t('today.nothingLeft'))}</div>`}          <div class="btn-row">
-            <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="${next ? esc(next.title) : ''}">${esc(t('today.startFocus'))}</button>
-            ${timer.running || timer.remaining < timer.minutes * 60
-              ? `<button class="btn ghost sm mono" data-act="gotoTimer">${esc(timerChip())}</button>` : ''}
-          </div>
-        </div>
+        ${hero(next, isToday, timer)}
+        ${tileRow(committed)}
 
-        <div class="section-head"><span class="eyebrow">${esc(t('today.yourDay'))}</span></div>
+        <div class="section-head"><span class="eyebrow">${esc(t('today.yourDay'))}</span><span class="dim small mono">${esc(fmtDur(free))} ${esc(t('today.open').toLowerCase())}</span></div>
         ${spine()}
+
+        ${taskListMini()}
       </div>
       ${desktopRail()}
       </div>`;
@@ -275,6 +350,7 @@ function commitNL() {
 
 registerActions({
   nlCommit: () => commitNL(),
+  gotoGoals: () => window.cadenceGoRoute('goals'),
   confirmBlock: (d, node, ev) => {
     ev.stopPropagation();
     playCue('done');
