@@ -1,6 +1,6 @@
 {
-  "version": "2.2.0",
+  "version": "2.2.2",
   "build": "2026-08-19",
-  "notes": "Guest mode, Daybreak redesign, and a round of bug fixes.",
+  "notes": "TEST #2 — retrying the update download with the Share-sheet fix instead of Browser Custom Tabs. Safe to ignore.",
   "apkUrl": "https://marchenry73.github.io/Cadence/downloads/cadence-latest.apk"
 }
