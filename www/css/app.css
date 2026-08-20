@@ -165,6 +165,17 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .tile-label{ font-size:11.5px; font-weight:700; line-height:1.25; }
 .tile-sub{ font-size:10px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
 
+/* -------- "when should I do this?" suggestions -------- */
+.sug-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.sug-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px;
+  border-radius:12px; background:var(--surface-2); border:1px solid var(--border); }
+.sug-main{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.sug-when{ font-size:13.5px; font-weight:700; }
+.sug-why{ font-size:11.5px; color:var(--text-dim); }
+.sug-best{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--accent); background:color-mix(in oklab, var(--accent) 14%, transparent);
+  padding:3px 8px; border-radius:20px; flex-shrink:0; }
+
 /* -------- mini task list: hairline rows on Today, not stacked cards -------- */
 .tasks-mini{ border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; margin-bottom:8px; }
 .trow-mini{ display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:left; }

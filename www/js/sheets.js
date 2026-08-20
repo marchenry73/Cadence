@@ -7,6 +7,7 @@ import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field, guestBlocked } from './ui.js';
 import { uploadImage, deleteImage, pickFile, hydrateImages } from './images.js';
 import { startTimer } from './timer.js';
+import { suggestTimes } from './suggest.js';
 
 let draft = {};
 
@@ -131,6 +132,11 @@ export function openTaskSheet(taskId = null) {
       <div class="field-row">
         ${field(t('task.importance'), rangeInput('importance', task?.importance ?? 5))}
         ${field(t('task.urgency'), rangeInput('urgency', task?.urgency ?? 5))}
+      </div>
+      <div class="field">
+        <span class="field-label">${esc(t('sug.when'))}</span>
+        <button type="button" class="btn ghost sm" data-act="suggestWhen" style="width:100%">${esc(t('sug.find'))}</button>
+        <div id="sugList"></div>
       </div>
       ${field(t('block.notes'), `<textarea class="input" name="notes" rows="2">${esc(task?.notes || '')}</textarea>`)}
       <div class="field">
@@ -443,6 +449,64 @@ export const sheetActions = {
     if (r) save('routines', { id: r.id, skip_dates: [...(r.skip_dates || []), draft.day] });
     haptic('light');
     closeSheet();
+  },
+
+  // Reads the form live rather than the saved task, so suggestions reflect
+  // what you're typing right now — change the estimate, get different slots.
+  suggestWhen: () => {
+    const f = readForm();
+    const host = $('#sugList');
+    if (!host) return;
+    const picks = suggestTimes({
+      title: (f.title || '').trim(),
+      estMin: Number(f.est_min) || 30,
+      dueDate: f.due_date || null,
+      categoryId: f.category_id || null
+    });
+    if (!picks.length) {
+      host.innerHTML = `<p class="dim small" style="margin:8px 0 0">${esc(t('sug.none'))}</p>`;
+      return;
+    }
+    host.innerHTML = `<div class="sug-list">${picks.map((p, i) => `
+      <button type="button" class="sug-row tap" data-act="suggestPick"
+        data-day="${p.day}" data-start="${p.start}" data-end="${p.end}">
+        <span class="sug-main">
+          <span class="sug-when">${esc(dateLabel(p.day, { weekday: 'short', month: 'short', day: 'numeric' }))} · ${esc(fmtTime(p.start, S.prefs.clock24))}</span>
+          <span class="sug-why">${esc(p.why)}</span>
+        </span>
+        ${i === 0 ? '<span class="sug-best">Best</span>' : ''}
+      </button>`).join('')}</div>`;
+    haptic('light');
+  },
+
+  // Accepting a suggestion books the time AND saves the task, so one tap
+  // finishes the job instead of leaving a half-filled form behind.
+  suggestPick: d => {
+    const f = readForm();
+    const title = (f.title || '').trim();
+    if (!title) { toast(t('task.title'), 'warn'); return; }
+    save('tasks', {
+      id: draft.id, title,
+      due_date: f.due_date || null,
+      est_min: Number(f.est_min) || 30,
+      category_id: f.category_id || null,
+      importance: Number(f.importance) || 5,
+      urgency: Number(f.urgency) || 5,
+      checklist: draft.checklist || [],
+      notes: (f.notes || '').trim() || null
+    });
+    save('events', {
+      title, day: d.day,
+      start_min: Number(d.start), end_min: Number(d.end),
+      category_id: f.category_id || null
+    });
+    haptic('success');
+    closeSheet();
+    toast(t('sug.scheduled', {
+      d: dateLabel(d.day, { weekday: 'short' }),
+      t: fmtTime(Number(d.start), S.prefs.clock24)
+    }), 'good');
+    window.cadenceRerender();
   },
 
   taskSave: () => {

@@ -11,7 +11,7 @@ const SHELL = [
   './js/state.js', './js/i18n.js', './js/ui.js', './js/auth.js', './js/org.js',
   './js/images.js', './js/support.js', './js/timer.js', './js/sheets.js',
   './js/ics.js', './js/onboarding.js', './js/notify.js',
-  './js/gamify.js', './js/ideal.js', './js/google.js', './js/update.js',
+  './js/gamify.js', './js/ideal.js', './js/google.js', './js/update.js', './js/suggest.js',
   './js/view.today.js', './js/view.calendar.js', './js/view.tasks.js',
   './js/view.goals.js', './js/view.review.js', './js/view.team.js', './js/view.settings.js'
 ];

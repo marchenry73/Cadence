@@ -104,6 +104,10 @@ export const EN = {
   'auth.checking': 'Checking', 'auth.taken': 'Taken', 'auth.free': 'Available',
   'auth.continueGuest': 'Continue as guest',
 
+  'sug.when': 'When should I do this?', 'sug.find': 'Find me a time',
+  'sug.none': 'No open slot big enough in the next week — try a shorter estimate.',
+  'sug.scheduled': 'Scheduled {d} at {t}',
+
   'app.guest': 'Guest — not saved',
   'guest.blocked': 'Create an account for this',
   'guest.bannerTitle': "You're browsing as a guest",
