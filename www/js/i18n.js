@@ -108,6 +108,12 @@ export const EN = {
   'sug.none': 'No open slot big enough in the next week — try a shorter estimate.',
   'sug.scheduled': 'Scheduled {d} at {t}',
 
+  'gsync.paused': 'Google Calendar sync paused',
+  'gsync.pausedWhy': 'Google signs you out of calendar access after about an hour. Your changes are saved and will sync as soon as you reconnect.',
+  'gsync.reconnect': 'Reconnect Google',
+  'gsync.needsConsent': 'Cadence needs permission to use your Google Calendar.',
+  'gsync.apiDisabled': 'Turn on the Google Calendar API in Google Cloud to sync.',
+
   'app.guest': 'Guest — not saved',
   'guest.blocked': 'Create an account for this',
   'guest.bannerTitle': "You're browsing as a guest",

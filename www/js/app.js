@@ -15,9 +15,10 @@ import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
 import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
-import { syncGoogleCalendar } from './google.js';
+import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock } from './google.js';
+import { requestGoogleCalendarAccess } from './auth.js';
 import { openQuickAdd } from './sheets.js';
-import { debounce } from './util.js';
+import { debounce, esc } from './util.js';
 
 import viewToday from './view.today.js';
 import viewCalendar from './view.calendar.js';
@@ -94,9 +95,9 @@ async function afterSignIn() {
   // launch, then on its own schedule and whenever the device reconnects.
   // syncGoogleCalendar() no-ops safely when the user is not signed in with
   // Google, so this costs nothing for password accounts.
-  syncGoogleCalendar({ force: true }).catch(() => {});
-  setInterval(() => { syncGoogleCalendar().catch(() => {}); }, 5 * 60 * 1000);
-  window.addEventListener('online', () => syncGoogleCalendar().catch(() => {}));
+  syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {});
+  setInterval(() => { syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}); }, 5 * 60 * 1000);
+  window.addEventListener('online', () => syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}));
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
   startReminderWatch();
   awardDailyLogin();
@@ -203,6 +204,7 @@ function renderShell() {
           <h1 id="routeTitle"></h1>
           <span class="sync-pill${S.guest ? ' guest' : ''}" id="syncPill"><i class="dot"></i><span id="syncLabel">${S.guest ? t('app.guest') : t('app.synced')}</span></span>
         </div>
+        <div id="gsyncBanner"></div>
         <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
       </div>
     </div>
@@ -264,6 +266,35 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
   if (S.prefs.theme === 'system') applyTheme();
 });
 
+
+// ---------------------------------------------------------- sync banner
+//
+// Google access expires after about an hour and Supabase does not refresh
+// it, so sync quietly stops. Quietly is the problem: changes still save
+// locally and flush on reconnect, but with no signal people reasonably
+// assume it is broken. This makes the pause visible and one tap to fix.
+function renderGoogleBanner() {
+  const host = $('#gsyncBanner');
+  if (!host) return;
+  const why = googleSyncBlockedReason();
+  if (!why) { host.innerHTML = ''; return; }
+
+  const body = why === 'expired' ? t('gsync.pausedWhy')
+    : why === 'needs-calendar-consent' ? t('gsync.needsConsent')
+    : t('gsync.apiDisabled');
+  // Only expiry and missing consent are fixable by tapping; a disabled API
+  // has to be turned on in Google Cloud, so offering a button would lie.
+  const canReconnect = why === 'expired' || why === 'needs-calendar-consent';
+
+  host.innerHTML = `<div class="gsync-banner">
+    <div class="gsync-main">
+      <div class="gsync-title">${esc(t('gsync.paused'))}</div>
+      <div class="gsync-body">${esc(body)}</div>
+    </div>
+    ${canReconnect ? `<button class="btn primary sm" data-act="reconnectGoogle">${esc(t('gsync.reconnect'))}</button>` : ''}
+  </div>`;
+}
+
 function updateSyncPill({ state, pending }) {
   const pill = $('#syncPill'), label = $('#syncLabel');
   if (!pill) return;
@@ -291,9 +322,20 @@ function awardDailyLogin() {
 window.cadenceGoRoute = go;
 window.cadenceGoDay = (day, route) => { S.day = day; if (route) go(route); else renderRoute(0, true); };
 window.cadenceRerender = () => renderRoute(0, true);
+window.cadenceRenderGoogleBanner = renderGoogleBanner;
 window.cadenceApplyAccent = c => document.documentElement.style.setProperty('--accent', c);
 
 registerActions({
+  // Re-running consent upgrades the SAME Google account rather than making
+  // a second one, and clearing the latch lets the very next tick retry.
+  reconnectGoogle: async () => {
+    try {
+      await requestGoogleCalendarAccess();
+      resetGoogleSyncBlock();
+      await syncGoogleCalendar({ force: true });
+    } catch { toast(t('msg.somethingWrong'), 'warn'); }
+    renderGoogleBanner();
+  },
   goTab: d => { haptic('light'); go(d.route); },
   quickAdd: () => { haptic('light'); openQuickAdd(); }
 });
