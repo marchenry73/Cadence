@@ -220,17 +220,34 @@ export function requestGoogleCalendarAccess() {
 let cachedToken = null;      // { token, expiresAt }
 
 // Google issues the refresh token exactly once, on the FIRST consent with
-// access_type=offline. Miss it and there is nothing to refresh with, which
-// is why this runs on every sign-in rather than only on the first.
-export async function captureGoogleRefreshToken() {
-  const { data } = await sb.auth.getSession();
-  const session = data?.session;
-  const refresh = session?.provider_refresh_token;
-  if (!refresh || !session?.user?.id) return false;
+// access_type=offline, and Supabase surfaces it ONLY on the session object
+// handed to the auth-state listener — it is never persisted to storage, so
+// by the next page load it is gone for good.
+//
+// The first version of this called getSession() during boot and quietly
+// found nothing, because by then the value had already been dropped. It
+// now takes the session directly from the SIGNED_IN event, which is the
+// one moment the token is guaranteed to exist.
+//
+// Returns a reason rather than a bare boolean: a silent false here is
+// indistinguishable from "worked", and this failing is exactly what makes
+// sync start nagging for a reconnect later.
+export async function captureGoogleRefreshToken(session = null) {
+  if (!session) {
+    const { data } = await sb.auth.getSession();
+    session = data?.session;
+  }
+  if (!session?.user?.id) return { ok: false, reason: 'no_session' };
+  const refresh = session.provider_refresh_token;
+  // A password sign-in legitimately has none; so does a Google sign-in where
+  // Google decided not to re-issue one (it only does so with prompt=consent).
+  if (!refresh) return { ok: false, reason: 'no_refresh_token_in_session' };
+
   const { error } = await sb.from('google_tokens')
     .upsert({ user_id: session.user.id, refresh_token: refresh, updated_at: new Date().toISOString() },
             { onConflict: 'user_id' });
-  return !error;
+  if (error) return { ok: false, reason: 'write_failed', detail: error.message };
+  return { ok: true, reason: 'stored' };
 }
 
 // Why the last refresh failed, so a caller can tell a permanent problem

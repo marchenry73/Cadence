@@ -86,7 +86,17 @@ async function afterSignIn() {
   }
   renderRoute(0);
 
-  onAuthChange((event) => { if (event === 'SIGNED_OUT') location.reload(); });
+  onAuthChange((event, session) => {
+    if (event === 'SIGNED_OUT') { location.reload(); return; }
+    // SIGNED_IN is the only moment provider_refresh_token exists — Supabase
+    // never persists it, so missing this event means never getting another
+    // chance without a fresh consent.
+    if (event === 'SIGNED_IN' && session) {
+      captureGoogleRefreshToken(session)
+        .then(r => { if (r?.ok) { resetGoogleSyncBlock(); syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {}); } })
+        .catch(() => {});
+    }
+  });
   onSyncState(updateSyncPill);
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
