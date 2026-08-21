@@ -4,7 +4,7 @@ import { S, savePrefs, categories, save, remove } from './state.js';
 import { t, LANGS, setLang } from './i18n.js';
 import { esc } from './util.js';
 import { ACCENTS } from './config.js';
-import { signOut, deleteAccount, saveProfile } from './auth.js';
+import { signOut, deleteAccount, saveProfile, requestGoogleCalendarAccess } from './auth.js';
 import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus, ticketThread, replyToTicket } from './support.js';
 import { storageUsed } from './images.js';
@@ -277,7 +277,17 @@ registerActions({
       haptic('success');
       toast(n ? `${n} events imported from Google` : 'Nothing new to import', n ? 'good' : 'warn');
       window.cadenceRerender();
-    } catch (err) { toast(err.message || t('msg.somethingWrong'), 'warn'); }
+    } catch (err) {
+      // First import after signing in: the account is connected but has
+      // never granted calendar access, so ask for it now rather than
+      // showing an error the user cannot act on.
+      if (err?.code === 'needs-calendar-consent') {
+        toast('Grant calendar access to import', 'warn');
+        try { await requestGoogleCalendarAccess(); } catch { toast(t('msg.somethingWrong'), 'warn'); }
+      } else {
+        toast(err.message || t('msg.somethingWrong'), 'warn');
+      }
+    }
     finally { node.removeAttribute('disabled'); }
   },
 

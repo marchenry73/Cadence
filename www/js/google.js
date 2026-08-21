@@ -36,7 +36,32 @@ export async function importGoogle({ calendarId = 'primary', days = 30 } = {}) {
     + `&singleEvents=true&orderBy=startTime&maxResults=250`;
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error(res.status === 401 ? 'Google session expired — sign in again' : 'Google refused the request');
+  if (!res.ok) {
+    // A 403 here has two very different causes needing different fixes, so
+    // read the body rather than guessing:
+    //   missing scope       -> the user never granted calendar access
+    //   accessNotConfigured -> the Calendar API is off in Google Cloud
+    // Treating the second as the first would send someone into a re-consent
+    // loop that can never succeed.
+    if (res.status === 403) {
+      let detail = '';
+      try {
+        const body = await res.json();
+        detail = [body?.error?.errors?.[0]?.reason, body?.error?.status, body?.error?.message]
+          .filter(Boolean).join(' ');
+      } catch { /* non-JSON body — fall through to the consent case */ }
+
+      if (/accessNotConfigured|SERVICE_DISABLED|has not been used in project/i.test(detail)) {
+        const e = new Error('Turn on the Google Calendar API in Google Cloud, then try again');
+        e.code = 'calendar-api-disabled';
+        throw e;
+      }
+      const e = new Error('needs-calendar-consent');
+      e.code = 'needs-calendar-consent';
+      throw e;
+    }
+    throw new Error(res.status === 401 ? 'Google session expired — sign in again' : 'Google refused the request');
+  }
   const json = await res.json();
 
   const existing = new Map(mine('events').filter(e => e.external_id).map(e => [e.external_id, e]));

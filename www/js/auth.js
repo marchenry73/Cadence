@@ -105,23 +105,107 @@ export async function deleteAccount() {
 
 
 // ------------------------------------------------------------------ OAuth
-// Google sign-in. Enable the provider once in Supabase (Authentication ->
-// Providers -> Google) and this works on web and in the Android WebView.
-// Redirect comes back to wherever the app is running, so no per-build config.
-export async function signInWithProvider(provider = 'google') {
+//
+// Google refuses to run OAuth inside an embedded WebView (it returns
+// disallowed_useragent), which is exactly what the Capacitor Android build
+// is. So the two platforms take different routes to the same place:
+//
+//   web     — ordinary redirect in the current tab, back to the app URL.
+//   native  — open the consent screen in a REAL browser tab, then catch the
+//             redirect coming back through the app's custom URL scheme and
+//             install the session by hand.
+//
+// The native path needs `com.yourname.kingdomos://auth` allowlisted under
+// Supabase → Authentication → URL Configuration → Redirect URLs, and the
+// matching BROWSABLE intent-filter in AndroidManifest.xml.
+const NATIVE_REDIRECT = 'com.yourname.kingdomos://auth';
+
+const isNative = () => !!window.Capacitor?.isNativePlatform?.();
+
+// Google only needs email+profile to identify someone. calendar.readonly is
+// a *sensitive* scope: asking for it here would drag the whole sign-in flow
+// into Google's verification review, so it is requested separately, later,
+// only if the user actually imports a calendar.
+const GOOGLE_SCOPES = 'email profile';
+
+export async function signInWithProvider(provider = 'google', { extraScopes = '' } = {}) {
+  const options = {
+    redirectTo: isNative() ? NATIVE_REDIRECT : location.origin + location.pathname,
+    scopes: provider === 'google' ? (GOOGLE_SCOPES + (extraScopes ? ' ' + extraScopes : '')) : undefined,
+    queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined
+  };
+
+  if (!isNative()) {
+    const { data, error } = await sb.auth.signInWithOAuth({ provider, options });
+    if (error) throw error;
+    return data;
+  }
+
+  // Native: ask Supabase for the URL instead of letting it navigate the
+  // WebView, then hand that URL to the system browser.
   const { data, error } = await sb.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: location.origin + location.pathname,
-      // Calendar scope is requested up front so the same consent covers
-      // reading the user's Google Calendar later.
-      scopes: provider === 'google'
-        ? 'email profile https://www.googleapis.com/auth/calendar.readonly' : undefined,
-      queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined
-    }
+    provider, options: { ...options, skipBrowserRedirect: true }
   });
   if (error) throw error;
-  return data;
+  if (!data?.url) throw new Error('Could not start Google sign-in');
+
+  const { Browser, App } = window.Capacitor.Plugins;
+  const session = await new Promise((resolve, reject) => {
+    let settled = false;
+    let handle = null;
+    const finish = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      handle?.remove?.();
+      Browser?.close?.().catch(() => {});
+      fn(arg);
+    };
+
+    App.addListener('appUrlOpen', async ({ url }) => {
+      if (!url || !url.startsWith(NATIVE_REDIRECT)) return;
+      try {
+        // Supabase returns either ?code=... (PKCE) or #access_token=...
+        const u = new URL(url);
+        const hash = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+        const err = u.searchParams.get('error_description') || hash.get('error_description');
+        if (err) return finish(reject, new Error(err));
+
+        const code = u.searchParams.get('code');
+        if (code) {
+          const r = await sb.auth.exchangeCodeForSession(code);
+          if (r.error) return finish(reject, r.error);
+          return finish(resolve, r.data.session);
+        }
+        const access_token = hash.get('access_token');
+        const refresh_token = hash.get('refresh_token');
+        if (access_token && refresh_token) {
+          const r = await sb.auth.setSession({ access_token, refresh_token });
+          if (r.error) return finish(reject, r.error);
+          return finish(resolve, r.data.session);
+        }
+        finish(reject, new Error('Google sign-in returned nothing usable'));
+      } catch (e) {
+        finish(reject, e);
+      }
+    }).then(h => {
+      handle = h;
+      // If the listener registered only after the redirect already fired,
+      // the promise would hang forever — bail out rather than freeze.
+      if (settled) h.remove?.();
+    });
+
+    Browser.open({ url: data.url }).catch(e => finish(reject, e));
+  });
+
+  return { session, user: session?.user || null };
+}
+
+// Calendar access is asked for only when someone actually imports a
+// calendar — a second, narrower consent rather than a scary one at
+// sign-up. Re-running OAuth with the extra scope upgrades the same
+// account; it does not create a second one.
+export function requestGoogleCalendarAccess() {
+  return signInWithProvider('google', { extraScopes: 'https://www.googleapis.com/auth/calendar.readonly' });
 }
 
 // The Google access token Supabase hands back after OAuth — what a live
