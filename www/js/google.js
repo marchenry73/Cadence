@@ -7,6 +7,7 @@
 // import button. Password accounts fall back to the .ics import.
 import { S, save, remove, mine, setLocalDeleteHook } from './state.js';
 import { providerToken } from './auth.js';
+import { sb } from './net.js';
 import { todayISO, addDays } from './util.js';
 import { metaGet, metaSet } from './idb.js';
 
@@ -68,11 +69,29 @@ export async function importGoogle({ calendarId = 'primary', days = 30, marks = 
   }
   const json = await res.json();
 
+  // Routines we pushed up live in Google as recurring events, and the pull
+  // asks for singleEvents=true — so Google expands each one into dozens of
+  // individual instances. Importing those would duplicate every routine as
+  // a pile of one-off blocks sitting on top of the routine itself, so any
+  // instance belonging to a routine we own is skipped here.
+  const ownRoutineGoogleIds = new Set(mine('routines')
+    .map(r => String(r.external_id || ''))
+    .filter(x => x.startsWith('g:'))
+    .map(x => x.slice(2)));
+
   const existing = new Map(mine('events').filter(e => e.external_id).map(e => [e.external_id, e]));
   const seen = new Set();
   let n = 0;
   (json.items || []).forEach(ev => {
     if (!ev.start?.dateTime || !ev.end?.dateTime || ev.status === 'cancelled') return;
+    if (ev.recurringEventId && ownRoutineGoogleIds.has(ev.recurringEventId)) return;
+    // A master recurring event is the routine itself, not a block on a day.
+    // Importing it as a one-off would collide with the routine that owns it
+    // and leave both halves fighting over the same external_id forever.
+    // (singleEvents=true usually means Google returns only instances, but
+    // relying on that is how the fight starts again if it ever changes.)
+    if (Array.isArray(ev.recurrence) && ev.recurrence.length) return;
+    if (ownRoutineGoogleIds.has(ev.id)) return;
     const s = new Date(ev.start.dateTime), e = new Date(ev.end.dateTime);
     const day = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, '0')}-${String(s.getDate()).padStart(2, '0')}`;
     const start = s.getHours() * 60 + s.getMinutes();
@@ -247,8 +266,10 @@ async function pushLocalChanges(token, calendarId, marks) {
         if (!res.ok) continue;
         const created = await res.json();
         const newExt = 'g:' + created.id;
-        save('events', { id: ev.id, external_id: newExt }, { silent: true });
-        marks[newExt] = { g: created.updated || '', l: localStamp };
+        const row = save('events', { id: ev.id, external_id: newExt }, { silent: true });
+        // save() bumps updated_at, so mark against the POST-save stamp or the
+        // next sync sees a phantom local change and PATCHes for nothing.
+        marks[newExt] = { g: created.updated || '', l: row.updated_at || '' };
         pushed++;
       } catch { /* offline or refused — next sync retries */ }
       continue;
@@ -262,6 +283,113 @@ async function pushLocalChanges(token, calendarId, marks) {
     try {
       const res = await gfetch(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(gid(ext))}`, {
         method: 'PATCH', body: JSON.stringify(toGoogleBody(ev))
+      });
+      if (!res.ok) continue;
+      const updated = await res.json();
+      marks[ext] = { g: updated.updated || '', l: localStamp };
+      pushed++;
+    } catch { /* retry next sync */ }
+  }
+
+  return pushed;
+}
+
+
+// ------------------------------------------------------- routines -> Google
+//
+// A Cadence routine ("gym, weekdays, 6-6:45") maps onto a single recurring
+// Google event with an RRULE, not 250 copies.
+//
+// This half stays dormant until routines.external_id exists in the database
+// (supabase-schema-v7-two-way-sync.sql). Without that column there is nowhere
+// to persist which Google event a routine maps to, and every sync would
+// create a fresh duplicate. Rather than fail loudly or corrupt the calendar,
+// it probes once and switches itself on when the column appears.
+const DOW = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+
+let routineColumn = null;   // null = unknown, true/false once probed
+
+async function routinesSupportSync() {
+  if (routineColumn !== null) return routineColumn;
+  try {
+    const { error } = await sb.from('routines').select('external_id').limit(1);
+    // 42703 = undefined_column. Anything else (including RLS returning no
+    // rows) means the column is there.
+    routineColumn = !(error && (error.code === '42703' || /external_id/.test(error.message || '')));
+  } catch {
+    routineColumn = false;
+  }
+  return routineColumn;
+}
+
+// Lets the app re-probe after the migration is applied without a reinstall.
+export function resetRoutineSyncProbe() { routineColumn = null; }
+
+function toRecurrence(routine) {
+  const days = (routine.days || []).map(d => DOW[d]).filter(Boolean);
+  if (!days.length) return null;
+  return [`RRULE:FREQ=WEEKLY;BYDAY=${days.join(',')}`];
+}
+
+// A recurring event still needs a concrete first occurrence. Anchor it to the
+// next day that actually matches the routine's weekday set, so Google does not
+// invent an instance on a day the routine never runs.
+function firstOccurrence(routine) {
+  const days = routine.days || [];
+  if (!days.length) return null;
+  for (let i = 0; i < 14; i++) {
+    const day = addDays(todayISO(), i);
+    const [y, m, d] = day.split('-').map(Number);
+    if (days.includes(new Date(y, m - 1, d).getDay())) return day;
+  }
+  return null;
+}
+
+function routineBody(routine) {
+  const recurrence = toRecurrence(routine);
+  const day = firstOccurrence(routine);
+  if (!recurrence || !day) return null;
+  const [y, m, d] = day.split('-').map(Number);
+  const endMin = Math.max(routine.start_min + 5, routine.end_min);
+  return {
+    summary: routine.title || 'Routine',
+    description: routine.notes || undefined,
+    start: { dateTime: new Date(y, m - 1, d, Math.floor(routine.start_min / 60), routine.start_min % 60).toISOString() },
+    end: { dateTime: new Date(y, m - 1, d, Math.floor(endMin / 60), endMin % 60).toISOString() },
+    recurrence
+  };
+}
+
+async function pushRoutines(token, calendarId, marks) {
+  if (!(await routinesSupportSync())) return 0;
+  let pushed = 0;
+
+  for (const r of mine('routines')) {
+    const body = routineBody(r);
+    if (!body) continue;                      // no weekdays set — nothing to express
+    const ext = String(r.external_id || '');
+    const localStamp = r.updated_at || '';
+
+    if (!ext) {
+      try {
+        const res = await gfetch(token, `/calendars/${encodeURIComponent(calendarId)}/events`, {
+          method: 'POST', body: JSON.stringify(body)
+        });
+        if (!res.ok) continue;
+        const created = await res.json();
+        const newExt = 'g:' + created.id;
+        const row = save('routines', { id: r.id, external_id: newExt }, { silent: true });
+        marks[newExt] = { g: created.updated || '', l: row.updated_at || '' };
+        pushed++;
+      } catch { /* retry next sync */ }
+      continue;
+    }
+
+    if (!ext.startsWith('g:')) continue;
+    if (marks[ext] && marks[ext].l === localStamp) continue;   // unchanged here
+    try {
+      const res = await gfetch(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(gid(ext))}`, {
+        method: 'PATCH', body: JSON.stringify(body)
       });
       if (!res.ok) continue;
       const updated = await res.json();
@@ -320,10 +448,11 @@ export async function syncGoogleCalendar({ force = false } = {}) {
     // that just came down from being sent straight back up again.
     const pulled = await importGoogle({ days: 30, marks });
     const pushed = await pushLocalChanges(token, 'primary', marks);
+    const pushedRoutines = await pushRoutines(token, 'primary', marks);
     await saveMarks(marks);
     lastSyncAt = Date.now();
     blocked = null;
-    return pulled + pushed;
+    return pulled + pushed + pushedRoutines;
   } catch (err) {
     if (err?.code === 'needs-calendar-consent') blocked = 'needs-calendar-consent';
     else if (err?.code === 'calendar-api-disabled') blocked = 'calendar-api-disabled';
