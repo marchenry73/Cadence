@@ -1,6 +1,6 @@
 {
-  "version": "2.3.0",
+  "version": "2.4.0",
   "build": "2026-08-20",
-  "notes": "Redesigned home screen, and a new \"Find me a time\" button that picks the best slot for a task.",
+  "notes": "Google sign-in, and Google Calendar now syncs automatically in the background.",
   "apkUrl": "https://marchenry73.github.io/Cadence/downloads/cadence-latest.apk"
 }

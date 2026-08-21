@@ -15,6 +15,7 @@ import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
 import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
+import { syncGoogleCalendar } from './google.js';
 import { openQuickAdd } from './sheets.js';
 import { debounce } from './util.js';
 
@@ -88,6 +89,14 @@ async function afterSignIn() {
   onSyncState(updateSyncPill);
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
+
+  // Google Calendar keeps itself current in the background: once on
+  // launch, then on its own schedule and whenever the device reconnects.
+  // syncGoogleCalendar() no-ops safely when the user is not signed in with
+  // Google, so this costs nothing for password accounts.
+  syncGoogleCalendar({ force: true }).catch(() => {});
+  setInterval(() => { syncGoogleCalendar().catch(() => {}); }, 5 * 60 * 1000);
+  window.addEventListener('online', () => syncGoogleCalendar().catch(() => {}));
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
   startReminderWatch();
   awardDailyLogin();

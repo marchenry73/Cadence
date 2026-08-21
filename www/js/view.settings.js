@@ -9,7 +9,7 @@ import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus, ticketThread, replyToTicket } from './support.js';
 import { storageUsed } from './images.js';
 import { openIdealSheet, idealIsSet, ideal } from './ideal.js';
-import { importGoogle, googleConnected } from './google.js';
+import { googleConnected, syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock } from './google.js';
 import { downloadICS, pickICSFile, parseICS, importICSEvents } from './ics.js';
 import { TONES, playTone, requestNotifications, notificationsAllowed, shadeEnabled, setShade, postTaskSummary, isNative } from './notify.js';
 import { openTasks } from './state.js';
@@ -109,9 +109,9 @@ export default {
 
       <div class="section-head"><span class="eyebrow">${esc(t('nav.calendar'))} — import &amp; share</span></div>
       <div class="card">
-        <p class="dim small">Works with Google Calendar, Outlook and Apple Calendar through .ics files.</p>
+        <p class="dim small">Google Calendar syncs on its own in the background once connected. Outlook and Apple Calendar come in through .ics files.</p>
         <div class="btn-stack">
-          <button class="btn ghost" id="gcalBtn" style="display:none" data-act="importGoogleCal">Import from Google Calendar</button>
+          <button class="btn ghost" id="gcalBtn" style="display:none" data-act="importGoogleCal">Sync Google Calendar now</button>
           <button class="btn ghost" data-act="importCalendar">Import a calendar (.ics)</button>
           <button class="btn ghost" data-act="exportCalendar">Export / share my calendar (.ics)</button>
         </div>
@@ -273,24 +273,30 @@ registerActions({
   importGoogleCal: async (d, node) => {
     node.setAttribute('disabled', 'true');
     try {
-      const n = await importGoogle({ days: 30 });
-      haptic('success');
-      toast(n ? `${n} events imported from Google` : 'Nothing new to import', n ? 'good' : 'warn');
-      window.cadenceRerender();
-    } catch (err) {
-      // First import after signing in: the account is connected but has
-      // never granted calendar access, so ask for it now rather than
-      // showing an error the user cannot act on.
-      if (err?.code === 'needs-calendar-consent') {
-        toast('Grant calendar access to import', 'warn');
-        try { await requestGoogleCalendarAccess(); } catch { toast(t('msg.somethingWrong'), 'warn'); }
+      // force: bypasses both the 10-minute throttle and any latched failure,
+      // since pressing the button is an explicit "try again right now".
+      const n = await syncGoogleCalendar({ force: true });
+      const why = googleSyncBlockedReason();
+      if (why === 'needs-calendar-consent') {
+        toast('Grant calendar access to sync', 'warn');
+        try {
+          await requestGoogleCalendarAccess();
+          resetGoogleSyncBlock();
+        } catch { toast(t('msg.somethingWrong'), 'warn'); }
+      } else if (why === 'calendar-api-disabled') {
+        toast('Turn on the Google Calendar API in Google Cloud, then retry', 'warn');
+      } else if (why === 'expired') {
+        toast('Google session expired — sign in with Google again', 'warn');
       } else {
-        toast(err.message || t('msg.somethingWrong'), 'warn');
+        haptic('success');
+        toast(n ? `${n} events synced from Google` : 'Already up to date', 'good');
+        window.cadenceRerender();
       }
+    } catch (err) {
+      toast(err.message || t('msg.somethingWrong'), 'warn');
     }
     finally { node.removeAttribute('disabled'); }
   },
-
   editNickname: () => { window.cadenceGoRoute('settings'); setTimeout(() => document.querySelector('input[name=nickname]')?.focus(), 400); },
 
   openMyTickets: async () => {
