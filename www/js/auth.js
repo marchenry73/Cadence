@@ -1,6 +1,7 @@
 // Authentication and the account lifecycle, including real self-service
 // deletion (a Play Store and GDPR requirement, and simply the right thing).
 import { sb, rpc, flush } from './net.js';
+import { CONFIG } from './config.js';
 import { S, notify } from './state.js';
 import { idb, metaSet } from './idb.js';
 
@@ -210,7 +211,74 @@ export function requestGoogleCalendarAccess() {
 
 // The Google access token Supabase hands back after OAuth — what a live
 // calendar import needs. Null when the user signed in with a password.
-export async function providerToken() {
+//
+// Supabase never refreshes this, and Google expires it after about an
+// hour, so a session token alone means sync dies quietly after one hour.
+// When it runs out we trade the stored refresh token for a fresh one via
+// the google-token Edge Function (the exchange needs the Google client
+// secret, which must never reach a browser).
+let cachedToken = null;      // { token, expiresAt }
+
+// Google issues the refresh token exactly once, on the FIRST consent with
+// access_type=offline. Miss it and there is nothing to refresh with, which
+// is why this runs on every sign-in rather than only on the first.
+export async function captureGoogleRefreshToken() {
   const { data } = await sb.auth.getSession();
-  return data?.session?.provider_token || null;
+  const session = data?.session;
+  const refresh = session?.provider_refresh_token;
+  if (!refresh || !session?.user?.id) return false;
+  const { error } = await sb.from('google_tokens')
+    .upsert({ user_id: session.user.id, refresh_token: refresh, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' });
+  return !error;
+}
+
+// Why the last refresh failed, so a caller can tell a permanent problem
+// (nothing stored, access revoked -> the user must reconnect) from a
+// transient one (function down, no network -> just try again shortly).
+// Latching sync off for a transient blip would demand a pointless tap.
+let lastRefreshFailure = null;   // 'needs_consent' | 'transient' | null
+export function googleRefreshFailureReason() { return lastRefreshFailure; }
+
+async function refreshViaEdge() {
+  const { data } = await sb.auth.getSession();
+  const jwt = data?.session?.access_token;
+  if (!jwt) return null;
+  try {
+    const res = await fetch(`${CONFIG.supabaseUrl}/functions/v1/google-token`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      // 404 covers both "never stored" and "revoked", and neither is fixable
+      // by retrying — only by asking the user for consent again.
+      lastRefreshFailure = res.status === 404 ? 'needs_consent' : 'transient';
+      return null;
+    }
+    const body = await res.json();
+    if (!body?.access_token) { lastRefreshFailure = 'transient'; return null; }
+    // Expire our copy a minute early so a token never dies mid-request.
+    cachedToken = {
+      token: body.access_token,
+      expiresAt: Date.now() + Math.max(0, (Number(body.expires_in) || 3600) - 60) * 1000
+    };
+    lastRefreshFailure = null;
+    return cachedToken.token;
+  } catch {
+    lastRefreshFailure = 'transient';   // network blip, not a consent problem
+    return null;
+  }
+}
+
+export async function providerToken({ forceRefresh = false } = {}) {
+  if (!forceRefresh && cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.token;
+  if (forceRefresh) cachedToken = null;
+  if (!forceRefresh) {
+    // Right after sign-in the session token is real and unexpired — use it
+    // rather than burning an Edge Function call on every sync.
+    const { data } = await sb.auth.getSession();
+    const fromSession = data?.session?.provider_token;
+    if (fromSession) return fromSession;
+  }
+  return await refreshViaEdge();
 }

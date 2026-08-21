@@ -6,7 +6,7 @@
 // Google events simply appear rather than waiting for anyone to press an
 // import button. Password accounts fall back to the .ics import.
 import { S, save, remove, mine, setLocalDeleteHook } from './state.js';
-import { providerToken } from './auth.js';
+import { providerToken, googleRefreshFailureReason } from './auth.js';
 import { sb } from './net.js';
 import { todayISO, addDays } from './util.js';
 import { metaGet, metaSet } from './idb.js';
@@ -31,8 +31,10 @@ export async function googleCalendars() {
 // Pulls timed events from a calendar into Cadence blocks. All-day events are
 // skipped: a 24-hour block would swamp the day's spine and say nothing.
 // Re-importing is safe — an event already imported is updated, not duplicated.
-export async function importGoogle({ calendarId = 'primary', days = 30, marks = {} } = {}) {
-  const token = await providerToken();
+export async function importGoogle({ calendarId = 'primary', days = 30, marks = {}, token = null } = {}) {
+  // The caller passes a token when it is retrying with a freshly refreshed
+  // one; on its own it just asks for the current one.
+  if (!token) token = await providerToken();
   if (!token) throw new Error('Sign in with Google first');
   const from = new Date(); from.setHours(0, 0, 0, 0);
   const to = new Date(from.getTime() + days * 864e5);
@@ -437,22 +439,44 @@ export async function syncGoogleCalendar({ force = false } = {}) {
   if (blocked && !force) return 0;
   if (!force && Date.now() - lastSyncAt < SYNC_EVERY_MS) return 0;
 
-  const token = await providerToken();
+  let token = await providerToken();
   if (!token) return 0;          // password account, or not signed in with Google
 
   inFlight = true;
   try {
     const marks = await loadMarks();
+    // A 401 means the hour is up. Mint a fresh token via the Edge Function
+    // and retry once, so an expiry costs a round trip instead of stopping
+    // sync until the user notices and reconnects by hand.
+    const runPass = async (tk) => {
+      const pulled = await importGoogle({ days: 30, marks, token: tk });
+      const pushed = await pushLocalChanges(tk, 'primary', marks);
+      const pushedRoutines = await pushRoutines(tk, 'primary', marks);
+      return pulled + pushed + pushedRoutines;
+    };
     // Pull first so the push sees the freshest remote state, then push local
     // work up. Both directions share `marks`, which is what stops a change
     // that just came down from being sent straight back up again.
-    const pulled = await importGoogle({ days: 30, marks });
-    const pushed = await pushLocalChanges(token, 'primary', marks);
-    const pushedRoutines = await pushRoutines(token, 'primary', marks);
+    let total;
+    try {
+      total = await runPass(token);
+    } catch (err) {
+      if (!/expired/i.test(err?.message || '')) throw err;
+      const fresh = await providerToken({ forceRefresh: true });
+      if (!fresh) {
+        // A transient failure must not latch sync off — that would turn a
+        // brief outage into a banner demanding a tap that fixes nothing.
+        // Returning quietly lets the next tick retry on its own.
+        if (googleRefreshFailureReason() === 'transient') return 0;
+        throw err;                           // genuinely needs re-consent
+      }
+      token = fresh;
+      total = await runPass(token);          // a second failure is real
+    }
     await saveMarks(marks);
     lastSyncAt = Date.now();
     blocked = null;
-    return pulled + pushed + pushedRoutines;
+    return total;
   } catch (err) {
     if (err?.code === 'needs-calendar-consent') blocked = 'needs-calendar-consent';
     else if (err?.code === 'calendar-api-disabled') blocked = 'calendar-api-disabled';

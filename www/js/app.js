@@ -16,7 +16,7 @@ import { startReminderWatch } from './notify.js';
 import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
 import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock } from './google.js';
-import { requestGoogleCalendarAccess } from './auth.js';
+import { requestGoogleCalendarAccess, captureGoogleRefreshToken } from './auth.js';
 import { openQuickAdd } from './sheets.js';
 import { debounce, esc } from './util.js';
 
@@ -95,6 +95,9 @@ async function afterSignIn() {
   // launch, then on its own schedule and whenever the device reconnects.
   // syncGoogleCalendar() no-ops safely when the user is not signed in with
   // Google, so this costs nothing for password accounts.
+  // Google issues the refresh token only on the first consent, so grab it
+  // whenever a session has one before the value is gone for good.
+  captureGoogleRefreshToken().catch(() => {});
   syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {});
   setInterval(() => { syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}); }, 5 * 60 * 1000);
   window.addEventListener('online', () => syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}));
