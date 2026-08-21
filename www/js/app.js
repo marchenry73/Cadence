@@ -58,6 +58,24 @@ function icon(name) {
 async function boot() {
   await setLang(navigator.language?.slice(0, 2) || 'en');
   initNet();
+
+  // Registered IMMEDIATELY after the client exists, and deliberately before
+  // any await. detectSessionInUrl means supabase-js starts consuming the
+  // OAuth callback the moment it is constructed and fires SIGNED_IN from
+  // that work — the previous version registered this inside afterSignIn(),
+  // several awaits later, so the event had already come and gone and the
+  // refresh token was lost with it. This is the only shot at capturing it.
+  onAuthChange((event, session) => {
+    if (event !== 'SIGNED_IN' || !session) return;
+    captureGoogleRefreshToken(session).then(r => {
+      recordGoogleCapture(r);
+      if (r?.ok) {
+        resetGoogleSyncBlock();
+        syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {});
+      }
+    }).catch(() => {});
+  });
+
   installDelegation();
   installKeyboardInset();
 
@@ -65,10 +83,28 @@ async function boot() {
   if (!session) return renderAuth();
 
   S.user = session.user;
-  await afterSignIn();
+  await afterSignIn(session);
 }
 
-async function afterSignIn() {
+// Why the last capture attempt succeeded or failed. Kept in localStorage
+// because the whole problem with the first two attempts was that failure
+// was invisible — this makes it answerable without another blind round.
+function recordGoogleCapture(result) {
+  try {
+    localStorage.setItem('cadence.googleCapture', JSON.stringify({
+      at: new Date().toISOString(),
+      ok: !!result?.ok,
+      reason: result?.reason || 'unknown',
+      detail: result?.detail || null
+    }));
+  } catch { /* private mode — not worth failing over */ }
+}
+window.cadenceGoogleCaptureStatus = () => {
+  try { return JSON.parse(localStorage.getItem('cadence.googleCapture') || 'null'); }
+  catch { return null; }
+};
+
+async function afterSignIn(bootSession = null) {
   await loadFromCache();
   await setLang(S.prefs.lang || currentLang());
   applyTheme();
@@ -86,17 +122,12 @@ async function afterSignIn() {
   }
   renderRoute(0);
 
-  onAuthChange((event, session) => {
-    if (event === 'SIGNED_OUT') { location.reload(); return; }
-    // SIGNED_IN is the only moment provider_refresh_token exists — Supabase
-    // never persists it, so missing this event means never getting another
-    // chance without a fresh consent.
-    if (event === 'SIGNED_IN' && session) {
-      captureGoogleRefreshToken(session)
-        .then(r => { if (r?.ok) { resetGoogleSyncBlock(); syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {}); } })
-        .catch(() => {});
-    }
-  });
+  onAuthChange((event) => { if (event === 'SIGNED_OUT') location.reload(); });
+  // Belt and braces: if SIGNED_IN somehow still slipped past, the boot
+  // session may carry the token. Costs one no-op call when it does not.
+  captureGoogleRefreshToken(bootSession).then(r => {
+    if (r?.ok) { recordGoogleCapture(r); resetGoogleSyncBlock(); }
+  }).catch(() => {});
   onSyncState(updateSyncPill);
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
@@ -107,7 +138,6 @@ async function afterSignIn() {
   // Google, so this costs nothing for password accounts.
   // Google issues the refresh token only on the first consent, so grab it
   // whenever a session has one before the value is gone for good.
-  captureGoogleRefreshToken().catch(() => {});
   syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {});
   setInterval(() => { syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}); }, 5 * 60 * 1000);
   window.addEventListener('online', () => syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}));
