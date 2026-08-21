@@ -134,8 +134,20 @@ export function remove(table, id) {
   const tomb = { ...row, deleted_at: now(), updated_at: now() };
   S[table] = list.filter(r => r.id !== id);
   if (!S.guest) { enqueue(table, tomb); cacheSet(table, S[table]); }
+  // A row linked to a Google event has to be deleted THERE too, but the
+  // row is gone from memory the moment this returns — so the intent is
+  // recorded now and drained by the next Google sync. Without this, a
+  // deletion in Cadence would simply be re-imported on the next pull.
+  if (!S.guest && row.external_id && onLocalDelete) {
+    try { onLocalDelete(table, row); } catch (e) { console.warn(e); }
+  }
   notify('remove:' + table);
 }
+
+// google.js registers here rather than state.js importing it, which would
+// make the store depend on a sync backend it should know nothing about.
+let onLocalDelete = null;
+export function setLocalDeleteHook(fn) { onLocalDelete = fn; }
 
 export function savePrefs(patch) {
   S.prefs = { ...S.prefs, ...patch };

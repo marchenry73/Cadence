@@ -205,7 +205,7 @@ export async function signInWithProvider(provider = 'google', { extraScopes = ''
 // sign-up. Re-running OAuth with the extra scope upgrades the same
 // account; it does not create a second one.
 export function requestGoogleCalendarAccess() {
-  return signInWithProvider('google', { extraScopes: 'https://www.googleapis.com/auth/calendar.readonly' });
+  return signInWithProvider('google', { extraScopes: 'https://www.googleapis.com/auth/calendar' });
 }
 
 // The Google access token Supabase hands back after OAuth — what a live
