@@ -62,6 +62,8 @@ export const EN = {
 
   'cal.week': 'Week', 'cal.month': 'Month', 'cal.agenda': 'Agenda',
   'cal.today': 'Today', 'cal.empty': 'Nothing scheduled',
+  'cal.weekShape': 'Where this week goes',
+  'cal.emptyWeek': 'Nothing scheduled this week yet — add a block or a routine and it will show up here.',
 
   'team.title': 'Team', 'team.create': 'Create a workspace',
   'team.join': 'Join with a code', 'team.code': 'Join code',

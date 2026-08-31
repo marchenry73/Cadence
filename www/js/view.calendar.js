@@ -1,9 +1,9 @@
 // Calendar — week grid, month grid, agenda list. All three read the same
 // occurrencesOn() selector as Today, so nothing can disagree about what's
 // scheduled where.
-import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, save } from './state.js';
+import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, categoryTotals, save } from './state.js';
 import { t, dateLabel, monthLabel } from './i18n.js';
-import { esc, fmtRange, fmtTime, todayISO, addDays, fromISO, iso, hexA, snap, DAY_MINUTES } from './util.js';
+import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast } from './ui.js';
 
@@ -83,6 +83,52 @@ function modeTabs() {
   </div>`;
 }
 
+// Where the week actually goes, shown above the grid you are already
+// looking at. The Review screen answers this backwards ("what happened");
+// this answers it forwards ("what have I committed to"), which is the
+// question you have while planning rather than after the fact.
+//
+// Hours come from the same categoryTotals() the Review uses, so the two
+// screens can never disagree about the same week.
+function weekSummary(days) {
+  const { planned } = categoryTotals(days);
+  const rows = Object.entries(planned)
+    .map(([id, mins]) => ({
+      id,
+      mins,
+      name: id === 'none' ? t('common.none') : (catById(id)?.name || t('common.none')),
+      color: id === 'none' ? 'var(--text-faint)' : catColor(id)
+    }))
+    .filter(r => r.mins > 0)
+    .sort((a, b) => b.mins - a.mins);
+
+  const committed = rows.reduce((a, b) => a + b.mins, 0);
+  // Waking hours, not all 168 — "free" against a number that includes
+  // sleep would flatter every week into looking wide open.
+  const wakingWeek = 16 * 60 * days.length;
+  const open = Math.max(0, wakingWeek - committed);
+
+  if (!rows.length) {
+    return `<div class="wk-summary"><div class="wk-sum-empty">${esc(t('cal.emptyWeek'))}</div></div>`;
+  }
+
+  return `<div class="wk-summary">
+    <div class="wk-sum-head">
+      <span class="eyebrow">${esc(t('cal.weekShape'))}</span>
+      <span class="dim small mono">${esc(fmtDur(committed))} ${esc(t('today.committed').toLowerCase())} · ${esc(fmtDur(open))} ${esc(t('today.open').toLowerCase())}</span>
+    </div>
+    <div class="wk-bar">
+      ${rows.map(r => `<i style="width:${(r.mins / committed * 100).toFixed(2)}%;background:${r.color}" title="${esc(r.name)}"></i>`).join('')}
+    </div>
+    <div class="wk-chips">
+      ${rows.map(r => `<span class="wk-chip">
+        <i style="background:${r.color}"></i>${esc(r.name)}
+        <b class="mono">${esc(fmtDur(r.mins))}</b>
+      </span>`).join('')}
+    </div>
+  </div>`;
+}
+
 function weekView() {
   const days = weekDays();
   const pph = WEEK_PPH;
@@ -108,7 +154,7 @@ function weekView() {
     </div>`;
   }).join('');
 
-  return `<div class="week-wrap">
+  return `${weekSummary(days)}<div class="week-wrap">
     <div class="wk-gutter" style="padding-top:34px">${hours}</div>
     <div class="wk-grid">${cols}</div>
   </div>`;
