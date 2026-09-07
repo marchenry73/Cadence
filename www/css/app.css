@@ -745,3 +745,22 @@ body.sheet-open{ overflow:hidden; }
   .wk-block, .month-cell, .agenda-row, .sr-row{ border:1px solid CanvasText; }
   .wk-now{ border-top-color:Highlight; }
 }
+
+/* -------- week view on a phone --------
+   Seven columns across 375px leaves 80px each, and once two meetings
+   overlap that is ~26px per event — a colour with no readable title. So on
+   narrow screens the grid keeps all seven days but scrolls horizontally
+   with a floor on column width, and snaps day-to-day so it lands cleanly
+   rather than drifting mid-column. The hour gutter stays pinned, otherwise
+   you lose the time reference as soon as you swipe. */
+@media (max-width:599px){
+  .week-wrap{ display:flex; align-items:flex-start; }
+  .wk-gutter{ position:sticky; left:0; z-index:5; flex-shrink:0;
+    background:var(--bg); box-shadow:1px 0 0 var(--border); }
+  .wk-grid{ overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .wk-grid::-webkit-scrollbar{ display:none; }
+  .wk-col{ min-width:104px; scroll-snap-align:start; }
+  /* The day header has to stay put while the body scrolls vertically. */
+  .wk-col-head{ position:sticky; top:0; z-index:4; background:var(--bg); }
+}
