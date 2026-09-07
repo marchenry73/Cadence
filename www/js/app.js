@@ -236,10 +236,11 @@ function paintAuth(mode, error = '') {
 
 function renderShell() {
   document.getElementById('app').innerHTML = `
+    <a class="skip-link" href="#routeHost">Skip to content</a>
     <div class="app-shell">
       <nav class="sidebar" id="sidebar">
         <div class="sidebar-logo">Cad<b>ence</b></div>
-        ${NAV.map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}">${svg}<span>${label}</span></button>`).join('')}
+        ${NAV.map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
         <div class="sidebar-spacer"></div>
         <button class="sidebar-add tap" data-act="quickAdd">＋ ${t('common.add')}</button>
       </nav>
@@ -250,13 +251,13 @@ function renderShell() {
           <span class="sync-pill${S.guest ? ' guest' : ''}" id="syncPill"><i class="dot"></i><span id="syncLabel">${S.guest ? t('app.guest') : t('app.synced')}</span></span>
         </div>
         <div id="gsyncBanner"></div>
-        <div class="screen-scroll" id="scroller"><div class="screen" id="routeHost"></div></div>
+        <main class="screen-scroll" id="scroller" tabindex="-1"><div class="screen" id="routeHost" aria-live="polite"></div></main>
       </div>
     </div>
     <button class="fab tap" data-act="quickAdd" aria-label="${t('common.add')}">＋</button>
-    <div class="tabbar" id="tabbar">
-      ${NAV.map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}">${svg}<span>${label}</span></button>`).join('')}
-    </div>
+    <nav class="tabbar" id="tabbar" aria-label="Main">
+      ${NAV.map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
+    </nav>
     <div id="ptr"></div>
     <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>`;
 

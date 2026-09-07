@@ -10,7 +10,7 @@
 :root{
   --bg:#F6EEE4; --bg-2:#F0E6D8; --surface:#FFFCF7; --surface-2:#F0E6D8;
   --border:rgba(60,40,30,.10); --border-2:rgba(60,40,30,.17); --line:var(--border);
-  --text:#2B2420; --text-dim:#8A7E70; --text-faint:#B5A996;
+  --text:#2B2420; --text-dim:#716557; --text-faint:#8E826F;
   --accent:#E8604A; --accent-2:#C94C36; --accent-weak:rgba(232,96,74,.14);
   --good:#5E8563; --warn:#C97A3A; --danger:#C6432E;
   /* Monarch-style tinted tile family — a distinct hue per surfaced
@@ -37,7 +37,7 @@
   :root:not([data-theme="light"]){
     --bg:#1C1620; --bg-2:#241D29; --surface:#241D29; --surface-2:#2C2430;
     --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
-    --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#6B5F63;
+    --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#73676B;
     --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
     --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
     --moss:#6FB593; --moss-tint:#20362A;
@@ -50,7 +50,7 @@
 :root[data-theme="dark"]{
   --bg:#1C1620; --bg-2:#241D29; --surface:#241D29; --surface-2:#2C2430;
   --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
-  --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#6B5F63;
+  --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#73676B;
   --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
   --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
   --moss:#6FB593; --moss-tint:#20362A;
@@ -680,7 +680,7 @@ body.sheet-open{ overflow:hidden; }
 .agenda-when{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
   color:var(--text-dim); }
 .agenda-day.is-today .agenda-when{ color:var(--accent); }
-.agenda-total{ font-size:11px; color:var(--text-faint); }
+.agenda-total{ font-size:11px; color:var(--text-dim); }
 .agenda-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
   padding:9px 8px; border-radius:10px; }
 .agenda-row:hover{ background:var(--surface-2); }
@@ -697,3 +697,51 @@ body.sheet-open{ overflow:hidden; }
 .empty-state{ text-align:center; padding:40px 20px; }
 .es-title{ font-size:15px; font-weight:700; }
 .es-body{ font-size:13px; color:var(--text-dim); margin-top:4px; }
+
+/* ==================== accessibility ====================
+   Focus was completely invisible: every interactive element rendered
+   outline:none with no replacement, so keyboard and switch users had no
+   way to tell where they were. :focus-visible means pointer users still
+   never see a ring, so nothing is lost visually. */
+:focus{ outline:none; }
+:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:6px;
+}
+/* On a filled accent surface an accent ring is invisible, so invert it. */
+.btn.primary:focus-visible, .fab:focus-visible, .tab.on:focus-visible,
+.block:focus-visible, .sidebar-add:focus-visible{
+  outline-color:var(--text);
+}
+/* Skip straight to content instead of tabbing the whole nav every time. */
+.skip-link{ position:absolute; left:-9999px; top:0; z-index:100;
+  background:var(--accent); color:#fff; padding:10px 16px; border-radius:0 0 10px 0;
+  font-size:13px; font-weight:700; }
+.skip-link:focus{ left:0; }
+
+/* Touch targets. Guidance is ~44px; several controls sat at 33-39px, which
+   is fine for a mouse and genuinely awkward with a thumb. Applied only on
+   coarse pointers so desktop density is untouched. */
+@media (pointer: coarse){
+  .side-link, .seg-item, .agenda-row, .sr-row, .cat-row, .toggle-row{ min-height:44px; }
+  .icon-btn, .topbar-search{ min-width:44px; min-height:44px; }
+  .chip{ min-height:36px; }
+}
+
+/* Honour the OS setting rather than animating regardless. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
+
+/* Windows high-contrast / forced-colours: keep category meaning visible by
+   falling back to system colours rather than vanishing. */
+@media (forced-colors: active){
+  .wk-block, .month-cell, .agenda-row, .sr-row{ border:1px solid CanvasText; }
+  .wk-now{ border-top-color:Highlight; }
+}
