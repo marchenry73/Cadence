@@ -668,3 +668,32 @@ body.sheet-open{ overflow:hidden; }
 .sr-sub{ font-size:11.5px; color:var(--text-dim); }
 .sr-when{ font-size:11px; color:var(--text-dim); flex-shrink:0; }
 .sr-hint{ font-size:13px; color:var(--text-dim); padding:14px 6px; text-align:center; }
+
+/* -------- agenda: scanning what's coming --------
+   Sticky headers so the day you are reading is always identified, and
+   finished blocks fade rather than disappear — "what's left today" should
+   be readable at a glance without parsing times. */
+.agenda-day{ margin-bottom:18px; }
+.agenda-head{ position:sticky; top:0; z-index:2; display:flex; align-items:baseline;
+  justify-content:space-between; gap:10px; padding:6px 2px;
+  background:linear-gradient(var(--bg) 70%, transparent); }
+.agenda-when{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--text-dim); }
+.agenda-day.is-today .agenda-when{ color:var(--accent); }
+.agenda-total{ font-size:11px; color:var(--text-faint); }
+.agenda-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:9px 8px; border-radius:10px; }
+.agenda-row:hover{ background:var(--surface-2); }
+.agenda-bar{ width:3px; align-self:stretch; min-height:18px; border-radius:2px; flex-shrink:0; }
+.agenda-time{ font-size:11.5px; color:var(--text-dim); width:58px; flex-shrink:0; }
+.agenda-title{ flex:1; font-size:14px; font-weight:600; min-width:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.agenda-row.is-past{ opacity:.45; }
+.agenda-row.is-past .agenda-title{ text-decoration:line-through; text-decoration-thickness:1px; }
+.agenda-live{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+  color:#fff; background:var(--accent); padding:2px 7px; border-radius:20px; flex-shrink:0; }
+.agenda-row.is-running{ background:color-mix(in oklab, var(--accent) 8%, transparent); }
+
+.empty-state{ text-align:center; padding:40px 20px; }
+.es-title{ font-size:15px; font-weight:700; }
+.es-body{ font-size:13px; color:var(--text-dim); margin-top:4px; }

@@ -7,6 +7,7 @@ import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, 
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast } from './ui.js';
 import { packOverlaps, laneStyle } from './layout.js';
+import { whenLabel } from './search.js';
 
 const WEEK_PPH = 44;
 
@@ -244,21 +245,51 @@ function monthDayDetail(day) {
   </div>`;
 }
 
+// An agenda is for scanning "what's coming", so it has to answer *when*
+// before *what*. The old version printed a full date on every group and
+// nothing else, which reads as a wall of near-identical headers; you had to
+// do the date arithmetic yourself to work out that something was tomorrow.
+//
+// Now: relative day names, a per-day total so you can see a heavy day
+// coming, today called out, and blocks that have already finished dimmed
+// so "what's left" is visible without reading times.
 function agendaView() {
   const start = todayISO();
-  const days = Array.from({ length: 14 }, (_, i) => addDays(start, i));
+  const HORIZON = 21;
+  const days = Array.from({ length: HORIZON }, (_, i) => addDays(start, i));
   const withStuff = days.filter(d => occurrencesOn(d).length);
-  if (!withStuff.length) return `<div class="empty-state">${esc(t('cal.empty'))}</div>`;
-  return withStuff.map(d => `
-    <div class="agenda-day">
-      <div class="agenda-date">${esc(dateLabel(d))}</div>
-      ${occurrencesOn(d).map(o => `
-        <button class="agenda-row tap" data-act="openBlockOn" data-day="${d}" data-key="${esc(o.key)}">
+
+  if (!withStuff.length) {
+    return `<div class="empty-state">
+      <div class="es-title">${esc(t('cal.empty'))}</div>
+      <div class="es-body">Nothing scheduled in the next three weeks.</div>
+    </div>`;
+  }
+
+  const now = minutesNow();
+  return `<div class="agenda">${withStuff.map(d => {
+    const occ = occurrencesOn(d);
+    const isToday = d === start;
+    const total = occ.reduce((a, o) => a + (o.end - o.start), 0);
+    return `<section class="agenda-day${isToday ? ' is-today' : ''}">
+      <header class="agenda-head">
+        <span class="agenda-when">${esc(whenLabel(d))}</span>
+        <span class="agenda-total mono">${esc(fmtDur(total))}</span>
+      </header>
+      ${occ.map(o => {
+        const past = isToday && o.end <= now;
+        const running = isToday && o.start <= now && o.end > now;
+        return `<button class="agenda-row tap${past ? ' is-past' : ''}${running ? ' is-running' : ''}"
+          data-act="openBlockOn" data-day="${d}" data-key="${esc(o.key)}"
+          aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}">
           <span class="agenda-bar" style="background:${catColor(o.category_id)}"></span>
-          <span class="agenda-time mono">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>
+          <span class="agenda-time mono">${esc(fmtTime(o.start, S.prefs.clock24))}</span>
           <span class="agenda-title">${esc(o.title)}</span>
-        </button>`).join('')}
-    </div>`).join('');
+          ${running ? '<span class="agenda-live">now</span>' : ''}
+        </button>`;
+      }).join('')}
+    </section>`;
+  }).join('')}</div>`;
 }
 
 export default {
