@@ -51,8 +51,15 @@ export function fmtTime(min, clock24 = false) {
   return mm ? `${hh}:${pad(mm)}${ap}` : `${hh}${ap}`;
 }
 
+// "9–10am", not "9am – 10am": the meridiem is said once when both ends
+// share it, and the dash closes up. When it changes ("11am – 12pm") both
+// stay and the dash breathes. Every calendar the research measured that
+// reads as well-set does exactly this; it is the difference between a
+// time range and two times with a line between them.
 export function fmtRange(a, b, clock24) {
-  return `${fmtTime(a, clock24)} – ${fmtTime(b, clock24)}`;
+  if (clock24) return `${fmtTime(a, true)} – ${fmtTime(b, true)}`;
+  const A = fmtTime(a), B = fmtTime(b);
+  return A.slice(-2) === B.slice(-2) ? `${A.slice(0, -2)}–${B}` : `${A} – ${B}`;
 }
 
 export function fmtDur(min) {

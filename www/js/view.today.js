@@ -123,9 +123,11 @@ function spine() {
   const focusTop = (S.prefs.focus_start / 60) * pph;
   const focusHeight = Math.max(0, (S.prefs.focus_end - S.prefs.focus_start) / 60 * pph);
   const compact = S.prefs.density === 'compact';
-  // Alternating 2-hour bands, computed here since the CSS has no clean way
-  // to band zero-height, absolutely-positioned hour markers.
-  const band = `repeating-linear-gradient(to bottom, var(--surface-2) 0, var(--surface-2) ${pph}px, transparent ${pph}px, transparent ${pph * 2}px)`;
+  // Hour rules as hairlines at ~1.05:1, matching the week grid. The spine
+  // used to paint alternating two-hour bands in solid --surface-2, which is
+  // the zebra-striped table look every calendar people call beautiful has
+  // deliberately dropped: the grid should read as paper, the blocks as ink.
+  const band = `repeating-linear-gradient(to bottom, var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent ${pph}px)`;
 
   const hours = Array.from({ length: 25 }, (_, h) => {
     const hide = compact && h % 2 === 1 && h !== 24;
@@ -148,9 +150,8 @@ function spine() {
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
     const done = isBlockDone(o, S.day);
-    return `<button class="block tap${running ? ' running' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
-      style="top:${top}px;height:${h}px;left:${left};width:${width};
-             background:${color}">
+    return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
+      style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color}">
       <span class="block-bar"></span>
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>

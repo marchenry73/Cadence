@@ -171,6 +171,18 @@ export function monthLabel(dayISO) {
     .format(new Date(y, m - 1, d));
 }
 
+// Month and year as separate strings so the header can set them at one
+// size in two weights ("September" bold, "2026" regular and dimmed). The
+// weight split is the one typographic move every well-set calendar shares;
+// it reads as a title rather than a date stamp.
+export function monthParts(dayISO) {
+  const [y, m, d] = dayISO.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return {
+    month: new Intl.DateTimeFormat(current, { month: 'long' }).format(dt),
+    year: new Intl.DateTimeFormat(current, { year: 'numeric' }).format(dt)
+  };
+}
 export function dateLabel(dayISO, opts = { weekday: 'long', month: 'short', day: 'numeric' }) {
   const [y, m, d] = dayISO.split('-').map(Number);
   return new Intl.DateTimeFormat(current, opts).format(new Date(y, m - 1, d));

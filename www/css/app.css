@@ -18,6 +18,8 @@
   --moss:#4F8467; --moss-tint:#DCEBE1;
   --peri:#6E75C4; --peri-tint:#E2E2F3;
   --honey:#BD8A2B; --honey-tint:#F3E7CB;
+  --line-hour:rgba(43,36,32,.035); --line-day:rgba(43,36,32,.08); --wkend:rgba(43,36,32,.022);
+  --ink-warm:#1A1410; --ev-tint:14%; --ev-text-mix:58%;
   --radius:16px; --radius-sm:10px; --radius-lg:22px;
   --shadow: 0 12px 28px rgba(43,28,20,.14);
   --kb:0px;
@@ -43,6 +45,8 @@
     --moss:#6FB593; --moss-tint:#20362A;
     --peri:#9BA1E8; --peri-tint:#282A47;
     --honey:#E3AC52; --honey-tint:#3A2E17;
+    --line-hour:rgba(255,240,225,.04); --line-day:rgba(255,240,225,.075); --wkend:rgba(255,240,225,.025);
+    --ink-warm:#FFF4E8; --ev-tint:22%; --ev-text-mix:64%;
     --shadow: 0 12px 28px rgba(0,0,0,.4);
     color-scheme: dark;
   }
@@ -56,6 +60,8 @@
   --moss:#6FB593; --moss-tint:#20362A;
   --peri:#9BA1E8; --peri-tint:#282A47;
   --honey:#E3AC52; --honey-tint:#3A2E17;
+    --line-hour:rgba(255,240,225,.04); --line-day:rgba(255,240,225,.075); --wkend:rgba(255,240,225,.025);
+    --ink-warm:#FFF4E8; --ev-tint:22%; --ev-text-mix:64%;
   --shadow: 0 12px 28px rgba(0,0,0,.4);
   color-scheme: dark;
 }
@@ -191,15 +197,11 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .hour-label{ position:absolute; left:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:right; padding-right:8px; }
 .spine-focus{ position:absolute; left:0; right:0; background:color-mix(in oklch, var(--accent), transparent 94%); border-radius:8px; pointer-events:none; }
 .gap{ position:absolute; left:0; right:0; border:1px dashed var(--border-2); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12px; z-index:1; }
-.block{ position:absolute; border:none; border-radius:10px; display:flex; align-items:stretch; overflow:hidden; text-align:left; padding:0; z-index:1;
-  box-shadow:0 2px 6px rgba(0,0,0,.12); }
-.block-bar{ width:4px; flex-shrink:0; background:rgba(255,255,255,.35) !important; }
-.block-body{ flex:1; min-width:0; padding:5px 8px; display:flex; flex-direction:column; gap:1px; }
-.block-title{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; }
-.block-time{ font-size:11px; color:rgba(255,255,255,.8); font-family:'IBM Plex Mono',monospace; }
+
+
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
 .block-flag{ position:absolute; top:3px; right:5px; font-size:11px; opacity:.7; }
-.block.running{ box-shadow:0 0 0 2px var(--accent); }
+
 .nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--danger); z-index:5; }
 .nowline i{ position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger); }
 
@@ -242,22 +244,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 /* -------- calendar -------- */
 .cal-modes{ margin:10px 0 12px; }
 .week-wrap{ display:flex; overflow-x:auto; }
-.wk-gutter{ width:52px; flex-shrink:0; position:relative; }
-.wk-hour{ position:absolute; left:0; right:8px; font-size:10.5px; color:var(--text-faint); text-align:right; }
-.wk-grid{ display:flex; flex:1; min-width:560px; }
-.wk-col{ flex:1; border-left:1px solid var(--border); }
-.wk-col-head{ text-align:center; padding:4px 0 8px; }
-.wk-dow{ font-size:10px; color:var(--text-dim); }
-.wk-num{ font-size:14px; font-weight:700; width:24px; height:24px; margin:2px auto 0; display:flex; align-items:center; justify-content:center; border-radius:50%; }
-.wk-num.today{ background:var(--accent); color:#fff; }
-.wk-body{ position:relative; }
-.wk-block{ position:absolute; left:2px; right:2px; border:1px solid; border-radius:6px; padding:2px 4px; overflow:hidden; text-align:left; }
-.wk-block-title{ font-size:10px; font-weight:700; }
-.wk-block{ touch-action:none; transition:box-shadow .15s, opacity .15s; }
-.wk-block.is-dragging{ z-index:40; opacity:.92; pointer-events:none;
-  box-shadow:0 10px 24px rgba(0,0,0,.45); }
-.wk-col.drop-target .wk-body{ background:var(--accent-weak, rgba(242,153,74,.14));
-  outline:2px dashed var(--accent); outline-offset:-2px; border-radius:8px; }
+
 
 /* dragging a block sideways on Today = move it to the next/previous day */
 .block{ touch-action:none; }
@@ -267,7 +254,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
   background:var(--accent); color:#111; padding:2px 6px; border-radius:999px; }
 
 .month-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.month-label{ font-weight:700; }
+
 .month-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
 .month-cell{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:10px; color:var(--text-dim); }
 .month-cell.out{ opacity:.32; }
@@ -562,43 +549,6 @@ body.sheet-open{ overflow:hidden; }
 .wk-sum-empty{ font-size:12.5px; color:var(--text-dim); padding:10px 12px;
   border:1px dashed var(--border-2); border-radius:var(--radius); }
 
-/* -------- week grid: events and the current-time line --------
-   Events carry a saturated left rail plus a light tint rather than a full
-   flood of colour. At week density a solid fill turns the grid into a wall
-   of blocks with no visible structure; the rail keeps the category
-   instantly identifiable while the tint stays quiet enough to read the
-   title on top of it. */
-.wk-block{
-  position:absolute; overflow:hidden; text-align:left;
-  padding:3px 6px 3px 8px; border-radius:7px;
-  border:1px solid color-mix(in oklab, var(--evc) 34%, transparent);
-  border-left:3px solid var(--evc);
-  display:flex; flex-direction:column; gap:1px; justify-content:flex-start;
-  transition:box-shadow .12s ease, transform .12s ease;
-}
-.wk-block:hover{ box-shadow:0 4px 12px -2px color-mix(in oklab, var(--evc) 40%, transparent); z-index:3; }
-.wk-block-title{
-  font-size:11.5px; font-weight:650; line-height:1.25; color:var(--text);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.wk-block-time{ font-size:10px; color:var(--text-dim); line-height:1; }
-/* Under ~30 min there is only room for the title, so drop everything else
-   rather than clipping two lines into an unreadable sliver. */
-.wk-block.is-tight{ padding:1px 5px 1px 7px; justify-content:center; }
-.wk-block.is-tight .wk-block-title{ font-size:10.5px; font-weight:600; }
-
-/* One hairline with a dot on the left edge. It has to be findable at a
-   glance without competing with the events themselves, so it is the accent
-   colour at full strength but only a pixel tall. */
-.wk-now{ position:absolute; left:0; right:0; height:0; z-index:4; pointer-events:none;
-  border-top:1.5px solid var(--accent); }
-.wk-now i{ position:absolute; left:-3px; top:-4.5px; width:7px; height:7px;
-  border-radius:50%; background:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
-
-@media (prefers-reduced-motion: reduce){
-  .wk-block{ transition:none; }
-}
 
 /* -------- month: cells that say what is actually happening --------
    Dots answered "is this day busy?" but never "busy with what?", which is
@@ -764,3 +714,106 @@ body.sheet-open{ overflow:hidden; }
   /* The day header has to stay put while the body scrolls vertically. */
   .wk-col-head{ position:sticky; top:0; z-index:4; background:var(--bg); }
 }
+
+/* ==================== the calendar surface ====================
+   Every product people call beautiful lands on one principle: the grid
+   recedes and the events carry the structure. Hour rules sit near 1.05:1
+   so they read as paper texture; day rules ~3x stronger so the week's
+   vertical rhythm is legible while the hour rhythm stays subliminal. No
+   half-hour lines — a block's position carries sub-hour precision. */
+
+/* -- gutter -- */
+.wk-gutter{ width:52px; flex-shrink:0; position:relative; }
+.wk-hour{ position:absolute; left:0; right:9px; transform:translateY(-50%);
+  font-size:10.5px; line-height:1; color:var(--text-faint); text-align:right;
+  font-variant-numeric:tabular-nums; letter-spacing:.01em; transition:opacity .15s ease; }
+.wk-hour.is-hidden{ opacity:0; }
+/* The live time takes the gutter slot the now-line runs through, so the
+   axis never reads "2pm" beside a line that says 2:17. */
+.wk-now-time{ position:absolute; left:0; right:9px; transform:translateY(-50%);
+  font-size:10.5px; line-height:1; font-weight:700; color:var(--accent); text-align:right;
+  font-variant-numeric:tabular-nums; z-index:5; pointer-events:none; }
+
+/* -- columns -- */
+.wk-grid{ display:flex; flex:1; min-width:560px; }
+.wk-col{ flex:1; min-width:0; border-left:1px solid var(--line-day); }
+.wk-col.is-weekend .wk-body{ background-color:var(--wkend); }
+.wk-body{ position:relative;
+  background-image:repeating-linear-gradient(to bottom,
+    var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent var(--pph, 44px)); }
+.wk-col.drop-target .wk-body{ background-color:var(--accent-weak);
+  outline:2px dashed var(--accent); outline-offset:-2px; border-radius:8px; }
+
+/* -- today is the numeral, nothing else. No column tint, no heavier rules:
+   every product that marks the whole column ends up with a shouting stripe. */
+.wk-col-head{ text-align:center; padding:4px 0 8px; }
+.wk-dow{ font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); }
+.wk-col.is-today .wk-dow{ color:var(--accent); }
+.wk-num{ font-family:var(--font-display); font-size:15px; font-weight:600; width:26px; height:26px;
+  margin:3px auto 0; display:flex; align-items:center; justify-content:center; border-radius:8px;
+  font-variant-numeric:tabular-nums; }
+.wk-num.today{ background:var(--accent); color:#fff; font-weight:700; }
+
+/* -- the now-line: one horizon across the week at two strengths -- */
+.wk-now{ position:absolute; left:0; right:0; height:0; pointer-events:none; }
+.wk-now.is-ghost{ z-index:0; border-top:1px solid color-mix(in oklab, var(--accent) 16%, transparent); }
+.wk-now.is-today{ z-index:4; border-top:1.5px solid var(--accent); }
+.wk-now.is-today i{ position:absolute; left:-3.5px; top:-4.25px; width:7px; height:7px;
+  border-radius:50%; background:var(--accent); }
+
+/* -- events: one language, shared by the week grid and Today's spine --
+   A tint of the category over the surface, a saturated rail drawn INSIDE
+   the block so it shares the radius, and text set in a darkened version of
+   the same hue rather than black. That last part is what makes a dense
+   week read as coloured rather than as grey text with coloured decoration.
+   The mix ratios are theme tokens: dark grounds need more tint to register,
+   and text mixes toward warm white instead of warm ink. */
+.wk-block, .block{
+  --ev-fill: color-mix(in oklab, var(--evc) var(--ev-tint), var(--surface));
+  --ev-text: color-mix(in oklab, var(--evc) var(--ev-text-mix), var(--ink-warm));
+  position:absolute; overflow:hidden; text-align:left;
+  background:var(--ev-fill); border:none; border-radius:6px;
+  box-shadow:inset 3px 0 0 var(--evc);
+  touch-action:none;
+  transition:box-shadow .12s ease, opacity .2s ease, filter .2s ease;
+}
+.wk-block{ padding:3px 6px 3px 9px; display:flex; flex-direction:column; gap:1px; }
+.wk-block:hover, .block:hover{
+  box-shadow:inset 3px 0 0 var(--evc), 0 4px 14px -4px color-mix(in oklab, var(--evc) 45%, transparent); z-index:3; }
+.wk-block:focus-visible, .block:focus-visible{ outline-color:var(--evc); }
+.wk-block-title{ font-size:11.5px; font-weight:600; line-height:1.25; color:var(--ev-text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wk-block-time{ font-size:10px; line-height:1; color:var(--ev-text); opacity:.72; font-variant-numeric:tabular-nums; }
+.wk-block.is-tight{ padding:1px 5px 1px 8px; justify-content:center; }
+.wk-block.is-tight .wk-block-title{ font-size:10.5px; }
+/* Elapsed blocks step back so "what's left" reads without parsing times. */
+.wk-block.is-past, .block.is-past{ opacity:.55; filter:saturate(.6); }
+.wk-block.is-dragging{ z-index:40; opacity:.94; pointer-events:none;
+  box-shadow:inset 3px 0 0 var(--evc), 0 12px 28px -6px rgba(0,0,0,.4); }
+
+/* -- Today's spine: same language at its wider scale -- */
+.block{ display:flex; align-items:stretch; padding:0; z-index:1; border-radius:8px; }
+.block-bar{ width:0; flex-shrink:0; }
+.block-body{ flex:1; min-width:0; padding:6px 9px 6px 12px; display:flex; flex-direction:column; gap:2px; }
+.block-title{ font-size:13px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ev-text); }
+.block-time{ font-size:11px; color:var(--ev-text); opacity:.72; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+.block.running{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 2px var(--accent); }
+.block-flag, .protect-flag{ color:var(--ev-text); opacity:.6; }
+/* The spine's per-hour border and the gradient would double up; the
+   gradient carries it now, and labels centre exactly on the line. */
+.spine .hour{ border-top:none; }
+.spine .hour-label{ top:0; transform:translateY(-50%); font-size:10.5px; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+
+/* -- month header: weight carries the hierarchy, not size -- */
+.month-label{ font-family:var(--font-display); font-size:18px; letter-spacing:-.01em; }
+.month-label b{ font-weight:700; }
+.month-label span{ font-weight:400; color:var(--text-dim); margin-left:.3em; }
+
+/* The gutter mirrors the day header with the SAME markup, hidden, so its
+   body starts at exactly the height the columns' bodies start at — labels
+   then position from a true zero with no hardcoded header height to drift
+   out of date. Previously a fixed padding-top:34px was used, the header
+   later grew to ~55px, and every hour label floated ~50px above its rule. */
+.wk-gutter-head{ visibility:hidden; }
+.wk-gutter-body{ position:relative; }

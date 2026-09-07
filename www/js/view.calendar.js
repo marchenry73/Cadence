@@ -2,7 +2,7 @@
 // occurrencesOn() selector as Today, so nothing can disagree about what's
 // scheduled where.
 import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, categoryTotals, save } from './state.js';
-import { t, dateLabel, monthLabel, dayNames } from './i18n.js';
+import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast } from './ui.js';
@@ -135,14 +135,27 @@ function weekView() {
   const days = weekDays();
   const pph = WEEK_PPH;
   const nowMin = minutesNow();
-  const hours = Array.from({ length: 25 }, (_, h) => `<div class="wk-hour" style="top:${h * pph}px">
-    <span>${h < 24 ? esc(fmtTime(h * 60, S.prefs.clock24)) : ''}</span></div>`).join('');
+  const today = todayISO();
+  const weekHasToday = days.includes(today);
+  const nowTop = (nowMin / 60) * pph;
+
+  // Gutter labels within ~12 minutes of the now-line step aside so the live
+  // time can take that slot — the axis should never read "2pm" beside a
+  // line that says 2:17.
+  const hours = Array.from({ length: 25 }, (_, h) => {
+    const hide = weekHasToday && Math.abs(h * 60 - nowMin) < 12;
+    return `<div class="wk-hour${hide ? ' is-hidden' : ''}" style="top:${h * pph}px">
+    <span>${h < 24 ? esc(fmtTime(h * 60, S.prefs.clock24)) : ''}</span></div>`;
+  }).join('');
+  const nowGutter = weekHasToday
+    ? `<div class="wk-now-time mono" style="top:${nowTop}px" aria-hidden="true">${esc(fmtTime(nowMin, S.prefs.clock24))}</div>`
+    : '';
 
   const cols = days.map(d => {
-    const isToday = d === todayISO();
+    const isToday = d === today;
+    const dow = fromISO(d).getDay();
+    const isWeekend = dow === 0 || dow === 6;
     // Concurrent meetings sit side by side rather than on top of each other.
-    // Before this the week grid positioned blocks purely by time, so three
-    // 9am events rendered at identical coordinates and two were invisible.
     const laid = packOverlaps(occurrencesOn(d));
     const blocks = laid.map(o => {
       const top = (o.start / 60) * pph;
@@ -150,29 +163,36 @@ function weekView() {
       const color = catColor(o.category_id);
       const { left, width } = laneStyle(o);
       const tight = h < 32;                    // no room for a second line
-      return `<button class="wk-block tap${tight ? ' is-tight' : ''}" data-act="openBlockOn"
+      // Elapsed blocks step back so what is left today reads at a glance.
+      const past = isToday ? o.end <= nowMin : d < today;
+      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
         aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
-        style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color};background:${hexA(color, .16)}">
+        style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color}">
         <span class="wk-block-title">${esc(o.title)}</span>
-        ${tight ? '' : `<span class="wk-block-time mono">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
+        ${tight ? '' : `<span class="wk-block-time">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
       </button>`;
     }).join('');
-    // The now-line belongs only on the column that is actually today.
-    const nowLine = isToday
-      ? `<div class="wk-now" style="top:${(nowMin / 60) * pph}px" aria-hidden="true"><i></i></div>`
+    // One horizon across the whole week at two strengths: full accent on
+    // today's column, a ghost on every other — so you get an exact reading
+    // on today plus a scan line for the rest, without seven red stripes.
+    const nowLine = weekHasToday
+      ? `<div class="wk-now${isToday ? ' is-today' : ' is-ghost'}" style="top:${nowTop}px" aria-hidden="true">${isToday ? '<i></i>' : ''}</div>`
       : '';
-    return `<div class="wk-col${isToday ? ' is-today' : ''}" data-act="pickDayFromWeek" data-day="${d}">
+    return `<div class="wk-col${isToday ? ' is-today' : ''}${isWeekend ? ' is-weekend' : ''}" data-act="pickDayFromWeek" data-day="${d}">
       <div class="wk-col-head">
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
         <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px">${nowLine}${blocks}</div>
+      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px">${nowLine}${blocks}</div>
     </div>`;
   }).join('');
 
   return `${weekSummary(days)}<div class="week-wrap">
-    <div class="wk-gutter" style="padding-top:34px">${hours}</div>
+    <div class="wk-gutter">
+      <div class="wk-col-head wk-gutter-head" aria-hidden="true"><div class="wk-dow">&nbsp;</div><div class="wk-num">&nbsp;</div></div>
+      <div class="wk-gutter-body" style="height:${24 * pph}px">${hours}${nowGutter}</div>
+    </div>
     <div class="wk-grid">${cols}</div>
   </div>`;
 }
@@ -216,7 +236,7 @@ function monthView() {
 
   return `<div class="month-head">
       <button class="icon-btn" data-act="monthShift" data-dir="-1" aria-label="Previous month">&lsaquo;</button>
-      <span class="month-label">${esc(monthLabel(S.day))}</span>
+      <span class="month-label"><b>${esc(monthParts(S.day).month)}</b><span>${esc(monthParts(S.day).year)}</span></span>
       <button class="icon-btn" data-act="monthShift" data-dir="1" aria-label="Next month">&rsaquo;</button>
     </div>
     <div class="month-dow">${dows.map(x => `<span>${esc(x)}</span>`).join('')}</div>
