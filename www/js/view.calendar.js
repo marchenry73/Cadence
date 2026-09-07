@@ -2,10 +2,11 @@
 // occurrencesOn() selector as Today, so nothing can disagree about what's
 // scheduled where.
 import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, categoryTotals, save } from './state.js';
-import { t, dateLabel, monthLabel } from './i18n.js';
-import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, DAY_MINUTES } from './util.js';
+import { t, dateLabel, monthLabel, dayNames } from './i18n.js';
+import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast } from './ui.js';
+import { packOverlaps, laneStyle } from './layout.js';
 
 const WEEK_PPH = 44;
 
@@ -132,25 +133,40 @@ function weekSummary(days) {
 function weekView() {
   const days = weekDays();
   const pph = WEEK_PPH;
+  const nowMin = minutesNow();
   const hours = Array.from({ length: 25 }, (_, h) => `<div class="wk-hour" style="top:${h * pph}px">
     <span>${h < 24 ? esc(fmtTime(h * 60, S.prefs.clock24)) : ''}</span></div>`).join('');
 
   const cols = days.map(d => {
-    const occ = occurrencesOn(d);
-    const blocks = occ.map(o => {
-      const top = (o.start / 60) * pph, h = Math.max(18, ((o.end - o.start) / 60) * pph - 2);
+    const isToday = d === todayISO();
+    // Concurrent meetings sit side by side rather than on top of each other.
+    // Before this the week grid positioned blocks purely by time, so three
+    // 9am events rendered at identical coordinates and two were invisible.
+    const laid = packOverlaps(occurrencesOn(d));
+    const blocks = laid.map(o => {
+      const top = (o.start / 60) * pph;
+      const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
-      return `<button class="wk-block tap" data-act="openBlockOn" data-day="${d}" data-key="${esc(o.key)}"
-        style="top:${top}px;height:${h}px;background:${hexA(color, .22)};border-color:${hexA(color, .5)}">
+      const { left, width } = laneStyle(o);
+      const tight = h < 32;                    // no room for a second line
+      return `<button class="wk-block tap${tight ? ' is-tight' : ''}" data-act="openBlockOn"
+        data-day="${d}" data-key="${esc(o.key)}"
+        aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
+        style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color};background:${hexA(color, .16)}">
         <span class="wk-block-title">${esc(o.title)}</span>
+        ${tight ? '' : `<span class="wk-block-time mono">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
       </button>`;
     }).join('');
-    return `<div class="wk-col${d === todayISO() ? ' is-today' : ''}" data-act="pickDayFromWeek" data-day="${d}">
+    // The now-line belongs only on the column that is actually today.
+    const nowLine = isToday
+      ? `<div class="wk-now" style="top:${(nowMin / 60) * pph}px" aria-hidden="true"><i></i></div>`
+      : '';
+    return `<div class="wk-col${isToday ? ' is-today' : ''}" data-act="pickDayFromWeek" data-day="${d}">
       <div class="wk-col-head">
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
-        <div class="wk-num${d === todayISO() ? ' today' : ''}">${Number(d.slice(8))}</div>
+        <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px">${blocks}</div>
+      <div class="wk-body" style="height:${24 * pph}px">${nowLine}${blocks}</div>
     </div>`;
   }).join('');
 
@@ -160,26 +176,72 @@ function weekView() {
   </div>`;
 }
 
+// A month of coloured dots tells you something is happening but never what,
+// so every "what's on the 14th?" meant leaving the month to find out. Cells
+// now name their events. Narrow screens genuinely cannot fit titles, so they
+// keep dots and get a real agenda for the selected day underneath — the
+// pattern Apple and Fantastical use, and far more useful than three
+// truncated words crammed into a 44px cell.
+const MONTH_CHIPS = 3;
+
 function monthView() {
   const grid = monthGrid();
   const anchor = fromISO(S.day).getMonth();
+  const dows = dayNames(true, S.prefs.week_starts || 0);
+
+  const cells = grid.map(d => {
+    const inMonth = fromISO(d).getMonth() === anchor;
+    const occ = occurrencesOn(d);
+    const isToday = d === todayISO();
+    const isSel = d === S.day;
+    const shown = occ.slice(0, MONTH_CHIPS);
+    const more = occ.length - shown.length;
+
+    const chips = shown.map(o => `<span class="mc-chip">
+        <i style="background:${catColor(o.category_id)}"></i>
+        <span class="mc-chip-t">${esc(o.title)}</span>
+      </span>`).join('');
+    const dots = occ.slice(0, 4).map(o =>
+      `<i style="background:${catColor(o.category_id)}"></i>`).join('');
+
+    return `<button class="month-cell tap${inMonth ? '' : ' out'}${isToday ? ' is-today' : ''}${isSel ? ' is-sel' : ''}"
+      data-act="pickDayInMonth" data-day="${d}"
+      aria-label="${esc(dateLabel(d))}, ${occ.length} scheduled"${isSel ? ' aria-current="date"' : ''}>
+      <span class="mc-num">${Number(d.slice(8))}</span>
+      <span class="mc-chips">${chips}${more > 0 ? `<span class="mc-more">+${more}</span>` : ''}</span>
+      <span class="mc-dots">${dots}</span>
+    </button>`;
+  }).join('');
+
   return `<div class="month-head">
-      <button class="icon-btn" data-act="monthShift" data-dir="-1">‹</button>
+      <button class="icon-btn" data-act="monthShift" data-dir="-1" aria-label="Previous month">&lsaquo;</button>
       <span class="month-label">${esc(monthLabel(S.day))}</span>
-      <button class="icon-btn" data-act="monthShift" data-dir="1">›</button>
+      <button class="icon-btn" data-act="monthShift" data-dir="1" aria-label="Next month">&rsaquo;</button>
     </div>
-    <div class="month-grid">
-      ${grid.map(d => {
-        const inMonth = fromISO(d).getMonth() === anchor;
-        const occ = occurrencesOn(d);
-        const dots = occ.slice(0, 3).map(o => `<i style="background:${catColor(o.category_id)}"></i>`).join('');
-        return `<button class="month-cell tap${inMonth ? '' : ' out'}${d === todayISO() ? ' is-today' : ''}"
-          data-act="pickDayFromMonth" data-day="${d}">
-          <span class="mc-num">${Number(d.slice(8))}</span>
-          <span class="mc-dots">${dots}</span>
-        </button>`;
-      }).join('')}
-    </div>`;
+    <div class="month-dow">${dows.map(x => `<span>${esc(x)}</span>`).join('')}</div>
+    <div class="month-grid">${cells}</div>
+    ${monthDayDetail(S.day)}`;
+}
+
+// The selected day spelled out under the grid. Carries the month view on
+// mobile, where cells are too small for titles; on desktop it saves a view
+// switch just to read one day.
+function monthDayDetail(day) {
+  const occ = occurrencesOn(day);
+  const total = occ.reduce((a, o) => a + (o.end - o.start), 0);
+  return `<div class="month-detail">
+    <div class="section-head">
+      <span class="eyebrow">${esc(dateLabel(day))}</span>
+      ${occ.length ? `<span class="dim small mono">${esc(fmtDur(total))}</span>` : ''}
+    </div>
+    ${occ.length ? occ.map(o => `
+      <button class="agenda-row tap" data-act="openBlockOn" data-day="${day}" data-key="${esc(o.key)}">
+        <span class="agenda-bar" style="background:${catColor(o.category_id)}"></span>
+        <span class="agenda-time mono">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>
+        <span class="agenda-title">${esc(o.title)}</span>
+      </button>`).join('')
+      : `<div class="md-empty">${esc(t('cal.empty'))}</div>`}
+  </div>`;
 }
 
 function agendaView() {
@@ -216,6 +278,9 @@ registerActions({
   calMode: d => { S.calMode = d.mode; window.cadenceRerender(); },
   pickDayFromWeek: d => window.cadenceGoDay(d.day, 'today'),
   pickDayFromMonth: d => window.cadenceGoDay(d.day, 'today'),
+  // Stay in the month while browsing days; the detail list updates in place.
+  // Jumping straight to Today made the grid useless for scanning a month.
+  pickDayInMonth: d => { S.day = d.day; window.cadenceRerender(); },
   // Real calendar-month arithmetic, not a fixed day offset — a 28/30/31-day
   // jump drifts and can even fail to cross into the next month at all.
   monthShift: d => {

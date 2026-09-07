@@ -561,3 +561,86 @@ body.sheet-open{ overflow:hidden; }
 .wk-chip b{ color:var(--text-dim); font-weight:700; }
 .wk-sum-empty{ font-size:12.5px; color:var(--text-dim); padding:10px 12px;
   border:1px dashed var(--border-2); border-radius:var(--radius); }
+
+/* -------- week grid: events and the current-time line --------
+   Events carry a saturated left rail plus a light tint rather than a full
+   flood of colour. At week density a solid fill turns the grid into a wall
+   of blocks with no visible structure; the rail keeps the category
+   instantly identifiable while the tint stays quiet enough to read the
+   title on top of it. */
+.wk-block{
+  position:absolute; overflow:hidden; text-align:left;
+  padding:3px 6px 3px 8px; border-radius:7px;
+  border:1px solid color-mix(in oklab, var(--evc) 34%, transparent);
+  border-left:3px solid var(--evc);
+  display:flex; flex-direction:column; gap:1px; justify-content:flex-start;
+  transition:box-shadow .12s ease, transform .12s ease;
+}
+.wk-block:hover{ box-shadow:0 4px 12px -2px color-mix(in oklab, var(--evc) 40%, transparent); z-index:3; }
+.wk-block-title{
+  font-size:11.5px; font-weight:650; line-height:1.25; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.wk-block-time{ font-size:10px; color:var(--text-dim); line-height:1; }
+/* Under ~30 min there is only room for the title, so drop everything else
+   rather than clipping two lines into an unreadable sliver. */
+.wk-block.is-tight{ padding:1px 5px 1px 7px; justify-content:center; }
+.wk-block.is-tight .wk-block-title{ font-size:10.5px; font-weight:600; }
+
+/* One hairline with a dot on the left edge. It has to be findable at a
+   glance without competing with the events themselves, so it is the accent
+   colour at full strength but only a pixel tall. */
+.wk-now{ position:absolute; left:0; right:0; height:0; z-index:4; pointer-events:none;
+  border-top:1.5px solid var(--accent); }
+.wk-now i{ position:absolute; left:-3px; top:-4.5px; width:7px; height:7px;
+  border-radius:50%; background:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+
+@media (prefers-reduced-motion: reduce){
+  .wk-block{ transition:none; }
+}
+
+/* -------- month: cells that say what is actually happening --------
+   Dots answered "is this day busy?" but never "busy with what?", which is
+   the only question a month view is really for. Cells now name events and
+   fall back to dots only where there is genuinely no room. */
+.month-dow{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:2px 0 6px; }
+.month-dow span{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--text-faint); text-align:center; }
+.month-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.month-cell{
+  display:flex; flex-direction:column; align-items:stretch; gap:3px;
+  min-height:82px; padding:5px 4px; border-radius:10px; text-align:left;
+  background:var(--surface); border:1px solid transparent;
+  transition:background .12s ease, border-color .12s ease;
+}
+.month-cell.out{ opacity:.4; }
+.month-cell:hover{ background:var(--surface-2); }
+.month-cell.is-sel{ border-color:var(--accent); background:var(--surface-2); }
+.mc-num{ font-size:12.5px; font-weight:700; line-height:1; align-self:flex-start;
+  width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+  border-radius:50%; flex-shrink:0; }
+/* Today is a filled dot; the selected day is an outline. Two different
+   states, two different signals, so they stay legible when they coincide. */
+.month-cell.is-today .mc-num{ background:var(--accent); color:#fff; }
+.mc-chips{ display:flex; flex-direction:column; gap:2px; min-width:0; overflow:hidden; }
+.mc-chip{ display:flex; align-items:center; gap:4px; min-width:0; }
+.mc-chip i{ width:3px; height:10px; border-radius:2px; flex-shrink:0; }
+.mc-chip-t{ font-size:10.5px; font-weight:600; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mc-more{ font-size:9.5px; font-weight:700; color:var(--text-dim); padding-left:7px; }
+.mc-dots{ display:none; gap:3px; padding-left:2px; }
+.mc-dots i{ width:5px; height:5px; border-radius:50%; }
+
+.month-detail{ margin-top:16px; }
+.md-empty{ font-size:12.5px; color:var(--text-dim); padding:10px 2px; }
+
+/* Below ~520px a title in a month cell is three clipped characters, which
+   is worse than nothing — so dots come back and the detail list below the
+   grid does the real work. */
+@media (max-width:520px){
+  .month-cell{ min-height:56px; align-items:center; gap:4px; }
+  .mc-num{ align-self:center; }
+  .mc-chips{ display:none; }
+  .mc-dots{ display:flex; }
+}

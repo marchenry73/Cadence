@@ -10,6 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
+import { packOverlaps, laneStyle } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -134,24 +135,21 @@ function spine() {
     </div>`;
   }).join('');
 
-  const lanes = [];
-  const placed = list.map(o => {
-    let lane = lanes.findIndex(end => end <= o.start);
-    if (lane === -1) { lane = lanes.length; lanes.push(o.end); } else lanes[lane] = o.end;
-    return { ...o, lane };
-  });
-  const laneCount = Math.max(1, lanes.length);
+  // Cluster-scoped lanes: only blocks that actually collide share width.
+  // The old version divided the whole day by the busiest moment, so a
+  // single 9am double-booking left every block half-width until midnight.
+  const placed = packOverlaps(list);
 
   const blocks = placed.map(o => {
     const top = (o.start / 60) * pph;
     const h = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
     const color = catColor(o.category_id);
-    const width = 100 / laneCount;
+    const { left, width } = laneStyle(o, 2);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
     const done = isBlockDone(o, S.day);
     return `<button class="block tap${running ? ' running' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
-      style="top:${top}px;height:${h}px;left:calc(${o.lane * width}%);width:calc(${width}% - 6px);
+      style="top:${top}px;height:${h}px;left:${left};width:${width};
              background:${color}">
       <span class="block-bar"></span>
       <span class="block-body">
