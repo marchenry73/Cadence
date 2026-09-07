@@ -18,6 +18,7 @@ import { hydrateImages } from './images.js';
 import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock } from './google.js';
 import { requestGoogleCalendarAccess, captureGoogleRefreshToken } from './auth.js';
 import { openQuickAdd } from './sheets.js';
+import './search.js';
 import { debounce, esc } from './util.js';
 
 import viewToday from './view.today.js';
@@ -245,6 +246,7 @@ function renderShell() {
       <div class="main-col">
         <div class="topbar">
           <h1 id="routeTitle"></h1>
+          <button class="icon-btn topbar-search" data-act="openSearch" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
           <span class="sync-pill${S.guest ? ' guest' : ''}" id="syncPill"><i class="dot"></i><span id="syncLabel">${S.guest ? t('app.guest') : t('app.synced')}</span></span>
         </div>
         <div id="gsyncBanner"></div>

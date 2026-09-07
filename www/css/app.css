@@ -644,3 +644,27 @@ body.sheet-open{ overflow:hidden; }
   .mc-chips{ display:none; }
   .mc-dots{ display:flex; }
 }
+
+/* -------- search --------
+   Rows are hairline-separated instead of carded: a result list is one
+   scannable column, and boxing each row would triple its visual weight
+   for no added meaning. */
+.topbar-search{ width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border-radius:50%; color:var(--text-dim); }
+.topbar-search:hover{ background:var(--surface-2); color:var(--text); }
+.topbar-search svg{ width:18px; height:18px; }
+
+.sr-list{ display:flex; flex-direction:column; max-height:52vh; overflow-y:auto; margin:0 -4px; }
+.sr-row{ display:flex; align-items:center; gap:11px; padding:10px 8px; border-radius:10px;
+  text-align:left; width:100%; border-bottom:1px solid var(--border); }
+.sr-row:last-child{ border-bottom:none; }
+.sr-row:hover{ background:var(--surface-2); }
+.sr-icon{ width:26px; height:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  color:var(--text-faint); }
+.sr-icon svg{ width:16px; height:16px; }
+.sr-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.sr-title{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sr-title.is-done{ text-decoration:line-through; color:var(--text-dim); }
+.sr-sub{ font-size:11.5px; color:var(--text-dim); }
+.sr-when{ font-size:11px; color:var(--text-dim); flex-shrink:0; }
+.sr-hint{ font-size:13px; color:var(--text-dim); padding:14px 6px; text-align:center; }
