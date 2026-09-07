@@ -196,7 +196,24 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .hour{ position:absolute; left:-54px; right:0; height:0; border-top:1px solid var(--border); }
 .hour-label{ position:absolute; left:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:right; padding-right:8px; }
 .spine-focus{ position:absolute; left:0; right:0; background:color-mix(in oklch, var(--accent), transparent 94%); border-radius:8px; pointer-events:none; }
-.gap{ position:absolute; left:0; right:0; border:1px dashed var(--border-2); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:12px; z-index:1; }
+/* -- free time is an object, not an absence --
+   Every calendar measured renders empty hours as blank grid, so capacity
+   is something you infer from negative space. Cadence already knows where
+   the gaps are, so it draws them: a faint dotted field that reads as open
+   ground rather than a dashed placeholder, with the duration stated.
+   Tapping one is how a task becomes a block. */
+.gap{
+  position:absolute; left:0; right:0; z-index:1;
+  border:none; border-radius:8px;
+  background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 11%, transparent) 1px, transparent 1.4px);
+  background-size:9px 9px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--text-dim); font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  transition:background-color .15s ease, color .15s ease;
+}
+.gap span{ display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:20px; background:var(--bg); }
+.gap span::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; }
+.gap:hover, .gap:focus-visible{ background-color:var(--accent-weak); color:var(--accent); }
 
 
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
@@ -408,11 +425,17 @@ body.sheet-open{ overflow:hidden; }
 
 @media (min-width:960px){
   html,body{ background:var(--bg-2); }
-  #app{ position:static; min-height:100vh; height:auto; padding-top:0; overflow:visible; }
-  .app-shell{ min-height:100vh; height:auto; max-width:1240px; margin:0 auto; background:var(--bg); }
-  .main-col{ height:auto; }
+  /* Chrome pinned, grid scrolls inside it — the shape every reference
+     calendar uses, and what the phone layout already does. The previous
+     document-scroll approach scrolled the topbar and day headers away, and
+     left the FAB (absolute, no positioned ancestor) stranded on the
+     document's first screen. The framed look is kept: the shell is still
+     1240px centred on the darker ground. */
+  #app{ position:fixed; inset:0; padding-top:0; overflow:hidden; }
+  .app-shell{ height:100%; max-width:1240px; margin:0 auto; background:var(--bg); }
+  .main-col{ height:100%; }
   .sidebar{ display:flex; flex-direction:column; width:236px; flex-shrink:0; padding:22px 14px; gap:2px;
-    border-right:1px solid var(--border); position:sticky; top:0; height:100vh; }
+    border-right:1px solid var(--border); height:100%; }
   .sidebar-logo{ font-family:var(--font-display); font-size:20px; font-weight:700; padding:6px 12px 22px; letter-spacing:-.01em; }
   .sidebar-logo b{ color:var(--accent); }
   .side-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; color:var(--text-dim); font-size:14px; font-weight:600; text-align:left; width:100%; }
