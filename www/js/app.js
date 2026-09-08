@@ -32,14 +32,19 @@ import viewSettings from './view.settings.js';
 installErrorCapture();
 
 const VIEWS = { today: viewToday, calendar: viewCalendar, tasks: viewTasks, goals: viewGoals, review: viewReview, team: viewTeam, settings: viewSettings };
+// Route id, translation KEY, icon - not the translated label. Resolving t()
+// here would run it at import time, before setLang() has fetched a pack, and
+// freeze all six at English for every language. navItems() resolves them at
+// render instead.
 const NAV = [
-  ['today', t('nav.today'), icon('sun')],
-  ['calendar', t('nav.calendar'), icon('cal')],
-  ['tasks', t('nav.tasks'), icon('check')],
-  ['goals', t('nav.goals'), icon('flag')],
-  ['review', 'Review', icon('chart')],
-  ['settings', t('nav.settings'), icon('gear')]
+  ['today', 'nav.today', icon('sun')],
+  ['calendar', 'nav.calendar', icon('cal')],
+  ['tasks', 'nav.tasks', icon('check')],
+  ['goals', 'nav.goals', icon('flag')],
+  ['review', 'nav.review', icon('chart')],
+  ['settings', 'nav.settings', icon('gear')]
 ];
+const navItems = () => NAV.map(([id, key, svg]) => [id, t(key), svg]);
 
 function icon(name) {
   const paths = {
@@ -240,7 +245,7 @@ function renderShell() {
     <div class="app-shell">
       <nav class="sidebar" id="sidebar">
         <div class="sidebar-logo">Cad<b>ence</b></div>
-        ${NAV.map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
+        ${navItems().map(([id, label, svg]) => `<button class="side-link tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
         <div class="sidebar-spacer"></div>
         <button class="sidebar-add tap" data-act="quickAdd">＋ ${t('common.add')}</button>
       </nav>
@@ -256,7 +261,7 @@ function renderShell() {
     </div>
     <button class="fab tap" data-act="quickAdd" aria-label="${t('common.add')}">＋</button>
     <nav class="tabbar" id="tabbar" aria-label="Main">
-      ${NAV.map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
+      ${navItems().map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
     </nav>
     <div id="ptr"></div>
     <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="sheet sheet-alt" id="sheet2" inert></div><div class="toast" id="toast"></div>`;
@@ -280,7 +285,7 @@ function renderRoute(dir = 0, sameRoute = false) {
   if (sameRoute) host.innerHTML = html;
   else swapScreen(host, html, dir);
   currentView = view;
-  $('#routeTitle').textContent = NAV.find(n => n[0] === S.route)?.[1] || '';
+  $('#routeTitle').textContent = navItems().find(n => n[0] === S.route)?.[1] || '';
   $$tabsSync();
   hydrateImages(host);
   view.onMount?.(host);
@@ -381,6 +386,12 @@ window.cadenceGoDay = (day, route) => {
   else renderRoute(0, true);
 };
 window.cadenceRerender = () => renderRoute(0, true);
+// A language change has to re-render the SHELL too. The tab bar, the sidebar
+// and the screen title all live there, so re-rendering only the route left the
+// entire chrome in the previous language until the app was reloaded - which is
+// why the tab bar still read English under Arabic even after the labels were
+// made to resolve lazily.
+window.cadenceRelocalise = () => { renderShell(); renderRoute(0, true); };
 window.cadenceRenderGoogleBanner = renderGoogleBanner;
 window.cadenceApplyAccent = c => document.documentElement.style.setProperty('--accent-user', c);
 

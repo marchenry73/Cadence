@@ -19,6 +19,7 @@ const RTL = new Set(['ar']);
 export const EN = {
   'nav.today': 'Today', 'nav.calendar': 'Calendar', 'nav.tasks': 'Tasks',
   'nav.goals': 'Goals', 'nav.team': 'Team', 'nav.settings': 'Settings',
+  'nav.review': 'Review',
 
   'app.today': 'Today', 'app.tomorrow': 'Tomorrow', 'app.now': 'Now',
   'app.offline': 'Offline', 'app.syncing': 'Syncing', 'app.synced': 'Synced',

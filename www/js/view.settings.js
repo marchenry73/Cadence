@@ -432,7 +432,7 @@ registerActions({
   }
 });
 
-window.cadenceSetLang = async code => { await setLang(code); savePrefs({ lang: code }); window.cadenceRerender(); };
+window.cadenceSetLang = async code => { await setLang(code); savePrefs({ lang: code }); (window.cadenceRelocalise || window.cadenceRerender)(); };
 window.cadenceFocusChange = (which, val) => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(val);
   if (!m) return;
