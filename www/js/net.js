@@ -33,15 +33,47 @@ const isNetworkError = e => {
 
 // ---------------------------------------------------------------- pull
 
+// activity is the only table that grows without bound, and the only one
+// every score depends on: streaks, badges, points, focus minutes, whether a
+// past block was ticked, and every past-week Review. It used to be fetched
+// with a flat .limit(400), which on a FULL pull meant anything older than
+// the newest 400 rows was simply absent - and absent is indistinguishable
+// from never happened, so old ticks read as unticked and the totals were
+// quietly wrong. Paged, so the ceiling is a safeguard rather than a silent
+// truncation.
+const ACTIVITY_PAGE = 1000;
+const ACTIVITY_CEILING = 25000;
+
+async function pullActivity(since) {
+  const all = [];
+  for (let from = 0; from < ACTIVITY_CEILING; from += ACTIVITY_PAGE) {
+    let q = sb.from('activity').select('*')
+      .order('at', { ascending: false })
+      .range(from, from + ACTIVITY_PAGE - 1);
+    if (since) q = q.gt('updated_at', since);
+    const { data, error } = await q;
+    if (error) throw error;
+    all.push(...(data || []));
+    // A short page is the end of the table; anything else means keep going.
+    if (!data || data.length < ACTIVITY_PAGE) return all;
+  }
+  // If this ever fires the history really is being cut off, so say so
+  // rather than let a cap masquerade as an empty past.
+  console.warn(`[sync] activity reached the ${ACTIVITY_CEILING}-row ceiling; ` +
+    'older history was not pulled and streaks, badges and past Reviews will undercount');
+  return all;
+}
+
 // Rows changed since `since` (ISO string, or null for everything).
 // RLS returns the user's own rows plus org-mates' rows for the Team view.
 export async function pull(since) {
   const out = {};
   const stamp = new Date().toISOString();
   await Promise.all(TABLES.map(async table => {
+    // activity pages itself; see pullActivity above.
+    if (table === 'activity') { out[table] = await pullActivity(since); return; }
     let q = sb.from(table).select('*');
     if (since) q = q.gt('updated_at', since);
-    if (table === 'activity') q = q.order('at', { ascending: false }).limit(400);
     const { data, error } = await q;
     if (error) throw error;
     out[table] = data || [];
