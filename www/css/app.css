@@ -43,6 +43,10 @@
      surfaces that float above the page, pill for capsules. Anything not
      on this scale is a mistake, not a nuance. */
   --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:20px; --r-pill:999px;
+  /* The event rail is an inset box-shadow, and box-shadow has no logical
+     form - so its offset is a variable, flipped once for right-to-left
+     rather than restated on all eight rules that draw it. */
+  --rail-x:3px;
   /* Type scale. Eight steps: 10 micro, 11 meta, 12 secondary, 13 small
      body, 14 body, 16 emphasis, 20 screen title, 26 display. Sizes are
      written literally rather than as tokens because CSS custom properties
@@ -122,7 +126,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .strike{ text-decoration:line-through; opacity:.7; }
 .good{ color:var(--good); } .good-text{ color:var(--good); }
 .danger-text{ color:var(--danger); } .warn-text{ color:var(--warn); }
-.dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; }
+.dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-inline-end:6px; }
 
 #app{ position:fixed; inset:0; padding-top:var(--safe-t); overflow:hidden; }
 .app-shell{ display:flex; flex-direction:row; height:100%; }
@@ -145,14 +149,14 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
 
 /* -------- bottom tab bar: a floating pill, not a flush-to-edge bar -------- */
-.tabbar{ position:absolute; left:14px; right:14px; bottom:calc(10px + var(--safe-b)); display:flex; padding:6px; gap:2px;
+.tabbar{ position:absolute; inset-inline-start:14px; inset-inline-end:14px; bottom:calc(10px + var(--safe-b)); display:flex; padding:6px; gap:2px;
   background:var(--surface); backdrop-filter:blur(20px); border-radius:var(--r-lg);
   border:1px solid var(--border); box-shadow:0 16px 32px -10px rgba(0,0,0,.28); z-index:20; }
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px 6px; border-radius:var(--r-md); color:var(--text-faint); min-height:48px; justify-content:center; }
 .tab.on{ color:var(--accent-ink); background:color-mix(in oklab, var(--accent) 12%, transparent); }
 .tab svg{ width:21px; height:21px; }
 .tab span{ font-size:10px; font-weight:700; }
-.fab{ position:absolute; right:16px; bottom:calc(84px + var(--safe-b)); width:56px; height:56px; border-radius:50%;
+.fab{ position:absolute; inset-inline-end:16px; bottom:calc(84px + var(--safe-b)); width:56px; height:56px; border-radius:50%;
   background:var(--accent-solid); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:26px;
   box-shadow:0 10px 24px color-mix(in oklab, var(--accent) 45%, transparent); z-index:19; }
 
@@ -190,7 +194,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
     color-mix(in oklab, var(--hero-a, var(--accent)) 74%, #000),
     color-mix(in oklab, var(--hero-a, var(--accent)) 58%, #000));
   color:#fff; }
-.hero::after{ content:''; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.10); pointer-events:none; }
+.hero::after{ content:''; position:absolute; inset-inline-end:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.10); pointer-events:none; }
 .hero.hero-empty{ background:var(--surface); color:var(--text); border:1px solid var(--border); }
 .hero.hero-empty::after{ display:none; }
 .hero-eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; opacity:.92; display:flex; align-items:center; gap:6px; position:relative; }
@@ -235,7 +239,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 /* -------- "when should I do this?" suggestions -------- */
 .sug-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
-.sug-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px;
+.sug-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:start; padding:10px 12px;
   border-radius:var(--r-md); background:var(--surface-2); border:1px solid var(--border); }
 .sug-main{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
 .sug-when{ font-size:13px; font-weight:700; }
@@ -246,7 +250,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 /* -------- mini task list: hairline rows on Today, not stacked cards -------- */
 .tasks-mini{ border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; margin-bottom:8px; }
-.trow-mini{ display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:left; }
+.trow-mini{ display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:start; }
 .trow-mini:last-child{ border-bottom:none; }
 .trow-mini .task-check{ width:18px; height:18px; }
 .ttitle-mini{ font-size:13px; font-weight:600; flex:1; }
@@ -263,9 +267,9 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
    which is exactly why this survived so long.
    The gradient is a background, and backgrounds already honour
    border-radius, so the clip bought nothing it could not do without. */
-.spine{ position:relative; margin:0 0 0 54px; border-radius:var(--radius); }
-.hour{ position:absolute; left:-54px; right:0; height:0; border-top:1px solid var(--border); }
-.hour-label{ position:absolute; left:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:right; padding-right:8px; }
+.spine{ position:relative; margin-inline-start:54px; border-radius:var(--radius); }
+.hour{ position:absolute; inset-inline-start:-54px; inset-inline-end:0; height:0; border-top:1px solid var(--border); }
+.hour-label{ position:absolute; inset-inline-start:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:end; padding-inline-end:8px; }
 
 /* -- free time is an object, not an absence --
    Every calendar measured renders empty hours as blank grid, so capacity
@@ -274,7 +278,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
    ground rather than a dashed placeholder, with the duration stated.
    Tapping one is how a task becomes a block. */
 .gap{
-  position:absolute; left:0; right:0; z-index:1;
+  position:absolute; inset-inline-start:0; inset-inline-end:0; z-index:1;
   border:none; border-radius:var(--r-sm);
   /* 7%: large free-time fields read as paper at 11%, as noise above it. */
   background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px);
@@ -288,10 +292,10 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .gap:hover, .gap:focus-visible{ background-color:var(--accent-weak); color:var(--accent-ink); }
 
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
-.block-flag{ position:absolute; top:3px; right:5px; font-size:11px; opacity:.7; }
+.block-flag{ position:absolute; top:3px; inset-inline-end:5px; font-size:11px; opacity:.7; }
 
-.nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--danger); z-index:5; }
-.nowline i{ position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger); }
+.nowline{ position:absolute; inset-inline-start:0; inset-inline-end:0; height:0; border-top:2px solid var(--danger); z-index:5; }
+.nowline i{ position:absolute; inset-inline-start:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger); }
 
 /* -------- press / swipe -------- */
 .tap{ transition:transform .1s ease, opacity .1s ease; }
@@ -315,7 +319,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .task-row{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding:0; background:transparent; border:none; }
 .task-check{ width:22px; height:22px; border-radius:50%; border:2px solid var(--border-2); flex-shrink:0; }
 .task-check.on{ background:var(--good); border-color:var(--good); }
-.task-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; text-align:left; }
+.task-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; text-align:start; }
 .task-title{ font-size:14px; font-weight:600; }
 .task-meta{ display:flex; gap:10px; font-size:12px; color:var(--text-dim); align-items:center; }
 .list > *:not(:last-child){ margin-bottom:8px; }
@@ -323,7 +327,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 /* -------- goals -------- */
 .goal-grid{ display:flex; flex-direction:column; gap:12px; }
 .goal-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
-.goal-card-head{ width:100%; text-align:left; }
+.goal-card-head{ width:100%; text-align:start; }
 .goal-title{ font-family:var(--font-serif); font-size:16px; font-weight:700; }
 .goal-area{ font-size:12px; color:var(--text-dim); text-transform:capitalize; }
 .goal-bar{ height:6px; border-radius:var(--r-sm); background:var(--surface-2); margin:10px 0 6px; overflow:hidden; }
@@ -331,7 +335,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .goal-row{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
 .goal-next{ display:flex; align-items:center; gap:8px; width:100%; padding:8px 0; font-size:13px; }
 .ms-list{ margin-top:4px; }
-.ms-row{ display:flex; align-items:center; gap:8px; width:100%; padding:6px 0; font-size:13px; text-align:left; }
+.ms-row{ display:flex; align-items:center; gap:8px; width:100%; padding:6px 0; font-size:13px; text-align:start; }
 .ms-check{ width:18px; height:18px; border-radius:var(--r-xs); border:2px solid var(--border-2); flex-shrink:0; }
 .ms-check.on{ background:var(--good); border-color:var(--good); }
 
@@ -352,7 +356,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 /* dragging a block sideways on Today = move it to the next/previous day */
 .block{ display:flex; align-items:stretch; padding:0; z-index:1; border-radius:var(--r-sm); touch-action:none; }
 .block.drag-to-day{ box-shadow:0 10px 24px rgba(0,0,0,.45); }
-.block.drag-to-day::after{ content:attr(data-day-hint); position:absolute; top:4px; right:6px;
+.block.drag-to-day::after{ content:attr(data-day-hint); position:absolute; top:4px; inset-inline-end:6px;
   font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
   background:var(--accent); color:#111; padding:2px 6px; border-radius:var(--r-pill); }
 
@@ -380,7 +384,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .row-label{ font-size:12px; color:var(--text-dim); margin:12px 0 6px; }
 .toggle-row{ display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 0; font-size:14px; }
 .switch{ width:42px; height:25px; border-radius:var(--r-lg); background:var(--surface-2); position:relative; border:1px solid var(--border-2); flex-shrink:0; }
-.switch::after{ content:''; position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%; background:var(--text-faint); transition:transform .15s, background .15s; }
+.switch::after{ content:''; position:absolute; top:2px; inset-inline-start:2px; width:19px; height:19px; border-radius:50%; background:var(--text-faint); transition:transform .15s, background .15s; }
 .switch.on{ background:color-mix(in oklch, var(--accent), transparent 30%); border-color:var(--accent); }
 .switch.on::after{ transform:translateX(17px); background:#fff; }
 .cat-row{ display:flex; align-items:center; width:100%; padding:9px 0; font-size:14px; }
@@ -412,7 +416,7 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .chip.on{ background:var(--accent-solid); color:var(--on-accent); }
 .range-wrap{ display:flex; align-items:center; gap:10px; }
 .range-wrap input[type=range]{ flex:1; }
-.range-wrap output{ font-family:'IBM Plex Mono',monospace; font-size:13px; width:24px; text-align:right; }
+.range-wrap output{ font-family:'IBM Plex Mono',monospace; font-size:13px; width:24px; text-align:end; }
 .stepper{ display:flex; align-items:center; gap:14px; }
 .swatches{ display:flex; gap:10px; flex-wrap:wrap; }
 .swatch{ width:30px; height:30px; border-radius:50%; border:2px solid transparent; }
@@ -423,7 +427,7 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .img-empty-label{ font-size:12px; }
 .img-preview{ position:relative; height:150px; border-radius:var(--r-md); overflow:hidden; }
 .img-preview img{ width:100%; height:100%; object-fit:cover; }
-.img-x{ position:absolute; top:8px; right:8px; background:rgba(0,0,0,.5); color:#fff; border-radius:50%; width:28px; height:28px; }
+.img-x{ position:absolute; top:8px; inset-inline-end:8px; background:rgba(0,0,0,.5); color:#fff; border-radius:50%; width:28px; height:28px; }
 .icon-btn{ width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text-dim); }
 .icon-btn:active{ background:var(--surface-2); }
 
@@ -439,7 +443,7 @@ button[disabled]{ opacity:.5; pointer-events:none; }
 /* -------- sheet -------- */
 #scrim{ position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .2s; z-index:40; }
 #scrim.on{ opacity:1; pointer-events:auto; }
-.sheet{ position:fixed; left:0; right:0; bottom:0; max-height:88vh; background:var(--bg-2); border-radius:var(--r-lg) 22px 0 0;
+.sheet{ position:fixed; inset-inline-start:0; inset-inline-end:0; bottom:0; max-height:88vh; background:var(--bg-2); border-radius:var(--r-lg) 22px 0 0;
   box-shadow:var(--shadow); z-index:41; display:flex; flex-direction:column; padding-bottom:calc(var(--kb) + var(--safe-b));
   border:1px solid var(--border); border-bottom:none; }
 .sheet-full{ max-height:calc(100vh - var(--safe-t) - 20px); height:calc(100vh - var(--safe-t) - 20px); }
@@ -480,17 +484,17 @@ body.sheet-open{ overflow:hidden; }
 
 .nl-bar{ display:flex; gap:8px; margin:6px 0 14px; }
 .nl-bar .input{ flex:1; }
-.protect-flag{ position:absolute; top:3px; left:8px; font-size:10px; opacity:.85; }
+.protect-flag{ position:absolute; top:3px; inset-inline-start:8px; font-size:10px; opacity:.85; }
 
 /* -------- toast -------- */
-.toast{ position:fixed; left:50%; bottom:calc(96px + var(--safe-b)); transform:translate(-50%,12px); background:var(--surface-2);
+.toast{ position:fixed; inset-inline-start:50%; bottom:calc(96px + var(--safe-b)); transform:translate(-50%,12px); background:var(--surface-2);
   color:var(--text); border:1px solid var(--border-2); padding:10px 18px; border-radius:var(--r-lg); font-size:13px; font-weight:600;
   opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50; max-width:88vw; text-align:center; }
 .toast.on{ opacity:1; transform:translate(-50%,0); }
 .toast.good{ color:var(--good); } .toast.warn{ color:var(--warn); }
 
 /* -------- pull to refresh -------- */
-#ptr{ position:absolute; left:50%; top:0; width:26px; height:26px; margin-left:-13px; transform:translateY(-40px);
+#ptr{ position:absolute; inset-inline-start:50%; top:0; width:26px; height:26px; margin-inline-start:-13px; transform:translateY(-40px);
   border:2px solid var(--border-2); border-top-color:var(--accent); border-radius:50%; z-index:10; pointer-events:none; }
 #ptr.armed{ border-top-color:var(--good); }
 #ptr.spin{ animation:spin .7s linear infinite; }
@@ -505,7 +509,7 @@ body.sheet-open{ overflow:hidden; }
 
 /* -------- loading -------- */
 .boot{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:100; color:var(--text-dim); font-size:13px; }
-.boot-mark{ width:14px; height:14px; border-radius:50%; background:var(--accent); animation:pulse 1.1s infinite; margin-right:8px; }
+.boot-mark{ width:14px; height:14px; border-radius:50%; background:var(--accent); animation:pulse 1.1s infinite; margin-inline-end:8px; }
 .boot-row{ display:flex; align-items:center; font-family:var(--font-display); }
 
 /* ==================================================================
@@ -532,7 +536,7 @@ body.sheet-open{ overflow:hidden; }
     border-right:1px solid var(--border); height:100%; }
   .sidebar-logo{ font-family:var(--font-display); font-size:20px; font-weight:700; padding:6px 12px 22px; letter-spacing:-.01em; }
   .sidebar-logo b{ color:var(--accent-ink); }
-  .side-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r-md); color:var(--text-dim); font-size:14px; font-weight:600; text-align:left; width:100%; }
+  .side-link{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r-md); color:var(--text-dim); font-size:14px; font-weight:600; text-align:start; width:100%; }
   .side-link svg{ width:19px; height:19px; flex-shrink:0; }
   .side-link.on{ background:var(--surface-2); color:var(--text); }
   .side-link:hover{ color:var(--text); }
@@ -561,9 +565,9 @@ body.sheet-open{ overflow:hidden; }
   .rail-week .rw-dot{ width:5px; height:5px; border-radius:50%; }
   .rail-week .rw-dow{ font-size:10px; }
 
-  .fab{ right:32px; bottom:32px; }
+  .fab{ inset-inline-end:32px; bottom:32px; }
   .tabbar{ display:none; }
-  .sheet{ left:auto; right:32px; bottom:32px; width:420px; border-radius:var(--r-lg); max-height:80vh; box-shadow:0 24px 60px rgba(0,0,0,.5); }
+  .sheet{ inset-inline-start:auto; inset-inline-end:32px; bottom:32px; width:420px; border-radius:var(--r-lg); max-height:80vh; box-shadow:0 24px 60px rgba(0,0,0,.5); }
   #scrim{ background:rgba(0,0,0,.35); }
 
   .goal-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
@@ -675,7 +679,7 @@ body.sheet-open{ overflow:hidden; }
 .month-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
 .month-cell{
   display:flex; flex-direction:column; align-items:stretch; gap:3px;
-  min-height:82px; padding:5px 4px; border-radius:var(--r-sm); text-align:left;
+  min-height:82px; padding:5px 4px; border-radius:var(--r-sm); text-align:start;
   background:var(--surface); border:1px solid transparent;
   transition:background .12s ease, border-color .12s ease;
 }
@@ -693,8 +697,8 @@ body.sheet-open{ overflow:hidden; }
 .mc-chip i{ width:3px; height:10px; border-radius:var(--r-xs); flex-shrink:0; }
 .mc-chip-t{ font-size:11px; font-weight:600; color:var(--text);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mc-more{ font-size:10px; font-weight:700; color:var(--text-dim); padding-left:7px; }
-.mc-dots{ display:none; gap:3px; padding-left:2px; }
+.mc-more{ font-size:10px; font-weight:700; color:var(--text-dim); padding-inline-start:7px; }
+.mc-dots{ display:none; gap:3px; padding-inline-start:2px; }
 .mc-dots i{ width:5px; height:5px; border-radius:50%; }
 
 .month-detail{ margin-top:16px; }
@@ -721,7 +725,7 @@ body.sheet-open{ overflow:hidden; }
 
 .sr-list{ display:flex; flex-direction:column; max-height:52vh; overflow-y:auto; margin:0 -4px; }
 .sr-row{ display:flex; align-items:center; gap:11px; padding:10px 8px; border-radius:var(--r-sm);
-  text-align:left; width:100%; border-bottom:1px solid var(--border); }
+  text-align:start; width:100%; border-bottom:1px solid var(--border); }
 .sr-row:last-child{ border-bottom:none; }
 .sr-row:hover{ background:var(--surface-2); }
 .sr-icon{ width:26px; height:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -746,7 +750,7 @@ body.sheet-open{ overflow:hidden; }
   color:var(--text-dim); }
 .agenda-day.is-today .agenda-when{ color:var(--accent-ink); }
 .agenda-total{ font-size:11px; color:var(--text-dim); }
-.agenda-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+.agenda-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:start;
   padding:9px 8px; border-radius:var(--r-sm); }
 .agenda-row:hover{ background:var(--surface-2); }
 .agenda-bar{ width:3px; align-self:stretch; min-height:18px; border-radius:var(--r-xs); flex-shrink:0; }
@@ -781,10 +785,10 @@ body.sheet-open{ overflow:hidden; }
   outline-color:var(--text);
 }
 /* Skip straight to content instead of tabbing the whole nav every time. */
-.skip-link{ position:absolute; left:-9999px; top:0; z-index:100;
+.skip-link{ position:absolute; inset-inline-start:-9999px; top:0; z-index:100;
   background:var(--accent-solid); color:var(--on-accent); padding:10px 16px; border-radius:0 0 10px 0;
   font-size:13px; font-weight:700; }
-.skip-link:focus{ left:0; }
+.skip-link:focus{ inset-inline-start:0; }
 
 /* Touch targets. Guidance is ~44px; several controls sat at 33-39px, which
    is fine for a mouse and genuinely awkward with a thumb. Applied only on
@@ -853,14 +857,14 @@ body.sheet-open{ overflow:hidden; }
 
 /* -- gutter -- */
 .wk-gutter{ width:52px; flex-shrink:0; position:relative; }
-.wk-hour{ position:absolute; left:0; right:9px; transform:translateY(-50%);
-  font-size:11px; line-height:1; color:var(--text-faint); text-align:right;
+.wk-hour{ position:absolute; inset-inline-start:0; inset-inline-end:9px; transform:translateY(-50%);
+  font-size:11px; line-height:1; color:var(--text-faint); text-align:end;
   font-variant-numeric:tabular-nums; letter-spacing:.01em; transition:opacity .15s ease; }
 .wk-hour.is-hidden{ opacity:0; }
 /* The live time takes the gutter slot the now-line runs through, so the
    axis never reads "2pm" beside a line that says 2:17. */
-.wk-now-time{ position:absolute; left:0; right:9px; transform:translateY(-50%);
-  font-size:11px; line-height:1; font-weight:700; color:var(--accent-ink); text-align:right;
+.wk-now-time{ position:absolute; inset-inline-start:0; inset-inline-end:9px; transform:translateY(-50%);
+  font-size:11px; line-height:1; font-weight:700; color:var(--accent-ink); text-align:end;
   font-variant-numeric:tabular-nums; z-index:5; pointer-events:none; }
 
 /* -- columns -- */
@@ -889,10 +893,10 @@ body.sheet-open{ overflow:hidden; }
 .wk-num.today{ background:var(--accent-solid); color:var(--on-accent); }
 
 /* -- the now-line: one horizon across the week at two strengths -- */
-.wk-now{ position:absolute; left:0; right:0; height:0; pointer-events:none; }
+.wk-now{ position:absolute; inset-inline-start:0; inset-inline-end:0; height:0; pointer-events:none; }
 .wk-now.is-ghost{ z-index:0; border-top:1px solid color-mix(in oklab, var(--accent) 16%, transparent); }
 .wk-now.is-today{ z-index:4; border-top:1.5px solid var(--accent); }
-.wk-now.is-today i{ position:absolute; left:-3.5px; top:-4.25px; width:7px; height:7px;
+.wk-now.is-today i{ position:absolute; inset-inline-start:-3.5px; top:-4.25px; width:7px; height:7px;
   border-radius:50%; background:var(--accent); }
 
 /* -- events: one language, shared by the week grid and Today's spine --
@@ -905,15 +909,15 @@ body.sheet-open{ overflow:hidden; }
 .wk-block, .block{
   --ev-fill: color-mix(in oklab, var(--evc) var(--ev-tint), var(--surface));
   --ev-text: color-mix(in oklab, var(--evc) var(--ev-text-mix), var(--ink-warm));
-  position:absolute; overflow:hidden; text-align:left;
+  position:absolute; overflow:hidden; text-align:start;
   background:var(--ev-fill); border:none; border-radius:var(--r-sm);
-  box-shadow:inset 3px 0 0 var(--evc), -1px 0 0 var(--surface);
+  box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), -1px 0 0 var(--surface);
   touch-action:none;
   transition:box-shadow .12s ease, opacity .2s ease, filter .2s ease;
 }
 .wk-block{ padding:3px 6px 3px 9px; display:flex; flex-direction:column; gap:1px; }
 .wk-block:hover, .block:hover{
-  box-shadow:inset 3px 0 0 var(--evc), 0 4px 14px -4px color-mix(in oklab, var(--evc) 45%, transparent); z-index:3; }
+  box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 4px 14px -4px color-mix(in oklab, var(--evc) 45%, transparent); z-index:3; }
 .wk-block:focus-visible, .block:focus-visible{ outline-color:var(--evc); }
 .wk-block-title{ font-size:11px; font-weight:600; line-height:1.25; color:var(--ev-text);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -923,14 +927,14 @@ body.sheet-open{ overflow:hidden; }
 /* Elapsed blocks step back so "what's left" reads without parsing times. */
 
 .wk-block.is-dragging{ z-index:40; opacity:.94; pointer-events:none;
-  box-shadow:inset 3px 0 0 var(--evc), 0 12px 28px -6px rgba(0,0,0,.4); }
+  box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 12px 28px -6px rgba(0,0,0,.4); }
 
 /* -- Today's spine: same language at its wider scale -- */
 
 .block-body{ flex:1; min-width:0; padding:6px 9px 6px 12px; display:flex; flex-direction:column; gap:2px; }
 .block-title{ font-size:13px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ev-text); }
 .block-time{ font-size:11px; color:var(--ev-text); opacity:.92; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
-.block.running{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 2px var(--accent); }
+.block.running{ box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 0 0 2px var(--accent); }
 .block-flag, .protect-flag{ color:var(--ev-text); opacity:1; }
 /* The spine's per-hour border and the gradient would double up; the
    gradient carries it now, and labels centre exactly on the line. */
@@ -941,7 +945,7 @@ body.sheet-open{ overflow:hidden; }
 /* -- month header: weight carries the hierarchy, not size -- */
 .month-label{ font-family:var(--font-display); font-size:16px; letter-spacing:-.018em; }
 .month-label b{ font-weight:700; }
-.month-label span{ font-weight:400; color:var(--text-dim); margin-left:.3em; }
+.month-label span{ font-weight:400; color:var(--text-dim); margin-inline-start:.3em; }
 
 /* The gutter mirrors the day header with the SAME markup, hidden, so its
    body starts at exactly the height the columns' bodies start at — labels
@@ -981,7 +985,7 @@ body.sheet-open{ overflow:hidden; }
    Not a 24-hour "free time" slab: a blank grid already says the day is
    blank. This says what to do with it, anchored at the start of your
    focus hours so it sits where the day would actually begin. */
-.spine-empty{ position:absolute; left:0; right:0; z-index:2;
+.spine-empty{ position:absolute; inset-inline-start:0; inset-inline-end:0; z-index:2;
   display:flex; flex-direction:column; align-items:flex-start; gap:6px;
   padding:16px 18px; border-radius:var(--radius);
   background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); }
@@ -1056,9 +1060,9 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    affected block pulses its rail once — the answer to "where did that
    land?" without a toast telling you in words. */
 @keyframes blockFlash{
-  0%{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 0 color-mix(in oklab, var(--evc) 55%, transparent); }
-  35%{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 6px color-mix(in oklab, var(--evc) 26%, transparent); }
-  100%{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 0 color-mix(in oklab, var(--evc) 0%, transparent); }
+  0%{ box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 0 0 0 color-mix(in oklab, var(--evc) 55%, transparent); }
+  35%{ box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 0 0 6px color-mix(in oklab, var(--evc) 26%, transparent); }
+  100%{ box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 0 0 0 color-mix(in oklab, var(--evc) 0%, transparent); }
 }
 .block.is-new, .wk-block.is-new{ animation:blockIn .22s cubic-bezier(.2,.8,.2,1) backwards, blockFlash 1.1s ease-out .1s; }
 
@@ -1091,7 +1095,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    reads as "how many, roughly what kind" without competing with the real
    blocks beside it. */
 .wk-more{
-  position:absolute; right:1px; z-index:6;
+  position:absolute; inset-inline-end:1px; z-index:6;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   padding:2px 0; border-radius:var(--r-sm);
   background:var(--surface-2); border:1px solid var(--border);
@@ -1106,7 +1110,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 /* The pile, opened. Same row anatomy as search and agenda results — one
    list pattern reused rather than a third invented. */
 .pile-list{ display:flex; flex-direction:column; }
-.pile-row{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+.pile-row{ display:flex; align-items:center; gap:11px; width:100%; text-align:start;
   padding:10px 6px; border-radius:var(--r-sm); border-bottom:1px solid var(--border); }
 .pile-row:last-child{ border-bottom:none; }
 .pile-row:hover{ background:var(--surface-2); }
@@ -1127,7 +1131,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 .wk-block.is-past, .block.is-past{
   --ev-fill: color-mix(in oklab, var(--evc) calc(var(--ev-tint) * 0.55), var(--surface));
   --ev-text: color-mix(in oklab, var(--evc) 26%, var(--text-dim));
-  box-shadow:inset 3px 0 0 color-mix(in oklab, var(--evc) 55%, transparent),
+  box-shadow:inset var(--rail-x, 3px) 0 0 color-mix(in oklab, var(--evc) 55%, transparent),
              -1px 0 0 var(--surface);
 }
 /* One dimming mechanism, not two. --ev-text already reduces past text to 26%
@@ -1153,7 +1157,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   box-shadow:-1px 0 0 var(--surface);
 }
 .wk-block.is-past:not(.is-done)::before, .block.is-past:not(.is-done)::before{
-  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  content:''; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px;
   border-radius:var(--r-sm) 0 0 var(--r-sm);
   background:repeating-linear-gradient(to bottom,
     color-mix(in oklab, var(--evc) 55%, transparent) 0 4px, transparent 4px 8px);
@@ -1187,6 +1191,14 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    window carry it now — same information, no competition. */
 .hour-label.in-focus, .wk-hour.in-focus{ color:var(--text); font-weight:600; }
 
+/* Right-to-left. Everything else is expressed in logical properties, which
+   resolve on their own; these are the handful that cannot be.
+   Written with :dir() and [dir="rtl"] because Safari only shipped :dir()
+   recently and Arabic users should not need a browser released this year. */
+[dir="rtl"], :dir(rtl){ --rail-x:-3px; }
+/* The spine gradient and the off-hours band run top-to-bottom, so they are
+   direction-agnostic and need nothing here. */
+
 /* NOTE: this block must stay LAST. The calendar-surface rules above set
    .wk-col{min-width:0} at equal specificity, so when this sat earlier in
    the file the later rule won and phone columns collapsed 104px -> 80px
@@ -1200,7 +1212,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    you lose the time reference as soon as you swipe. */
 @media (max-width:599px){
   .week-wrap{ display:flex; align-items:flex-start; }
-  .wk-gutter{ position:sticky; left:0; z-index:5; flex-shrink:0;
+  .wk-gutter{ position:sticky; inset-inline-start:0; z-index:5; flex-shrink:0;
     background:var(--bg); box-shadow:1px 0 0 var(--border); }
   .wk-grid{ overflow-x:auto; scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch; scrollbar-width:none; }
