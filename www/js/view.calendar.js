@@ -94,6 +94,27 @@ function modeTabs() {
   </div>`;
 }
 
+// Which period you are looking at, and how to leave it. Agenda is a rolling
+// horizon from today rather than a period, so it gets no stepper.
+function periodNav() {
+  if (S.calMode === 'agenda') return '';
+  const week = S.calMode === 'week';
+  const days = week ? weekDays(S.calWeekOffset) : null;
+  const label = week
+    ? `${dateLabel(days[0], { month: 'short', day: 'numeric' })} – ${dateLabel(days[6], { month: 'short', day: 'numeric' })}`
+    : monthLabel(S.day);
+  const here = week ? S.calWeekOffset === 0 : S.day.slice(0, 7) === todayISO().slice(0, 7);
+  return `<div class="cal-nav">
+    <button class="icon-btn" data-act="calStep" data-dir="-1"
+      aria-label="${esc(week ? t('cal.prevWeek') : t('cal.prevMonth'))}">‹</button>
+    <button class="cal-period tap" data-act="calToday" ${here ? 'disabled' : ''}>
+      <span>${esc(label)}</span>
+    </button>
+    <button class="icon-btn" data-act="calStep" data-dir="1"
+      aria-label="${esc(week ? t('cal.nextWeek') : t('cal.nextMonth'))}">›</button>
+  </div>`;
+}
+
 // Where the week actually goes, shown above the grid you are already
 // looking at. The Review screen answers this backwards ("what happened");
 // this answers it forwards ("what have I committed to"), which is the
@@ -141,7 +162,7 @@ function weekSummary(days) {
 }
 
 function weekView() {
-  const days = weekDays();
+  const days = weekDays(S.calWeekOffset);
   const pph = weekPph();
   // Same two layers as the Today spine, built from the same helper, so the
   // two grids cannot drift apart on a case one of them handles.
@@ -365,6 +386,7 @@ export default {
   render() {
     return `<div class="pad-h">
       ${modeTabs()}
+      ${periodNav()}
       <div class="cal-body">
         ${S.calMode === 'week' ? weekView() : S.calMode === 'month' ? monthView() : agendaView()}
       </div>
@@ -378,7 +400,7 @@ export default {
     // Same reveal as Today: open on the live hours, not on midnight.
     // revealMinute schedules its own retries; an rAF wrapper here would
     // never fire in a hidden tab.
-    const days = weekDays();
+    const days = weekDays(S.calWeekOffset);
     const starts = days.flatMap(d => occurrencesOn(d).map(o => o.start));
     revealMinute(
       root.closest('.screen-scroll'), body,
@@ -395,6 +417,24 @@ export default {
 
 registerActions({
   calMode: d => { S.calMode = d.mode; window.cadenceRerender(); },
+  // Week steps the calendar cursor; month steps the anchor day, because
+  // monthGrid() is built from S.day rather than from an offset. Stepping by
+  // month means landing on the 1st, so a 31st never slides into the wrong
+  // month on the way past a short one.
+  calStep: d => {
+    const dir = Number(d.dir);
+    if (S.calMode === 'week') { S.calWeekOffset += dir; }
+    else {
+      const a = fromISO(S.day);
+      S.day = iso(new Date(a.getFullYear(), a.getMonth() + dir, 1));
+    }
+    window.cadenceRerender();
+  },
+  calToday: () => {
+    S.calWeekOffset = 0;
+    S.day = todayISO();
+    window.cadenceRerender();
+  },
   // The pile chip opens what it was standing in for. A sheet rather than a
   // jump to the day, because the question being asked is "what else is at
   // 10am?" — answering it should not cost you the week you were reading.

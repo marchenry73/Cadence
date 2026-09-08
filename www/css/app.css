@@ -331,6 +331,16 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 /* -------- calendar -------- */
 .cal-modes{ margin:10px 0 12px; }
+/* Which period you are looking at, and how to leave it. The label is also the
+   way back to today, so the row carries two controls rather than three - and
+   it disables itself when you are already there, which is the only honest
+   state for a button that would do nothing. */
+.cal-nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; }
+.cal-period{ flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  min-height:36px; padding:6px 12px; border-radius:var(--r-pill);
+  font-size:13px; font-weight:600; color:var(--text); background:var(--surface-2); }
+.cal-period[disabled]{ background:transparent; color:var(--text-dim); }
+.cal-nav .icon-btn{ font-size:20px; line-height:1; flex-shrink:0; }
 .week-wrap{ display:flex; overflow-x:auto; }
 
 /* dragging a block sideways on Today = move it to the next/previous day */
@@ -769,7 +779,7 @@ body.sheet-open{ overflow:hidden; }
   /* Measured on an emulated phone, where these rules are actually in force:
      buttons sat at 36-42px, list rows at 30-38px, and the accent swatches at
      30px square. All fine under a mouse, all a thumb-width short. */
-  .btn, .chip, .input, select.input, .daychip,
+  .btn, .chip, .input, select.input, .daychip, .cal-period,
   .trow-mini, .goal-card-head, .goal-next, .ms-row, .skip-link{ min-height:44px; }
   .daychip{ min-width:44px; }
   .swatch{ width:44px; height:44px; }

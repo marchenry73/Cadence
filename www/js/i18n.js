@@ -63,6 +63,8 @@ export const EN = {
 
   'cal.week': 'Week', 'cal.month': 'Month', 'cal.agenda': 'Agenda',
   'cal.today': 'Today', 'cal.empty': 'Nothing scheduled',
+  'cal.prevWeek': 'Previous week', 'cal.nextWeek': 'Next week',
+  'cal.prevMonth': 'Previous month', 'cal.nextMonth': 'Next month',
   'cal.weekShape': 'Where this week goes',
   'cal.emptyWeek': 'Nothing scheduled this week yet — add a block or a routine and it will show up here.',
 

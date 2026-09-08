@@ -32,6 +32,11 @@ export const S = {
   route: 'today',
   day: todayISO(),
   weekOffset: 0,
+  // The calendar's own week cursor, deliberately separate from weekOffset.
+  // Review clamps that one at 0 (you cannot review an unlived week); a
+  // planner has to go forward, and sharing one would make stepping the
+  // calendar silently rescore the Review screen.
+  calWeekOffset: 0,
   calMode: 'week',          // week | month | agenda
   goalArea: 'all',
   taskFilter: 'open',
