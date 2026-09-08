@@ -50,13 +50,20 @@ export function runAction(name, node, ev) {
   fn(node?.dataset || {}, node, ev);
 }
 
+// Set when a swipe actually engages, and read by the click delegation just
+// below. Releasing a swipe would otherwise ALSO click whatever button the
+// finger started on - firing the row action and opening the editor from one
+// gesture. The guard that used to stand here read node.dataset.swipeOpen,
+// which nothing in the codebase has ever set.
+let swipeUntil = 0;
+
 // One listener for the whole app. Buttons carry data-act (+ any data-* the
 // handler needs), so re-rendering markup never leaks listeners.
 export function installDelegation() {
   document.addEventListener('click', ev => {
     const node = ev.target.closest('[data-act]');
     if (!node || node.hasAttribute('disabled')) return;
-    if (node.dataset.swipeOpen === '1') return;   // ignore the tap that closes a swipe
+    if (Date.now() < swipeUntil) return;   // the click that trails a swipe
     // Native inputs keep their own behaviour (date/time pickers, selects,
     // text carets). Calling preventDefault on those stops the picker opening.
     const tag = node.tagName;
@@ -286,7 +293,10 @@ export function installRowSwipes(root) {
 
   root.addEventListener('pointerdown', e => {
     const row = e.target.closest('[data-swipe]');
-    if (!row || e.target.closest('button,input,textarea,select')) return;
+    // Text controls keep the exclusion - a horizontal drag inside one means
+    // selecting text. Buttons do not: a swipeable row is made ENTIRELY of
+    // buttons, so excluding them left nowhere for the gesture to begin.
+    if (!row || e.target.closest('input,textarea,select')) return;
     node = row; startX = e.clientX; startY = e.clientY; dx = 0; active = true; locked = false;
     node.style.transition = 'none';
   }, { passive: true });
@@ -316,6 +326,9 @@ export function installRowSwipes(root) {
     n.style.transform = 'translateX(0)';
     n.classList.remove('swipe-armed');
     active = false; node = null;
+    // Only when the finger actually travelled: a plain tap must still reach
+    // the button it landed on.
+    if (locked) swipeUntil = Date.now() + 350;
     if (fired && which) { haptic('success'); runAction(which, n); }
   };
   const reset = () => {
@@ -324,6 +337,7 @@ export function installRowSwipes(root) {
       node.style.transform = 'translateX(0)';
       node.classList.remove('swipe-armed');
     }
+    if (locked) swipeUntil = Date.now() + 350;
     active = false; node = null;
   };
   root.addEventListener('pointerup', end, { passive: true });
