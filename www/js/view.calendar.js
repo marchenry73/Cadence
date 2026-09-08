@@ -6,7 +6,7 @@ import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast, openSheet } from './ui.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin } from './layout.js';
 import { whenLabel } from './search.js';
 
 // The week grid ignored the density preference entirely.
@@ -143,6 +143,9 @@ function weekSummary(days) {
 function weekView() {
   const days = weekDays();
   const pph = weekPph();
+  // Same two layers as the Today spine, built from the same helper, so the
+  // two grids cannot drift apart on a case one of them handles.
+  const wkRules = `repeating-linear-gradient(to bottom, var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent ${pph}px)`;
   const nowMin = minutesNow();
   const today = todayISO();
   const weekHasToday = days.includes(today);
@@ -181,7 +184,7 @@ function weekView() {
       const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
       // A capped cluster gives up one chip-width, shared across its lanes.
-      const { left, width: w, z } = laneStyle(o, 1.5, 0, o.capped ? OVERFLOW_W : 0);
+      const { left, width: w, z } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
       const tight = h < 32;                    // no room for a second line
       // A tall block has room for the whole title; only short ones truncate.
       const lines = h >= 76 ? 3 : h >= 50 ? 2 : 1;
@@ -208,7 +211,7 @@ function weekView() {
     // category so the mix is legible before you open it.
     const more = piles.map(p => {
       const top = (p.start / 60) * pph;
-      const h = Math.max(22, ((p.end - p.start) / 60) * pph - 2);
+      const h = Math.max(33, ((p.end - p.start) / 60) * pph - 2);
       const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
         .map(c => `<i style="background:${c}"></i>`).join('');
       return `<button class="wk-more tap" data-act="showPile" data-day="${d}" data-start="${p.start}" data-end="${p.end}"
@@ -228,7 +231,7 @@ function weekView() {
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
         <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px;--off-a:${(S.prefs.focus_start / 60) * pph}px;--off-b:${(S.prefs.focus_end / 60) * pph}px">${nowLine}${blocks}${more}</div>
+      <div class="wk-body" style="height:${24 * pph}px;background-image:${offHoursBand(S.prefs.focus_start, S.prefs.focus_end, pph)}, ${wkRules}">${nowLine}${blocks}${more}</div>
     </div>`;
   }).join('');
 

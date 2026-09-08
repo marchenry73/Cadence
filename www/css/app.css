@@ -23,7 +23,9 @@
                     4.5:1. Deeper than the brand coral by necessity.
      --accent-ink   the coral as TEXT on the page ground. Deeper still,
                     because #F6EEE4 is a bright surface to write on. */
-  --accent-solid:#C2422A; --on-accent:#fff; --accent-ink:#B93D26;
+  --accent-solid:color-mix(in oklab, var(--accent-user) 85%, #000);
+  --on-accent:#fff;
+  --accent-ink:color-mix(in oklab, var(--accent-user) 80%, #000);
   --accent-weak:color-mix(in oklab, var(--accent) 14%, transparent);
   --good:#5E8563; --warn:#9A5A20; --danger:#B03A26;
   /* Monarch-style tinted tile family — a distinct hue per surfaced
@@ -67,7 +69,7 @@
     --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
     --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#9A8F94;
     --accent:color-mix(in oklab, var(--accent-user) 82%, #fff); --accent-2:#E85C3E;
-    --accent-solid:#C2422A; --on-accent:#fff; --accent-ink:var(--accent);
+    --accent-solid:color-mix(in oklab, var(--accent-user) 85%, #000); --on-accent:#fff; --accent-ink:var(--accent);
     --accent-weak:color-mix(in oklab, var(--accent) 16%, transparent);
     --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
     --moss:#6FB593; --moss-tint:#20362A;
@@ -85,7 +87,7 @@
   --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
   --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#9A8F94;
   --accent:color-mix(in oklab, var(--accent-user) 82%, #fff); --accent-2:#E85C3E;
-  --accent-solid:#C2422A; --on-accent:#fff; --accent-ink:var(--accent);
+  --accent-solid:color-mix(in oklab, var(--accent-user) 85%, #000); --on-accent:#fff; --accent-ink:var(--accent);
     --accent-weak:color-mix(in oklab, var(--accent) 16%, transparent);
   --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
   --moss:#6FB593; --moss-tint:#20362A;
@@ -758,6 +760,12 @@ body.sheet-open{ overflow:hidden; }
 @media (pointer: coarse){
   .side-link, .seg-item, .agenda-row, .sr-row, .cat-row, .toggle-row{ min-height:44px; }
   .icon-btn, .topbar-search{ min-width:44px; min-height:44px; }
+  /* iOS zooms the viewport whenever a focused text control computes under
+     16px, and nothing here can zoom back out - the shell is position:fixed
+     with no page scroll. user-scalable=no used to mask this; removing it
+     (correctly) exposed it. Coarse pointers only, so desktop density is
+     untouched. */
+  .input, select.input, textarea.input{ font-size:16px; }
   /* Measured on an emulated phone, where these rules are actually in force:
      buttons sat at 36-42px, list rows at 30-38px, and the accent swatches at
      30px square. All fine under a mouse, all a thumb-width short. */
@@ -822,14 +830,12 @@ body.sheet-open{ overflow:hidden; }
 .wk-grid{ display:flex; flex:1; min-width:560px; }
 .wk-col{ flex:1; min-width:0; border-left:1px solid var(--line-day); }
 .wk-col.is-weekend .wk-body{ background-color:var(--wkend); }
-.wk-body{ position:relative;
-  /* Off-hours band first so it layers above the hour rules, matching the
-     Today spine exactly rather than approximately. */
-  background-image:
-    linear-gradient(to bottom, var(--offhours) 0 var(--off-a, 0px),
-      transparent var(--off-a, 0px) var(--off-b, 100%), var(--offhours) var(--off-b, 100%) 100%),
-    repeating-linear-gradient(to bottom,
-      var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent var(--pph, 44px)); }
+/* Both background layers - the off-hours band and the hour rules - are built
+   in view.calendar.js from offHoursBand(), the same helper the Today spine
+   uses. They were CSS here, driven by --off-a/--off-b, which could not
+   express a window that wraps midnight and whose fallbacks mixed px with
+   percentages. */
+.wk-body{ position:relative; }
 .wk-col.drop-target .wk-body{ background-color:var(--accent-weak);
   outline:2px dashed var(--accent); outline-offset:-2px; border-radius:var(--r-sm); }
 
@@ -888,7 +894,7 @@ body.sheet-open{ overflow:hidden; }
 .block-title{ font-size:13px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ev-text); }
 .block-time{ font-size:11px; color:var(--ev-text); opacity:.92; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
 .block.running{ box-shadow:inset 3px 0 0 var(--evc), 0 0 0 2px var(--accent); }
-.block-flag, .protect-flag{ color:var(--ev-text); opacity:.9; }
+.block-flag, .protect-flag{ color:var(--ev-text); opacity:1; }
 /* The spine's per-hour border and the gradient would double up; the
    gradient carries it now, and labels centre exactly on the line. */
 .spine .hour{ border-top:none; }
@@ -1087,7 +1093,9 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   box-shadow:inset 3px 0 0 color-mix(in oklab, var(--evc) 55%, transparent),
              -1px 0 0 var(--surface);
 }
-.wk-block.is-past .wk-block-time, .block.is-past .block-time{ opacity:.5; }
+/* One dimming mechanism, not two. --ev-text already reduces past text to 26%
+   of the category hue; a .5 opacity on top of that measured 2.03:1. */
+.wk-block.is-past .wk-block-time, .block.is-past .block-time{ opacity:1; }
 
 /* -- the rail carries confirmed-ness, not a second copy of the category --
    A past block you have ticked off keeps its solid rail. One you have not

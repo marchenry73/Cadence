@@ -10,7 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -132,14 +132,15 @@ function spine() {
   // day reads as the lit part. Hard colour stops, no blur: this is a
   // boundary, not a vignette. Layered above the hour rules so those soften
   // out there too, which is right - those hours matter less.
-  const offA = (S.prefs.focus_start / 60) * pph;
-  const offB = (S.prefs.focus_end / 60) * pph;
-  const dim = `linear-gradient(to bottom, var(--offhours) 0 ${offA}px, transparent ${offA}px ${offB}px, var(--offhours) ${offB}px 100%)`;
-  const band = `${dim}, ${rules}`;
+  // Ordering lives in offHoursBand, which handles a window that wraps
+  // midnight. Building the stops here assumed start < end, and an inverted
+  // pair does not error - CSS raises the lower stop to the higher one, the
+  // lit span collapses, and the band swallows the whole day.
+  const band = `${offHoursBand(S.prefs.focus_start, S.prefs.focus_end, pph)}, ${rules}`;
 
   const hours = Array.from({ length: 25 }, (_, h) => {
     const hide = compact && h % 2 === 1 && h !== 24;
-    const inFocus = h * 60 >= S.prefs.focus_start && h * 60 <= S.prefs.focus_end;
+    const inFocus = inFocusMin(h * 60, S.prefs.focus_start, S.prefs.focus_end);
     return `<div class="hour" style="top:${h * pph}px">
       <span class="hour-label${inFocus ? ' in-focus' : ''}">${hide ? '' : esc(fmtTime((h % 24) * 60, S.prefs.clock24))}</span>
       <span class="hour-tick"></span>
@@ -167,7 +168,7 @@ function spine() {
     const h = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
     const color = catColor(o.category_id);
     // A capped cluster gives up one chip-width, shared across its lanes.
-    const { left, width: w } = laneStyle(o, 2, 0, o.capped ? OVERFLOW_W : 0);
+    const { left, width: w } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     // Same rule as the week grid: elapsed blocks only step back while the
     // day still has something ahead. Otherwise the whole screen fades and
@@ -193,7 +194,7 @@ function spine() {
   // category so the mix reads before you open it.
   const more = piles.map(p => {
     const top = (p.start / 60) * pph;
-    const h = Math.max(22, ((p.end - p.start) / 60) * pph - 2);
+    const h = Math.max(33, ((p.end - p.start) / 60) * pph - 2);
     const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
       .map(c => `<i style="background:${c}"></i>`).join('');
     return `<button class="wk-more tap" data-act="showPile" data-day="${S.day}" data-start="${p.start}" data-end="${p.end}"

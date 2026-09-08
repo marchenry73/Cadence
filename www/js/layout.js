@@ -84,9 +84,41 @@ export function packOverlaps(items) {
 
 /**
  * CSS left/width for a packed block, as percentages of the day column.
- * `gap` is the visual gutter between neighbours, in percent.
+ * `gap` is the visual gutter between neighbours, in PIXELS - the same unit
+ * and the same value visibleLanes budgets for.
  */
-export function laneStyle(it, gap = 1.5, minPx = 0, reservePx = 0) {
+/**
+ * The shaded hours outside the focus window, as a background-image value.
+ *
+ * Lives here rather than in either view because both grids must agree, and
+ * because the ordering cases are the whole point: a window can run forward
+ * (09:00-17:00), wrap midnight (22:00-06:00, a night shift), or be empty.
+ * Feeding an inverted pair to a gradient does not error - CSS silently
+ * raises the lower stop to the higher one, the lit span collapses, and the
+ * entire day goes dim. Ordering is decided here, once.
+ */
+export function offHoursBand(startMin, endMin, pph) {
+  const a = (startMin / 60) * pph, b = (endMin / 60) * pph, full = 24 * pph;
+  if (endMin > startMin) {
+    return `linear-gradient(to bottom, var(--offhours) 0 ${a}px, transparent ${a}px ${b}px, var(--offhours) ${b}px ${full}px)`;
+  }
+  // start === end is a zero-length window: nothing is claimed, so nothing
+  // is lit. Drawn explicitly rather than left to the fixup to stumble into.
+  if (endMin === startMin) return `linear-gradient(var(--offhours) 0 ${full}px)`;
+  // Wraps midnight: lit from 00:00 to end and from start to 24:00.
+  return `linear-gradient(to bottom, transparent 0 ${b}px, var(--offhours) ${b}px ${a}px, transparent ${a}px ${full}px)`;
+}
+
+/** Is a minute inside the focus window, honouring a window that wraps? */
+// A zero-length window is handled explicitly rather than falling into the
+// wrap branch, where (m >= s || m <= e) is true for EVERY minute. The band
+// dims the whole day in that case, so without this the axis labels would all
+// claim to be in focus on a grid that is entirely dimmed - the two halves of
+// the same idea disagreeing.
+export const inFocusMin = (m, s, e) =>
+  e > s ? (m >= s && m <= e) : e === s ? false : (m >= s || m <= e);
+
+export function laneStyle(it, gap = GAP_PX, minPx = 0, reservePx = 0) {
   const unit = 100 / it.lanes;
   const left = it.lane * unit;
   const width = unit * it.span;
@@ -99,8 +131,8 @@ export function laneStyle(it, gap = 1.5, minPx = 0, reservePx = 0) {
   const room = reservePx ? `(100% - ${reservePx}px)` : '100%';
   const frac = (n) => `calc(${room} * ${(n / 100).toFixed(6)})`;
   const pct = reservePx
-    ? `calc(${room} * ${(width / 100).toFixed(6)} - ${isLast ? 0 : gap}%)`
-    : `calc(${width}% - ${isLast ? 0 : gap}%)`;
+    ? `calc(${room} * ${(width / 100).toFixed(6)} - ${isLast ? 0 : gap}px)`
+    : `calc(${width}% - ${isLast ? 0 : gap}px)`;
   // Below a legibility floor, let the block outgrow its lane instead of
   // shrinking to an unreadable sliver. In a 90px week column a three-way
   // conflict splits to 28px each — wide enough for a colour and nothing
@@ -180,6 +212,10 @@ export function openingMinute({ isToday, nowMin, firstEventMin = null, focusStar
 // rest behind a count that opens them. Readability over theoretical density.
 export const MIN_LEGIBLE = 56;   // px of block width a title needs to read
 export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
+// The gutter between neighbouring lanes. In PIXELS, deliberately: it used
+// to be a percentage of the container, which cannot be budgeted against a
+// pixel floor because it grows as the container does.
+export const GAP_PX = 4;
 
 /**
  * How many lanes a column of this width can show legibly.
@@ -194,11 +230,20 @@ export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
  * MIN_LEGIBLE is now an invariant rather than an aspiration: nothing is
  * drawn narrower than a title can be read in.
  */
-export function visibleLanes(colWidth, lanes) {
+export function visibleLanes(colWidth, lanes, gapPx = GAP_PX) {
   if (lanes <= 1) return lanes;
-  // +8 covers the inter-lane gap, which comes out of the same budget.
-  if (lanes === 2 && colWidth >= 2 * MIN_LEGIBLE + 8) return 2;
-  return Math.max(1, Math.min(lanes, Math.floor((colWidth - OVERFLOW_W) / MIN_LEGIBLE)));
+  // Every lane but the last also pays for a gutter, so the budget is
+  // (MIN_LEGIBLE + gutter) per lane with one gutter handed back for the
+  // last one. Budgeting MIN_LEGIBLE alone and then charging the gutter in
+  // laneStyle is how a "floor" ends up three pixels below itself.
+  // laneStyle gives the LAST lane the full share and takes the gutter out of
+  // every other one, so the binding constraint is share - gutter >= floor,
+  // i.e. share >= MIN_LEGIBLE + gutter for every lane. Handing one gutter
+  // back to the budget (the last lane does not pay it) is off by exactly the
+  // amount that put 200 width/lane combinations back under the floor.
+  if (lanes === 2 && colWidth >= 2 * (MIN_LEGIBLE + gapPx)) return 2;
+  const fits = Math.floor((colWidth - OVERFLOW_W) / (MIN_LEGIBLE + gapPx));
+  return Math.max(1, Math.min(lanes, fits));
 }
 
 /**
