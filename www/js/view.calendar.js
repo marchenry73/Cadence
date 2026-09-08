@@ -157,7 +157,7 @@ function weekView() {
     const isWeekend = dow === 0 || dow === 6;
     // Concurrent meetings sit side by side rather than on top of each other.
     const laid = packOverlaps(occurrencesOn(d));
-    const blocks = laid.map(o => {
+    const blocks = laid.map((o, i) => {
       const top = (o.start / 60) * pph;
       const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
@@ -165,10 +165,10 @@ function weekView() {
       const tight = h < 32;                    // no room for a second line
       // Elapsed blocks step back so what is left today reads at a glance.
       const past = isToday ? o.end <= nowMin : d < today;
-      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}" data-act="openBlockOn"
+      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
         aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
-        style="top:${top}px;height:${h}px;left:${left};width:${width};z-index:${z + 1};--evc:${color}">
+        style="top:${top}px;height:${h}px;left:${left};width:${width};z-index:${z + 1};--i:${Math.min(i, 12)};--evc:${color}">
         <span class="wk-block-title">${esc(o.title)}</span>
         ${tight ? '' : `<span class="wk-block-time">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
       </button>`;

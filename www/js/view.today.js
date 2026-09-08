@@ -142,7 +142,7 @@ function spine() {
   // single 9am double-booking left every block half-width until midnight.
   const placed = packOverlaps(list);
 
-  const blocks = placed.map(o => {
+  const blocks = placed.map((o, i) => {
     const top = (o.start / 60) * pph;
     const h = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
     const color = catColor(o.category_id);
@@ -150,8 +150,8 @@ function spine() {
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
     const done = isBlockDone(o, S.day);
-    return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
-      style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color}">
+    return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
+      style="top:${top}px;height:${h}px;left:${left};width:${width};--i:${Math.min(i, 12)};--evc:${color}">
       <span class="block-bar"></span>
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>

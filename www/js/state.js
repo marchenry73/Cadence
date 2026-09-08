@@ -121,6 +121,10 @@ export function save(table, patch, { silent = false } = {}) {
   // Guest sessions live in memory only — never queued for Supabase, never
   // written to IndexedDB, gone the moment the tab closes.
   if (!S.guest) { enqueue(table, row); cacheSet(table, S[table]); }
+  // Which row changed last, so a view can point at it for a moment. The
+  // alternative is a toast saying "saved", which tells you it happened but
+  // not where it landed — the actual question after scheduling something.
+  S.lastTouched = { table, id: row.id, at: Date.now() };
   if (!silent) notify('save:' + table);
   return row;
 }
