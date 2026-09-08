@@ -158,7 +158,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .daystrip{ display:flex; gap:6px; padding:8px 12px 4px; overflow-x:auto; }
 .daychip{ flex:1; min-width:42px; display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:var(--r-md); color:var(--text-dim); }
 .daychip.on{ background:var(--surface-2); color:var(--text); }
-.dc-dow{ font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
+.dc-dow{ font-size:10px; }   /* case, tracking and weight come from the shared group */
 .dc-num{ font-size:16px; font-weight:700; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
 .dc-num.today{ background:var(--accent-solid); color:var(--on-accent); }
 .dc-dot{ width:4px; height:4px; border-radius:50%; background:var(--accent); }
@@ -180,7 +180,13 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 /* -------- hero: the "right now" panel that leads Today -------- */
 .hero{ border-radius:var(--radius-lg); padding:18px 18px 16px; margin-bottom:14px; position:relative; overflow:hidden;
-  background:linear-gradient(155deg, var(--hero-a, var(--accent)), color-mix(in oklab, var(--hero-a, var(--accent)) 70%, var(--peri)));
+  /* Both stops are the SAME hue, darkened, for two reasons. White ink on
+     the raw category colour measured 2.67:1 on olive and failed 4.5:1 on
+     seven of the eight hues. And the old second stop mixed toward --peri,
+     so every hero - teal, amber, rose - ended in the same periwinkle. */
+  background:linear-gradient(155deg,
+    color-mix(in oklab, var(--hero-a, var(--accent)) 74%, #000),
+    color-mix(in oklab, var(--hero-a, var(--accent)) 58%, #000));
   color:#fff; }
 .hero::after{ content:''; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.10); pointer-events:none; }
 .hero.hero-empty{ background:var(--surface); color:var(--text); border:1px solid var(--border); }
@@ -189,7 +195,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .hero-eyebrow i{ width:6px; height:6px; border-radius:50%; background:#fff; animation:pulse 1.4s infinite; }
 .hero-empty .hero-eyebrow{ color:var(--text-dim); }
 .hero-title{ font-family:var(--font-display); font-size:20px; font-weight:700; margin:8px 0 2px; letter-spacing:-.018em; position:relative; }
-.hero-time{ font-size:12px; opacity:.85; margin-bottom:12px; position:relative; }
+.hero-time{ font-size:12px; opacity:.92; margin-bottom:12px; position:relative; }
 .hero-empty .hero-time{ color:var(--text-dim); opacity:1; }
 .hero-bar{ height:5px; border-radius:var(--r-sm); background:rgba(255,255,255,.28); overflow:hidden; margin-bottom:4px; }
 .hero-bar i{ display:block; height:100%; background:#fff; border-radius:var(--r-sm); }
@@ -205,10 +211,23 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .tiles{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; margin-bottom:14px; scrollbar-width:none; }
 .tiles::-webkit-scrollbar{ display:none; }
 .tile{ flex:0 0 auto; width:122px; border-radius:var(--r-md); padding:12px 13px; display:flex; flex-direction:column; gap:8px; color:var(--text); }
-.tile.t-moss{ background:var(--moss-tint); }
-.tile.t-peri{ background:var(--peri-tint); }
-.tile.t-honey{ background:var(--honey-tint); }
-.tile-ring{ width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+.tile.t-moss{ --tile-bg:var(--moss-tint);  background:var(--tile-bg); }
+.tile.t-peri{ --tile-bg:var(--peri-tint);  background:var(--tile-bg); }
+.tile.t-honey{ --tile-bg:var(--honey-tint); background:var(--tile-bg); }
+/* The percentage used to be printed straight onto the conic gradient, so a
+   10px numeral sat on moss green: 3.51:1 in light and 1.72:1 in dark. It was
+   invisible to the contrast audit for months because that audit skipped any
+   element with a background-image, which is exactly what a progress ring is.
+
+   Now it is an actual ring rather than a pie: an inner disc in the tile's own
+   ground carries the number, so the text sits on a flat known colour and the
+   gradient reads as an arc. z-index:-1 with a stacking context on the parent
+   puts the disc above the gradient and below the text. */
+.tile-ring{ position:relative; isolation:isolate;
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+.tile-ring::before{ content:''; position:absolute; inset:4px; border-radius:50%;
+  background:var(--tile-bg, var(--surface)); z-index:-1; }
 .tile-label{ font-size:11px; font-weight:700; line-height:1.25; }
 .tile-sub{ font-size:10px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
 
@@ -321,7 +340,10 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 .month-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 
-.month-cell.is-today .mc-num{ background:var(--accent-solid); color:var(--on-accent); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+/* The duplicate .month-cell.is-today .mc-num that used to sit here forced
+   20x20 over .mc-num's 22x22, making today the smallest circle in the
+   month. Its fill is declared later; everything else it set was already
+   inherited. */
 
 .mc-dots i{ width:4px; height:4px; border-radius:50%; }
 
@@ -816,10 +838,12 @@ body.sheet-open{ overflow:hidden; }
 .wk-col-head{ text-align:center; padding:4px 0 8px; }
 .wk-dow{ font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); }
 .wk-col.is-today .wk-dow{ color:var(--accent-ink); }
-.wk-num{ font-family:var(--font-display); font-size:14px; font-weight:600; width:26px; height:26px;
-  margin:3px auto 0; display:flex; align-items:center; justify-content:center; border-radius:var(--r-sm);
+.wk-num{ font-family:var(--font-display); font-size:14px; font-weight:700; width:26px; height:26px;
+  margin:3px auto 0; display:flex; align-items:center; justify-content:center; border-radius:50%;
   font-variant-numeric:tabular-nums; }
-.wk-num.today{ background:var(--accent-solid); color:var(--on-accent); font-weight:700; }
+/* Today differs from its neighbours by fill alone - not by weight, and
+   not by shape. It used to be the only rounded square among circles. */
+.wk-num.today{ background:var(--accent-solid); color:var(--on-accent); }
 
 /* -- the now-line: one horizon across the week at two strengths -- */
 .wk-now{ position:absolute; left:0; right:0; height:0; pointer-events:none; }
@@ -950,7 +974,7 @@ body.sheet-open{ overflow:hidden; }
    consistently instead of per-component guesses. */
 h1, .topbar h1{ letter-spacing:-.022em; }
 
-.eyebrow, .agenda-when, .wk-dow, .month-dow span, .rail-card h3, .gap{
+.eyebrow, .agenda-when, .wk-dow, .dc-dow, .month-dow span, .rail-card h3, .gap{
   text-transform:uppercase; letter-spacing:.07em; font-weight:700;
 }
 

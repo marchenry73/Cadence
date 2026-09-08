@@ -1,9 +1,8 @@
 # Cadence vs. the premium calendar field
 
 A scorecard, written 2026-09-07 and revised 2026-09-08, after four research
-passes over
-Fantastical, Notion Calendar (formerly Cron), Amie, Structured, Sunsama,
-Motion, Google Calendar and Apple Calendar.
+passes over Fantastical, Notion Calendar (formerly Cron), Amie, Structured,
+Sunsama, Akiflow, Motion, Google Calendar and Apple Calendar.
 
 ## How to read this, and what it is worth
 
