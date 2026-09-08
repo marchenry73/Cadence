@@ -1,8 +1,8 @@
 # Cadence vs. the premium calendar field
 
-A scorecard, written 2026-09-07, after a research pass over Fantastical,
-Notion Calendar (formerly Cron), Amie, Structured, Sunsama, Google Calendar
-and Apple Calendar.
+A scorecard, written 2026-09-07, after three research passes over
+Fantastical, Notion Calendar (formerly Cron), Amie, Structured, Sunsama,
+Motion, Google Calendar and Apple Calendar.
 
 ## How to read this, and what it is worth
 
@@ -13,231 +13,293 @@ trusted equally.
 running build: sampling colours onto a canvas so the browser resolves
 `oklab()` and `color-mix()` to real sRGB bytes, reading `scrollWidth`
 against `clientWidth` on every text-bearing element, hit-testing tap targets
-at specific coordinates, and enumerating computed `font-size` across both
-themes and all six routes. Where a figure is asserted here, it was observed,
-not intended.
+at named coordinates, and enumerating computed `font-size` across both themes
+and all six routes. Where a figure is asserted here, it was observed, not
+intended. That distinction earned its keep: reading the stylesheet said the
+type scale was clean while three sizes were still off it, hidden in inline
+`style` attributes and a browser default on `<button>`.
 
-**The competitors' figures mostly are not, and several do not exist.** The
-research pass looked hard and came back honest: for **not one** of the seven
-apps could it verify the overlap threshold at which a calendar stops
-splitting lanes and starts collapsing to a "+N" chip. Typography specifics
-were verifiable for exactly one app (Amie). Empty-day design was verifiable
-for none. The "now" line was verifiable for one (Google Calendar: a red line
-with a round dot).
+**The competitors' figures come mostly from documentation and from direct
+pixel inspection of vendor screenshots.** That is good evidence for what a
+vendor chooses to show and weaker evidence for edge cases they would rather
+not photograph — nobody markets a screenshot of their calendar failing.
 
-So the honest shape of this document is not a ten-row table of scores. It is
-three lists: where the field has a documented standard and Cadence can be
-judged against it; where the field has no visible answer at all, which is
-where a small app can win; and where Cadence is behind.
-
-Rows are marked **[M]** for measured in Cadence, **[V]** for verified in a
-competitor source, **[?]** for could not verify.
+Rows are marked **[M]** measured in Cadence, **[V]** verified in a competitor
+source, **[?]** searched for and not found.
 
 ---
 
-## 1. Where the field has a standard, and how Cadence measures against it
+## 1. Dense overlap: the sharpest comparison in the document
+
+Lead with this, because it is where the evidence is strongest and least
+flattering to the field.
+
+**Three separate premium calendars are confirmed to shrink overlapping events
+without any floor.**
+
+- **Google Calendar's** day and week grid divides width equally among every
+  event overlapping at that moment, scaling continuously as concurrency
+  rises, with no cap **[V]**. Its *month* view does collapse to a "N more"
+  link at roughly three events per cell **[V]** — so the mechanism exists in
+  the product and simply is not applied to the time grid.
+- **Fantastical** splits into side-by-side lanes and, at density, truncates
+  titles to single characters. Directly observed in its own App Store
+  screenshots: blocks reading `1…`, `3:…`, `O…` **[V]**. Flexibits documents
+  a workaround — hold Shift+Control and hover to expand the overlapping items
+  so they become readable **[V]**. A documented workaround is an admission
+  that the default state is not readable.
+- **Notion Calendar** lane-splits proportionally, and no "+N" collapse was
+  found at any density in available material **[V]**.
+
+**Apple** renders simultaneous events in side-by-side columns and **its own
+users report the behaviour as inconsistent [V]** — two events at the same
+start sometimes split, sometimes fully occlude one another, with no setting
+and no visible pattern. One Apple Community thread calls it arbitrary.
+
+**Cadence enforces an explicit floor: no block is ever drawn narrower than
+56px, the width a title needs to read [M].** Above it, lanes split normally.
+Below it, the surplus collapses behind a "+N" chip that opens a sheet listing
+the whole pile. Verified across seven data scenarios at 320 / 375 / 390 /
+1280: **zero blocks below the floor in any of them** — where the same
+scenarios previously produced 44px and 50px blocks, and a 63px block rendered
+"Design critique" as "Desig / n critiq…".
+
+**Verdict: ahead, and this one is not hedged.** Three competitors shrink
+without limit, a fourth is called arbitrary by its own users, and one of them
+ships a keyboard workaround for the resulting illegibility. Cadence refuses
+to draw what it has measured as unreadable, and the collapse chip is the same
+idea Google already ships one view away.
+
+The honest caveat: an enforced floor trades completeness for legibility. Four
+blocks plus a chip tells you less at a glance than five slivers would, *if*
+you could read five slivers. Fantastical's `O…` is the evidence you cannot.
+
+---
+
+## 2. Where the field has a standard
+
+### The "now" indicator — a majority pattern, not a convention
+Worth stating precisely, because an earlier draft of this document called it
+a convention and that was too strong. The field splits **four ways** **[V]**:
+
+| Treatment | Apps |
+| --- | --- |
+| Red line + round dot | Google, Apple, Fantastical |
+| Red line + rectangular pill tab | Amie |
+| Neutral black/white line, no marker | Notion Calendar |
+| Black timeline bar, no line | Motion |
+
+Red-line-with-dot is the majority at three of six, and Apple's red is
+hardcoded and not user-recolourable **[V]**.
+
+Cadence draws the majority form, then extends it for the multi-day case: in
+week view the horizon renders at **two strengths** — full accent with a dot
+on today's column, a 16% ghost across the other six. Measured: 1 full, 6
+ghost **[M]**. The alternative is seven competing red stripes.
+
+**Verdict: at parity on the majority form, ahead on the multi-day case.**
 
 ### Event colour derived systematically from one base hue
-The strongest confirmed pattern in the whole field. Cron's own design
-changelog describes generating a family of colours from each calendar colour
-to tint the ribbon, background, title, time and dimmed state separately
-**[V]**. Amie runs a 15-hue by 9-step token system **[V]**.
+Cron's design changelog describes generating a colour family from each
+calendar colour to tint ribbon, background, title, time and dimmed state
+separately **[V]**. Amie runs a 15-hue by 9-step, 135-token system **[V]**.
+Google ships 11 named event colours and 24 calendar colours **[V]**.
 
-Cadence does the same thing, in the browser rather than in a build step: one
-category hue drives the fill (`color-mix` at 14% in light, 22% in dark), the
-text (a 50% / 56% mix toward a warm ink), and the 3px left rail, with the
-past state re-deriving the fill at 55% of the tint rather than dropping
-opacity **[M]**.
+Fill philosophy splits: Fantastical and Notion Calendar both use rail plus a
+lighter fill (Notion's tint the paler at roughly 10–15%); Amie is the outlier
+with full-saturation pastel fills and no rail **[V]**.
 
-**Verdict: at parity with the best-documented practice in the field.** The
-mechanism is the same and the derivation is live rather than baked.
+Cadence derives everything live from one category hue: fill (`color-mix` at
+14% light, 22% dark), text (a 50% / 56% mix toward a warm ink), and a 3px
+left rail — squarely in the Fantastical/Notion camp, at the pale end **[M]**.
 
-### Left-edge rail as a signal distinct from the fill
-Cron uses a ribbon plus a tinted background; Sunsama uses a solid left border
-specifically to mark that a calendar event originated as a task **[V]**.
+**Verdict: at parity with the best-documented practice.** Same mechanism,
+computed in the browser rather than baked. Far fewer hues than Google, which
+is a scope choice rather than an oversight.
 
-Cadence has the rail (`inset 3px 0 0` in the category hue, plus a 1px
-surface separator) but spends it on **category**, the same thing the fill
-already encodes **[M]**.
+### Tabular numerals in the time gutter
+Notion Calendar uses `.monospacedDigit()` in its gutter specifically so the
+time column aligns **[V]**. Cadence routes every numeral through IBM Plex
+Mono, verified as actually loading rather than silently falling back **[M]**.
 
-**Verdict: behind.** The rail is doing a job the fill already does. Sunsama
-spends the same pixels on provenance. This is a free channel currently
-carrying a duplicate signal.
+**Verdict: at parity.** Notion had the same idea first.
 
-### The "now" indicator
-Only verifiable for Google Calendar: a red horizontal line with a round dot
-at one end **[V]**.
+### Past events muted
+Notion Calendar renders already-passed events in flat gray-blue against
+vivid upcoming ones, independent of theme **[V]**.
 
-Cadence draws the same shape, and then does something none of the seven were
-confirmed to do: in week view it renders the horizon at **two strengths** —
-full accent with a dot on today's column, and a 16% ghost across the other
-six, so you get an exact reading on today plus a scan line for the rest,
-instead of seven competing red stripes. Measured: 1 full, 6 ghost **[M]**.
+Cadence re-derives fill and text from the category hue at reduced strength
+rather than dropping opacity, and — the part not found anywhere else —
+dims elapsed blocks **only while the day still has something ahead**, so a
+finished day reads as finished rather than as washed out **[M]**.
 
-**Verdict: at parity on the standard, plausibly ahead on the multi-day case.**
-Stated cautiously, because no competitor's multi-day behaviour was verified.
+**Verdict: at parity on the idea, ahead on the conditional.**
 
-### Typography
-Verifiable for one competitor. Amie: Inter variable, body 16px / 1.75,
-h2 and h3 both 20px separated only by weight **[V]**.
+### Dark mode as a designed surface, not an inversion
+Google **auto-lightens saturated event colours to pastel** in dark mode
+rather than inverting **[V]**. Apple renders events **semi-transparent** so
+overlapping ones remain mutually visible **[V]**.
 
-Cadence: three families, each with a job — Instrument Sans for display,
-Manrope for body, IBM Plex Mono for every numeral — and exactly **eight**
-sizes rendering across both themes and all six routes, verified by
-enumerating computed styles rather than by reading the stylesheet **[M]**.
-That distinction matters: reading the stylesheet said "all on scale" while
-three sizes were still off it, hidden in inline `style` attributes and a UA
-default on `<button>`.
-
-**Verdict: at parity or slightly ahead on discipline**, with the caveat that
-there is almost nothing to compare against. Amie's h2/h3 sharing one size is
-the same instinct as an eight-step scale.
-
-### Dark mode as a first-class surface
-Praised as a design feature for Cron and treated as the default framing for
-Structured **[V]**.
-
-Cadence ships one identity across both, not two themes bolted together: the
-same coral, the same warm neutrals, with tint percentages and the ink mix
-re-tuned per theme **[M]**. Zero contrast failures in either **[M]**.
+Cadence re-tunes the derivation per theme: tint 14% to 22%, ink mix 50% to
+56%, and the accent splits into three roles so the coral that works as a fill
+under white ink is not the coral used as text on a bright page **[M]**. Zero
+contrast failures in either theme **[M]**.
 
 **Verdict: at parity.**
 
----
+### Typography
+Google moved to Google Sans Flex **[V]**. Apple uses SF Pro with automatic
+optical-size switching at 20pt, and its own WWDC session cites Calendar
+mixing weights within a screen for hierarchy **[V]**. Amie uses Inter; Notion
+Calendar a fork of it, with roughly a 5:1 scale contrast **[V]**.
 
-## 2. Where the field has no visible answer
+Cadence: three families with distinct jobs, and exactly **eight** sizes
+rendering across both themes and all six routes **[M]**.
 
-These are the openings. In each case the research looked specifically and
-found nothing to compare against — which is not proof the competitors do
-nothing, but does mean it is not something they talk about or that reviewers
-notice.
+**Verdict: at parity on discipline.**
 
-### Dense-overlap behaviour with a stated, enforced floor
-**No source gave a concrete overlap threshold for any of the seven apps [?].**
-The commonly cited "equal width, maximum available" algorithm is associated
-with Google Calendar but was not confirmed as what Google ships.
+### Graceful degradation as space shrinks
+Apple documents the clearest ladder: Details → Stacked → Compact → dots,
+driven by view mode and system text size **[V]**, morphing continuously under
+a pinch **[V]**. Fantastical drops location and the video icon first, then
+most of the title **[V]**.
 
-Cadence now enforces an explicit invariant: **no block is ever drawn narrower
-than 56px**, the width a title needs to read. Above that, lanes split
-normally; below it, the surplus collapses behind a "+N" chip that opens a
-sheet. Verified across seven data scenarios at 320 / 375 / 390 / 1280:
-**zero blocks below the floor** in any of them, where before the same
-scenarios produced blocks of 44px and 50px **[M]**.
+Cadence degrades on two axes: title lines clamp by block height (3 / 2 / 1),
+lanes collapse to a chip by block width **[M]**.
 
-**Verdict: ahead, with a caveat.** Ahead because the rule is explicit,
-enforced and tested rather than emergent. The caveat is that "ahead of what
-could not be verified" is a weaker claim than it sounds.
-
-### Free time as a thing you can see and act on
-Only Structured has a confirmed free-time feature, and it is gap *detection
-with suggestions*, not a rendered gap **[V]**. Sunsama's buffer is a
-scheduling parameter, not a visual **[V]**. For the other five: nothing
-found **[?]**.
-
-Cadence renders the gaps themselves as tappable pockets labelled with their
-own duration — "2h free time", "7h free time", "4h 30m free time" — clamped
-to waking hours so an empty day does not become one 24-hour slab, and
-suppressed entirely on a day with nothing on it **[M]**.
-
-**Verdict: ahead.** This is the clearest differentiator in the product.
-Structured is the only app with a comparable idea and it expresses it as a
-suggestion engine rather than as something visible in the grid.
-
-### The empty day
-**Not verifiable for a single one of the seven apps [?].** The likeliest
-reading is that most of them render a blank grid and leave it there.
-
-Cadence gives the empty day a real state, anchored at the start of the focus
-window, naming the window and offering to plan it **[M]**.
-
-**Verdict: probably ahead, on a dimension nobody appears to be contesting.**
-
-### Past events dimmed by contrast rather than opacity
-Nothing found in the field **[?]**.
-
-Cadence re-derives the fill and text from the category hue at reduced
-strength instead of dropping opacity, and only dims elapsed blocks **while
-the day still has something ahead** — so a wholly finished day reads as
-finished rather than as washed out **[M]**.
-
-**Verdict: a genuinely distinctive detail.** The conditional is the good
-part; the blanket-opacity version is what most implementations do.
+**Verdict: at parity in kind, behind in reach.** Cadence's ladder is
+automatic and correct; Apple's is also a gesture the user drives.
 
 ---
 
 ## 3. Where Cadence is behind
 
-### The rail carries a duplicate signal
-Covered above. Sunsama spends the same 3px on task-versus-event provenance,
-and its own public roadmap hosts users complaining even that is too subtle
-**[V]** — which means the problem is live and unsolved across the field, and
-therefore worth winning rather than matching.
+### Free time — Google is well ahead
+An earlier draft claimed Cadence led here. It does not. **Google ships Focus
+Time and Working Hours as first-class event types with their own colours,
+renders non-working hours as diagonal grey striping, and turns availability
+into a separate booking-page product [V].** Motion shades non-working hours
+the same way and marks tentative work with dotted, lighter "ghost" blocks
+**[V]**. Structured detects gaps and suggests what to put in them **[V]**.
+Notion Calendar highlights open slots, but only inside an outbound
+share-availability mode **[V]**. Fantastical, Amie and Apple: nothing found
+**[V]/[?]**.
 
-### Density is a fixed rule; the field is moving to user-controlled density
-Apple morphs continuously between three information densities under one
-pinch gesture; Sunsama ships the same idea as discrete zoom buttons **[V]**.
-Cadence has a fixed `pph` with no zoom **[M]**.
+Cadence renders the gaps themselves as tappable pockets labelled with their
+own duration — "2h free time", "7h free time", "4h 30m free time" — clamped
+to waking hours so an empty day is not one 24-hour slab, and suppressed
+entirely on a day with nothing on it **[M]**.
 
-This is the most substantial gap in the scorecard. Cadence decides density
-*for* the user, correctly and defensibly, but decides it alone.
+**Verdict: differentiated but behind on breadth.** Naming a gap by its
+duration and making it the thing you tap to fill is genuinely distinct from
+shading the hours around it. But Google covers working hours, focus
+protection and external booking; Cadence covers one of the three.
+
+### The rail carries a signal the fill already carries
+Cron splits ribbon from background tint **[V]**. Sunsama spends its left
+border on **provenance** — marking which calendar events began as tasks —
+and its own public roadmap hosts users saying even that is too subtle
+**[V]**. Notion Calendar encodes status in the block's edge and fill instead:
+**dashed border for tentative, diagonal hatching for a declined or hold
+slot** **[V]**.
+
+Cadence's 3px rail repeats the category the fill already encodes **[M]**.
+
+**Verdict: behind.** A free channel carrying a duplicate signal, on a problem
+the field has publicly failed to solve. Notion's dashed/hatched treatment is
+the most complete answer found and is worth copying outright.
+
+### The empty day — Amie got there first
+An earlier draft claimed nobody contests this. Wrong: **Amie shows a
+dashed-outline card reading "Enjoy Your Tomorrow!" when a day's list is
+exhausted [V]** — human microcopy rather than a blank void. Nobody else's
+empty state could be verified **[?]**.
+
+Cadence gives the empty day a state anchored at the start of the focus
+window, naming the window and offering to plan it **[M]**.
+
+**Verdict: at parity with the only competitor that has one**, and arguably
+more useful, since Cadence's version offers the next action rather than a
+sign-off. Amie's has more warmth.
+
+### Density is user-controlled, but only just
+An earlier draft claimed Cadence had no density control. Wrong: a Comfortable
+/ Compact preference has always existed. What was true, and is now fixed, is
+worse — **the week grid ignored it.** Today honoured the setting at 68px and
+52px per hour; the week view, the densest surface in the app and the one
+where it matters most, was pinned at 44 and never read it. Choosing Compact
+changed one screen out of two. The week grid now honours it, measured at 56px
+comfortable and 44px compact **[M]**.
+
+Even so, two discrete steps behind a Settings screen is not Apple's pinch or
+Sunsama's inline zoom buttons **[V]**.
+
+**Verdict: behind.** The control exists and now reaches both screens, but it
+is a preference, not a gesture.
 
 ### Overlap is only solved downstream
-Notion Calendar's conflict avoidance and Sunsama's scheduling buffer both
-try to stop dense overlaps from existing **[V]**. Cadence renders collisions
-well and does nothing to prevent them — although `suggest.js` scores
-candidate slots and is the obvious place to hang this.
+Notion Calendar's conflict avoidance and Sunsama's scheduling buffer both try
+to stop dense overlaps existing **[V]**. Cadence renders collisions well and
+does nothing to prevent them, though `suggest.js` already scores candidate
+slots.
 
-### Elevation and shadow are unexamined
-Amie's shadows are documented at 4% inner and 12% outer, against a typical
-10–20%, and the teardown names this as why its elevation feels almost
-invisible **[V]**. Cadence has a single `--shadow` token that has never been
-measured or tuned.
+### Density-at-a-glance is missing entirely
+Fantastical's year view shades every day on an olive-to-maroon busyness
+gradient, and its DayTicker strip shows a diagonal dot cascade per day
+**[V]**. Cadence has no equivalent overview of where the heavy days are.
 
-### No verified answer on motion
-Nothing was verifiable about competitors' motion design **[?]**, and
-Cadence's own entrance animations are transform-only, deliberately, after an
-opacity-based version rendered every block invisible when the document was
-backgrounded. Reduced-motion is honoured with a blanket rule **[M]**. This is
-correct but not yet a strength.
+### Elevation is unexamined
+Amie's shadows are documented at 4% inner and 12% outer against a typical
+10–20%, named as why its elevation feels almost invisible **[V]**. Cadence
+has one `--shadow` token that has never been measured.
 
 ---
 
 ## 4. The short version
 
-Cadence's real position is not "a small app catching up to Fantastical". It
-is narrower and more interesting than that.
+On what the field documents and reviewers notice — colour derivation, dark
+mode, typographic discipline, tabular numerals, the now line — Cadence is at
+parity, reached by measurement rather than taste.
 
-On the dimensions the field documents and reviewers notice — systematic
-colour derivation, dark mode, typographic discipline, the now line — Cadence
-is at parity, and it got there by measurement rather than by taste.
+On dense overlap it is ahead of the entire field on a specific, citable
+weakness: Google, Fantastical and Notion Calendar all shrink without a floor,
+Apple's behaviour is called arbitrary by its own users, and Fantastical ships
+a keyboard workaround for the illegibility that results. Cadence refuses to
+draw a block it has measured as unreadable.
 
-On the dimensions nobody in the field appears to have answered — the
-legibility floor under dense overlap, free time as a visible object, the
-empty day, past events dimmed by contrast — Cadence has answers, and they
-are enforced and tested rather than asserted.
-
-What it lacks is user-controlled density, a second signal on the rail it is
-currently wasting, and any attempt to prevent collisions rather than merely
-survive them.
+It is behind on free-time breadth, on spending its left rail twice, on
+density as a gesture rather than a preference, on any at-a-glance view of
+where the busy days are, and on preventing collisions rather than surviving
+them.
 
 ### Ranked next moves
 
-1. **User-controlled density (zoom).** The clearest gap against Apple and
-   Sunsama, and it compounds: more pixels per hour raises the effective lane
-   count and pushes the +N chips back on their own.
-2. **Give the rail a second job.** It currently repeats the fill. Provenance
-   (synced from Google vs. created here vs. generated from a routine) is the
-   signal Sunsama's users are asking for out loud.
-3. **Prevent collisions, not just render them.** `suggest.js` already scores
-   slots; warn on a conflicting create.
-4. **Measure the shadow.** One token, never examined, against a competitor
-   whose elevation numbers are documented and deliberate.
+1. **Give the rail a second job.** It repeats the fill today. Notion's
+   dashed-border-for-tentative and hatched-fill-for-declined is a proven
+   pattern; provenance is the one Sunsama's users are asking for out loud.
+2. **Working hours as a rendered band.** Google and Motion both shade
+   non-working hours. Cadence has a focus window in preferences and marks it
+   only on the hour labels. Shading the grid outside it closes most of the
+   free-time gap for very little work.
+3. **Density as a gesture.** Pinch on the grid, mapped to the preference that
+   now already reaches both screens.
+4. **A busyness overview.** Fantastical's year heatmap is the reference;
+   `dayLoad()` already computes the number this would need.
+5. **Warn on conflicting create.** `suggest.js` scores slots already.
+6. **Measure the shadow.** One token, never examined, against a competitor
+   whose elevation numbers are deliberate and published.
 
 ### Where this document is weak
 
-The competitor column is thin, and thin in a specific direction: overlap
-thresholds, empty states, typography and now-lines were all searched for
-directly and not found. Several "ahead" verdicts therefore rest on absence
-of evidence rather than evidence of absence. The honest way to close that
-gap is to install the four or five apps and screenshot a deliberately
-overloaded day in each, which no amount of searching substitutes for.
+The competitor evidence leans on vendor screenshots, which show the state a
+vendor chose to photograph. Amie's behaviour above two overlapping events is
+undocumented; so is Fantastical's above three. Verdicts about what
+competitors do at extreme density are therefore inferences from their
+mechanism, not observations of it. Closing that properly means installing the
+apps and building a deliberately overloaded day in each, which no amount of
+searching substitutes for.
+
+Three claims in earlier drafts of this file were wrong and are corrected
+above: that Cadence had no density control, that it led on free time, and
+that no competitor had an empty-day state. Each was overturned by better
+evidence arriving after the claim was written.

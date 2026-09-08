@@ -9,7 +9,16 @@ import { registerActions, haptic, toast, openSheet } from './ui.js';
 import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W } from './layout.js';
 import { whenLabel } from './search.js';
 
-const WEEK_PPH = 44;
+// The week grid ignored the density preference entirely.
+// Settings offers Comfortable / Compact, Today honours it (68px vs 52px per
+// hour), and the week view - the densest surface in the app, the one where
+// the setting matters most - was pinned at 44 and never read it. Choosing
+// Compact changed one screen out of two.
+//
+// Week stays tighter than Today at both steps because it carries seven
+// columns rather than one, and Compact keeps the 44 it always had, so the
+// existing look is preserved for anyone who had chosen it.
+const weekPph = () => S.prefs.density === 'compact' ? 44 : 56;
 
 // Drag a block sideways onto another day column (and up/down to retime it).
 // Dropping on a different day moves the block to that day; a routine
@@ -60,7 +69,7 @@ function installWeekDrag(root) {
     if (!occ) return;
     const dur = occ.end - occ.start;
     const rel = e.clientY - offY - bodyEl.getBoundingClientRect().top;
-    const newStart = Math.max(0, Math.min(DAY_MINUTES - dur, snap((rel / WEEK_PPH) * 60, 15)));
+    const newStart = Math.max(0, Math.min(DAY_MINUTES - dur, snap((rel / weekPph()) * 60, 15)));
     if (toDay === fromDay && newStart === occ.start) return;
     if (occ.kind === 'routine') {
       save('events', {
@@ -133,7 +142,7 @@ function weekSummary(days) {
 
 function weekView() {
   const days = weekDays();
-  const pph = WEEK_PPH;
+  const pph = weekPph();
   const nowMin = minutesNow();
   const today = todayISO();
   const weekHasToday = days.includes(today);
@@ -373,7 +382,7 @@ export default {
         firstEventMin: starts.length ? Math.min(...starts) : null,
         focusStart: S.prefs.focus_start
       }),
-      WEEK_PPH
+      weekPph()
     );
   }
 };
