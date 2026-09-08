@@ -401,6 +401,13 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .seg-item.on{ background:var(--surface); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.2); }
 .scope-pick{ display:flex; gap:8px; margin-bottom:12px; }
 .chip-row{ display:flex; gap:8px; margin:-4px 0 14px; flex-wrap:wrap; }
+/* Seven day toggles. Round like the task checkbox and the date pills, since
+   they are the same kind of object: a small on/off you tap directly. */
+.day-pick{ display:flex; gap:6px; flex-wrap:wrap; }
+.day-dot{ width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  border:1.5px solid var(--border-2); background:var(--surface);
+  font-size:12px; font-weight:700; color:var(--text-dim); }
+.day-dot.on{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); }
 .chip{ padding:6px 12px; border-radius:var(--r-lg); background:var(--surface-2); font-size:12px; font-weight:600; }
 .chip.on{ background:var(--accent-solid); color:var(--on-accent); }
 .range-wrap{ display:flex; align-items:center; gap:10px; }
@@ -794,7 +801,7 @@ body.sheet-open{ overflow:hidden; }
   /* Measured on an emulated phone, where these rules are actually in force:
      buttons sat at 36-42px, list rows at 30-38px, and the accent swatches at
      30px square. All fine under a mouse, all a thumb-width short. */
-  .btn, .chip, .input, select.input, .daychip, .cal-period, .task-row,
+  .btn, .chip, .input, select.input, .daychip, .cal-period, .task-row, .day-dot,
   .trow-mini, .goal-card-head, .goal-next, .ms-row, .skip-link{ min-height:44px; }
   .daychip{ min-width:44px; }
   .swatch{ width:44px; height:44px; }

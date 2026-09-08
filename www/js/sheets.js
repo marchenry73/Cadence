@@ -2,7 +2,7 @@
 // screen, keep its context visible behind them, and drag away.
 import { S, save, remove, catById, categories, freeGaps, overlapsOn, protectedClash, mine, logActivity, goalMilestones } from './state.js';
 import { CATEGORY_COLORS } from './config.js';
-import { t, dateLabel } from './i18n.js';
+import { t, dateLabel, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, todayISO, addDays, clamp } from './util.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, $, field, guestBlocked } from './ui.js';
 import { uploadImage, deleteImage, pickFile, hydrateImages } from './images.js';
@@ -38,6 +38,12 @@ export function openBlockSheet(opts = {}) {
     routine_id: occ?.routine_id || null,
     day,
     scope: 'once',
+    // Which weekdays this repeats on. Seeded from the routine when editing
+    // one, empty otherwise - an empty list means "does not repeat", which is
+    // what every block was permanently stuck as before.
+    days: (occ && occ.kind === 'routine'
+      ? (S.routines.find(r => r.id === occ.routine_id)?.days || [])
+      : []).slice(),
     image_path: occ?.image_path || null,
     start: occ ? occ.start : (opts.start ?? 540),
     end: occ ? occ.end : (opts.end ?? (opts.start ?? 540) + 60),
@@ -66,6 +72,14 @@ export function openBlockSheet(opts = {}) {
       <div class="chip-row">
         ${[15, 30, 60, 120].map(m => `<button type="button" class="chip tap" data-act="blockLen" data-min="${m}">${m < 60 ? m + 'm' : (m / 60) + 'h'}</button>`).join('')}
       </div>
+      ${field(t('block.repeats'), `<div class="day-pick" data-seg="days" role="group" aria-label="${esc(t('block.repeats'))}">
+        ${dayNames(true, S.prefs.week_starts).map((nm, i) => {
+          const dow = (i + S.prefs.week_starts) % 7;
+          const on = draft.days.includes(dow);
+          return `<button type="button" class="day-dot${on ? ' on' : ''}" data-act="repeatDay" data-dow="${dow}"
+            aria-pressed="${on}" aria-label="${esc(nm)}">${esc(nm.slice(0, 1))}</button>`;
+        }).join('')}
+      </div>`, t('block.repeatsHint'))}
       ${field(t('block.category'), catOptions(draft.category_id))}
       ${field('Serves which goal?', goalOptions(draft.goal_id), 'Hours land in your weekly review')}
       <button type="button" class="toggle-row tap" data-act="toggleProtect">
@@ -387,6 +401,18 @@ export const sheetActions = {
     if (path) deleteImage(path);
   },
 
+  repeatDay: (d, node) => {
+    const dow = Number(d.dow);
+    const i = draft.days.indexOf(dow);
+    if (i >= 0) draft.days.splice(i, 1); else draft.days.push(dow);
+    // Toggled in place rather than by re-rendering the sheet: a re-render
+    // would rebuild every input from `draft`, and nothing syncs typing back
+    // into it, so the title you were halfway through would vanish.
+    const on = draft.days.includes(dow);
+    node.classList.toggle('on', on);
+    node.setAttribute('aria-pressed', String(on));
+    haptic('light');
+  },
   blockSave: () => {
     const f = readForm();
     const title = (f.title || '').trim();
@@ -412,13 +438,29 @@ export const sheetActions = {
       notes: (f.notes || '').trim() || null
     };
 
+    const repeats = draft.days.length > 0;
+
     if (draft.kind === 'routine' && draft.scope === 'series') {
-      save('routines', { id: draft.routine_id, ...patch });
+      // Clearing every day would orphan the routine - it would exist and
+      // never occur - so an empty set deletes it instead.
+      if (repeats) save('routines', { id: draft.routine_id, ...patch, days: draft.days.slice() });
+      else remove('routines', draft.routine_id);
     } else if (draft.kind === 'routine') {
       // "Just today" becomes a one-off block that shadows the routine.
       save('events', {
         ...patch, day: draft.day, routine_id: draft.routine_id, image_path: draft.image_path || null
       });
+    } else if (repeats) {
+      // Days chosen on a one-off: this becomes a routine. An event being
+      // converted gives up its row, because leaving it behind would draw the
+      // block twice on its own day - once as the event, once as the
+      // occurrence, which occurrencesOn() only suppresses when the event
+      // points at the routine it is overriding.
+      save('routines', { ...patch, days: draft.days.slice(), skip_dates: [] });
+      if (draft.id) {
+        remove('events', draft.id);
+        if (draft.image_path) deleteImage(draft.image_path);
+      }
     } else {
       save('events', {
         id: draft.id, ...patch, day: draft.day,
