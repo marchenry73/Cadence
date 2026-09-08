@@ -869,3 +869,19 @@ body.sheet-open{ overflow:hidden; }
   background:color-mix(in oklab, var(--accent) 55%, var(--text-faint)); opacity:.85; }
 .month-cell.out .mc-load{ opacity:.3; }
 @media (max-width:520px){ .mc-load{ display:none; } }
+
+/* -- the empty day --
+   Not a 24-hour "free time" slab: a blank grid already says the day is
+   blank. This says what to do with it, anchored at the start of your
+   focus hours so it sits where the day would actually begin. */
+.spine-empty{ position:absolute; left:0; right:0; z-index:2;
+  display:flex; flex-direction:column; align-items:flex-start; gap:6px;
+  padding:16px 18px; border-radius:var(--radius);
+  background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); }
+.se-title{ font-family:var(--font-display); font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.se-sub{ font-size:12px; color:var(--text-dim); }
+.spine-empty .btn{ margin-top:4px; }
+
+/* Large free-time fields were reading as texture noise; the dots step back
+   and the label carries it. */
+.gap{ background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px); }

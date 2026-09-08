@@ -164,20 +164,37 @@ function spine() {
     </button>`;
   }).join('');
 
-  const gaps = freeGaps(S.day, 45)
-    .filter(([, b]) => b > (isToday ? minutesNow() : 0))
+  // Free time is only meaningful as a POCKET BETWEEN COMMITMENTS. An empty
+  // day produced one 0:00–24:00 gap, which rendered as a full-height dotted
+  // slab labelled "24h free time" — visually loud and informationally
+  // useless, since a blank day is obvious from the blank grid. So: gaps are
+  // clamped to waking hours, and a day with nothing on it gets a real empty
+  // state instead of one enormous rectangle.
+  const WAKE_A = 6 * 60, WAKE_B = 23 * 60;
+  const gaps = list.length ? freeGaps(S.day, 45)
+    .map(([a, b]) => [Math.max(a, WAKE_A), Math.min(b, WAKE_B)])
+    .filter(([a, b]) => b - a >= 45 && b > (isToday ? minutesNow() : 0))
     .slice(0, 4).map(([a, b]) => {
       const from = Math.max(a, isToday ? snap(minutesNow(), 15) : a);
-      if (b - from < 30) return '';
+      if (b - from < 45) return '';
       return `<button class="gap tap" data-act="fillGap" data-start="${from}" data-end="${b}"
         style="top:${(from / 60) * pph}px;height:${Math.max(26, ((b - from) / 60) * pph - 4)}px">
         <span>${esc(fmtDur(b - from))} ${esc(t('today.freeTime').toLowerCase())}</span>
       </button>`;
-    }).join('');
+    }).join('') : '';
+
+  // A blank day is the one moment the app can say something useful about
+  // planning rather than just showing ruled paper.
+  const emptyDay = list.length ? '' : `
+    <div class="spine-empty" style="top:${(S.prefs.focus_start / 60) * pph}px">
+      <div class="se-title">${esc(t('today.empty'))}</div>
+      <div class="se-sub">${esc(t('set.focusWindow'))} ${esc(fmtTime(S.prefs.focus_start, S.prefs.clock24))}–${esc(fmtTime(S.prefs.focus_end, S.prefs.clock24))}</div>
+      <button class="btn primary sm" data-act="fillGap" data-start="${S.prefs.focus_start}" data-end="${S.prefs.focus_end}">${esc(t('today.planDay'))}</button>
+    </div>`;
 
   return `<div class="spine" id="spine" style="height:${height}px;background:${band}" data-act="spineTap" data-pph="${pph}">
     <div class="spine-focus" style="top:${focusTop}px;height:${focusHeight}px"></div>
-    ${hours}${gaps}${blocks}
+    ${hours}${gaps}${emptyDay}${blocks}
     ${isToday ? `<div class="nowline" id="nowline" style="top:${(minutesNow() / 60) * pph}px"><i></i></div>` : ''}
   </div>`;
 }

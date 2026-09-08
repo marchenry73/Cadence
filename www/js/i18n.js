@@ -38,6 +38,7 @@ export const EN = {
   'today.freeTime': 'Free time', 'today.suggest': 'Fill this gap',
   'today.empty': 'A clear day. Add a block or pull a task in.',
   'today.in': 'in {t}', 'today.nowRunning': 'Running now',
+  'today.planDay': 'Plan this day',
 
   'block.new': 'New block', 'block.edit': 'Edit block', 'block.title': 'Title',
   'block.category': 'Category', 'block.start': 'Starts', 'block.end': 'Ends',

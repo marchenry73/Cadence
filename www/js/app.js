@@ -371,7 +371,15 @@ function awardDailyLogin() {
 // ------------------------------------------------------------------ globals used by views
 
 window.cadenceGoRoute = go;
-window.cadenceGoDay = (day, route) => { S.day = day; if (route) go(route); else renderRoute(0, true); };
+// go() returns early when the route is already current, so passing a route
+// you are already on used to set S.day and then never repaint — tapping a
+// search result for another day while already on Today changed nothing on
+// screen. Only delegate to go() for an actual route change.
+window.cadenceGoDay = (day, route) => {
+  S.day = day;
+  if (route && route !== S.route) go(route);
+  else renderRoute(0, true);
+};
 window.cadenceRerender = () => renderRoute(0, true);
 window.cadenceRenderGoogleBanner = renderGoogleBanner;
 window.cadenceApplyAccent = c => document.documentElement.style.setProperty('--accent-user', c);
