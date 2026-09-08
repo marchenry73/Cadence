@@ -24,3 +24,9 @@ export const CATEGORY_COLORS = [
 // Daybreak's accent family: coral by default, warmed toward its
 // dawn/dusk neighbors rather than unrelated hues.
 export const ACCENTS = ['#E8604A', '#C97A3A', '#6E5A8C', '#5E8563', '#B0473F'];
+// Swatches are buttons whose only content is a colour. A hex code is a
+// label a machine can read and a person cannot, so each gets a real name.
+export const ACCENT_NAMES = {
+  '#E8604A': 'Coral', '#C97A3A': 'Amber', '#6E5A8C': 'Plum',
+  '#5E8563': 'Moss', '#B0473F': 'Brick'
+};

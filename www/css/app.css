@@ -724,7 +724,25 @@ body.sheet-open{ overflow:hidden; }
 @media (pointer: coarse){
   .side-link, .seg-item, .agenda-row, .sr-row, .cat-row, .toggle-row{ min-height:44px; }
   .icon-btn, .topbar-search{ min-width:44px; min-height:44px; }
-  .chip{ min-height:36px; }
+  /* Measured on an emulated phone, where these rules are actually in force:
+     buttons sat at 36-42px, list rows at 30-38px, and the accent swatches at
+     30px square. All fine under a mouse, all a thumb-width short. */
+  .btn, .chip, .input, select.input, .daychip,
+  .trow-mini, .goal-card-head, .goal-next, .ms-row, .skip-link{ min-height:44px; }
+  .daychip{ min-width:44px; }
+  .swatch{ width:44px; height:44px; }
+  /* The +N chip is pinned to a 23px strip because that is exactly what the
+     blocks beside it give up; widening the box would steal their width back.
+     So the BOX stays and the HIT AREA grows past it — mostly downward and to
+     the right, where the column edge means it costs nothing. It overlaps the
+     neighbouring block by a few px, and the chip wins that sliver on
+     z-order; trading a few px of a 63px block for a reachable disclosure is
+     the right way round, because the chip is the only route to what it hides.
+     All of the growth goes LEFT and vertical, none of it right: the chip is
+     flush to the column edge, so extending right would reach into the next
+     DAY and quietly steal taps from its leftmost blocks. */
+  .wk-more{ position:absolute; }
+  .wk-more::after{ content:''; position:absolute; inset:-11px 0 -11px -12px; }
 }
 
 /* Honour the OS setting rather than animating regardless. */

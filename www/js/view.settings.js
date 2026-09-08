@@ -3,7 +3,7 @@
 import { S, savePrefs, categories, save, remove } from './state.js';
 import { t, LANGS, setLang } from './i18n.js';
 import { esc } from './util.js';
-import { ACCENTS } from './config.js';
+import { ACCENTS, ACCENT_NAMES } from './config.js';
 import { signOut, deleteAccount, saveProfile, requestGoogleCalendarAccess } from './auth.js';
 import { openCategorySheet } from './sheets.js';
 import { submitTicket, myTickets, isAdmin, allTickets, setTicketStatus, ticketThread, replyToTicket } from './support.js';
@@ -47,7 +47,7 @@ export default {
           ${['system', 'light', 'dark'].map(th => `<button class="seg-item${S.prefs.theme === th ? ' on' : ''}" data-act="prefSeg" data-name="theme" data-value="${th}">${esc(t('set.' + th))}</button>`).join('')}
         </div>
         <div class="row-label">${esc(t('set.accent'))}</div>
-        <div class="swatches">${ACCENTS.map(c => `<button class="swatch${S.prefs.accent === c ? ' on' : ''}" style="background:${c}" data-act="prefColor" data-value="${c}"></button>`).join('')}</div>
+        <div class="swatches" role="radiogroup" aria-label="${esc(t('set.accent'))}">${ACCENTS.map(c => `<button class="swatch${S.prefs.accent === c ? ' on' : ''}" style="background:${c}" data-act="prefColor" data-value="${c}" role="radio" aria-checked="${S.prefs.accent === c}" aria-label="${esc(ACCENT_NAMES[c] || c)}"></button>`).join('')}</div>
         <div class="row-label">${esc(t('set.density'))}</div>
         <div class="segmented">
           ${['comfortable', 'compact'].map(d => `<button class="seg-item${S.prefs.density === d ? ' on' : ''}" data-act="prefSeg" data-name="density" data-value="${d}">${esc(t('set.' + d))}</button>`).join('')}
@@ -64,8 +64,8 @@ export default {
         <div class="row-label">${esc(t('set.focusWindow'))}</div>
         <p class="dim small">${esc(t('set.focusHint'))}</p>
         <div class="field-row">
-          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_start / 60)).padStart(2, '0')}:${String(S.prefs.focus_start % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('start', this.value)">
-          <input class="input" type="time" value="${String(Math.floor(S.prefs.focus_end / 60)).padStart(2, '0')}:${String(S.prefs.focus_end % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('end', this.value)">
+          <input class="input" type="time" aria-label="${esc(t('set.focusWindow'))} start" value="${String(Math.floor(S.prefs.focus_start / 60)).padStart(2, '0')}:${String(S.prefs.focus_start % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('start', this.value)">
+          <input class="input" type="time" aria-label="${esc(t('set.focusWindow'))} end" value="${String(Math.floor(S.prefs.focus_end / 60)).padStart(2, '0')}:${String(S.prefs.focus_end % 60).padStart(2, '0')}" onchange="window.cadenceFocusChange('end', this.value)">
         </div>
         <div class="row-label">${esc(t('set.weekStart'))}</div>
         <div class="segmented">

@@ -342,6 +342,7 @@ export default {
       <div class="today-main">
         <div class="nl-bar">
           <input class="input" id="nlInput" autocomplete="off" autocapitalize="sentences"
+                 aria-label="Add an event or task in plain language"
                  placeholder="Gym 6–7am · Draft brief tomorrow 45m">
           <button class="btn primary sm" data-act="nlCommit">${esc(t('common.add'))}</button>
         </div>
