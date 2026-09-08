@@ -32,6 +32,9 @@
   --peri:#6E75C4; --peri-tint:#E2E2F3;
   --honey:#BD8A2B; --honey-tint:#F3E7CB;
   --line-hour:rgba(43,36,32,.035); --line-day:rgba(43,36,32,.08); --wkend:rgba(43,36,32,.022);
+  /* Hours outside the focus window. Neutral on purpose: the accent is
+     spoken for by event fills, and a hue here would compete with them. */
+  --offhours:rgba(43,36,32,.030);
   --ink-warm:#1A1410; --ev-tint:14%; --ev-text-mix:50%;
   /* Radius scale. Five steps, each with a job: xs for chips and bars, sm
      for inline controls and event blocks, md for cards and tiles, lg for
@@ -71,6 +74,7 @@
     --peri:#9BA1E8; --peri-tint:#282A47;
     --honey:#E3AC52; --honey-tint:#3A2E17;
     --line-hour:rgba(255,240,225,.04); --line-day:rgba(255,240,225,.075); --wkend:rgba(255,240,225,.025);
+    --offhours:rgba(0,0,0,.16);
     --ink-warm:#FFF4E8; --ev-tint:22%; --ev-text-mix:56%;
     --shadow: 0 12px 28px rgba(0,0,0,.4);
     color-scheme: dark;
@@ -88,6 +92,7 @@
   --peri:#9BA1E8; --peri-tint:#282A47;
   --honey:#E3AC52; --honey-tint:#3A2E17;
     --line-hour:rgba(255,240,225,.04); --line-day:rgba(255,240,225,.075); --wkend:rgba(255,240,225,.025);
+    --offhours:rgba(0,0,0,.16);
     --ink-warm:#FFF4E8; --ev-tint:22%; --ev-text-mix:56%;
   --shadow: 0 12px 28px rgba(0,0,0,.4);
   color-scheme: dark;
@@ -796,8 +801,13 @@ body.sheet-open{ overflow:hidden; }
 .wk-col{ flex:1; min-width:0; border-left:1px solid var(--line-day); }
 .wk-col.is-weekend .wk-body{ background-color:var(--wkend); }
 .wk-body{ position:relative;
-  background-image:repeating-linear-gradient(to bottom,
-    var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent var(--pph, 44px)); }
+  /* Off-hours band first so it layers above the hour rules, matching the
+     Today spine exactly rather than approximately. */
+  background-image:
+    linear-gradient(to bottom, var(--offhours) 0 var(--off-a, 0px),
+      transparent var(--off-a, 0px) var(--off-b, 100%), var(--offhours) var(--off-b, 100%) 100%),
+    repeating-linear-gradient(to bottom,
+      var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent var(--pph, 44px)); }
 .wk-col.drop-target .wk-body{ background-color:var(--accent-weak);
   outline:2px dashed var(--accent); outline-offset:-2px; border-radius:var(--r-sm); }
 
@@ -1054,6 +1064,32 @@ h1, .topbar h1{ letter-spacing:-.022em; }
              -1px 0 0 var(--surface);
 }
 .wk-block.is-past .wk-block-time, .block.is-past .block-time{ opacity:.5; }
+
+/* -- the rail carries confirmed-ness, not a second copy of the category --
+   A past block you have ticked off keeps its solid rail. One you have not
+   gets a dashed rail: same hue, same width, same place - only the
+   continuity changes. A broken line reads as unfinished in every other
+   context, so it needs no legend, and it costs no new colour on a surface
+   already carrying six category hues.
+
+   Before this, Today told the two apart only by a tick button that is
+   suppressed under 34px - so the short blocks most likely to be forgotten
+   were the ones with no signal at all - and the week grid did not compute
+   the state whatsoever.
+
+   Drawn as a pseudo-element because the rail is an inset box-shadow and a
+   shadow cannot be dashed. The solid inset is dropped for this state so
+   the gaps are real gaps, not a dashed line laid over a solid one. */
+.wk-block.is-past:not(.is-done), .block.is-past:not(.is-done){
+  box-shadow:-1px 0 0 var(--surface);
+}
+.wk-block.is-past:not(.is-done)::before, .block.is-past:not(.is-done)::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  border-radius:var(--r-sm) 0 0 var(--r-sm);
+  background:repeating-linear-gradient(to bottom,
+    color-mix(in oklab, var(--evc) 55%, transparent) 0 4px, transparent 4px 8px);
+  pointer-events:none;
+}
 
 /* -- titles use the height they are given --
    A three-hour block has room for the whole title; only a short one needs

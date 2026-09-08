@@ -1,7 +1,7 @@
 // Calendar — week grid, month grid, agenda list. All three read the same
 // occurrencesOn() selector as Today, so nothing can disagree about what's
 // scheduled where.
-import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, categoryTotals, save } from './state.js';
+import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, categoryTotals, save, isBlockDone } from './state.js';
 import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
@@ -192,7 +192,10 @@ function weekView() {
       // evening it turned the entire screen grey.
       const past = isToday && dayHasFuture && o.end <= nowMin;
       const fresh = S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800;
-      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${fresh ? ' is-new' : ''}" data-act="openBlockOn"
+      // Confirmed-ness is a property of the block, not of the screen it is
+      // drawn on, so the week grid reads the same state Today does.
+      const done = past && isBlockDone(o, d);
+      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${done ? ' is-done' : ''}${fresh ? ' is-new' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
         aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
         style="top:${top}px;height:${h}px;left:${left};width:${w};z-index:${z + 1};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
@@ -225,7 +228,7 @@ function weekView() {
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
         <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px">${nowLine}${blocks}${more}</div>
+      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px;--off-a:${(S.prefs.focus_start / 60) * pph}px;--off-b:${(S.prefs.focus_end / 60) * pph}px">${nowLine}${blocks}${more}</div>
     </div>`;
   }).join('');
 

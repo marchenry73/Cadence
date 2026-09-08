@@ -127,7 +127,15 @@ function spine() {
   // used to paint alternating two-hour bands in solid --surface-2, which is
   // the zebra-striped table look every calendar people call beautiful has
   // deliberately dropped: the grid should read as paper, the blocks as ink.
-  const band = `repeating-linear-gradient(to bottom, var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent ${pph}px)`;
+  const rules = `repeating-linear-gradient(to bottom, var(--line-hour) 0, var(--line-hour) 1px, transparent 1px, transparent ${pph}px)`;
+  // The hours outside the focus window, shaded so the claimed part of the
+  // day reads as the lit part. Hard colour stops, no blur: this is a
+  // boundary, not a vignette. Layered above the hour rules so those soften
+  // out there too, which is right - those hours matter less.
+  const offA = (S.prefs.focus_start / 60) * pph;
+  const offB = (S.prefs.focus_end / 60) * pph;
+  const dim = `linear-gradient(to bottom, var(--offhours) 0 ${offA}px, transparent ${offA}px ${offB}px, var(--offhours) ${offB}px 100%)`;
+  const band = `${dim}, ${rules}`;
 
   const hours = Array.from({ length: 25 }, (_, h) => {
     const hide = compact && h % 2 === 1 && h !== 24;
@@ -168,7 +176,7 @@ function spine() {
     const done = isBlockDone(o, S.day);
     // Tall blocks show the whole title; only short ones truncate.
     const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;
-    return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
+    return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${past && done ? ' is-done' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
       style="top:${top}px;height:${h}px;left:${left};width:${w};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>
