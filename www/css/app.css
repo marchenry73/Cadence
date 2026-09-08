@@ -430,6 +430,9 @@ button[disabled]{ opacity:.5; pointer-events:none; }
   box-shadow:var(--shadow); z-index:41; display:flex; flex-direction:column; padding-bottom:calc(var(--kb) + var(--safe-b));
   border:1px solid var(--border); border-bottom:none; }
 .sheet-full{ max-height:calc(100vh - var(--safe-t) - 20px); height:calc(100vh - var(--safe-t) - 20px); }
+/* The second sheet layer. A confirmation opens here so it never has to
+   destroy the editor it is asking about. Same .sheet rules, one step up. */
+.sheet-alt{ z-index:43; }
 .sheet-grip{ width:36px; height:4px; background:var(--border-2); border-radius:var(--r-xs); margin:10px auto 4px; }
 .sheet-head{ display:flex; align-items:center; justify-content:space-between; padding:6px 16px 10px; }
 .sheet-head h2{ font-size:16px; margin:0; }
@@ -458,13 +461,6 @@ body.sheet-open{ overflow:hidden; }
   padding:0 5px 4px 0; pointer-events:none; z-index:4; }
 .confirm-slot .block-confirm{ pointer-events:auto; }
 .block-confirm{ transition:background .16s ease, border-color .16s ease, transform .16s cubic-bezier(.2,.9,.3,1.4); width:24px; height:24px; flex-shrink:0; border-radius:50%;
-/* The confirm tick lives outside the block now - a button cannot be nested in
-   a button - so a transparent slot mirrors the block box and parks it in the
-   corner. Only the tick takes pointer events; the rest of the slot lets taps
-   through to the block underneath. */
-.confirm-slot{ position:absolute; display:flex; align-items:flex-end; justify-content:flex-end;
-  padding:0 5px 4px 0; pointer-events:none; z-index:4; }
-.confirm-slot .block-confirm{ pointer-events:auto; position:static; }
   border:1.5px solid var(--border-2); background:var(--surface); display:flex; align-items:center;
   justify-content:center; font-size:12px; color:var(--text-dim); z-index:4; }
 .block-confirm.on{ background:var(--good); border-color:var(--good); color:#04120c; transform:scale(1.08); }

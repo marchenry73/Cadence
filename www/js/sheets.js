@@ -434,6 +434,9 @@ export const sheetActions = {
   blockDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;
+    // The confirmation is its own layer now, so it no longer closes this
+    // editor on the way out. Close it deliberately instead of by accident.
+    closeSheet();
     if (draft.kind === 'routine') {
       const r = S.routines.find(x => x.id === draft.routine_id);
       if (r) save('routines', { id: r.id, skip_dates: [...(r.skip_dates || []), draft.day] });
@@ -552,6 +555,9 @@ export const sheetActions = {
   taskDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;
+    // The confirmation is its own layer now, so it no longer closes this
+    // editor on the way out. Close it deliberately instead of by accident.
+    closeSheet();
     remove('tasks', draft.id);
     toast(t('msg.deleted'));
   },
@@ -595,6 +601,9 @@ export const sheetActions = {
   goalDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;
+    // The confirmation is its own layer now, so it no longer closes this
+    // editor on the way out. Close it deliberately instead of by accident.
+    closeSheet();
     remove('goals', draft.id);
     toast(t('msg.deleted'));
   },
@@ -629,6 +638,9 @@ export const sheetActions = {
   catDelete: async () => {
     const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
     if (!ok) return;
+    // The confirmation is its own layer now, so it no longer closes this
+    // editor on the way out. Close it deliberately instead of by accident.
+    closeSheet();
     remove('categories', draft.id);
   },
 

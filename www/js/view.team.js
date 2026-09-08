@@ -111,6 +111,9 @@ registerActions({
   memberRemove: async d => {
     const ok = await confirmSheet({ title: t('team.remove'), message: t('msg.confirmDelete') });
     if (!ok) return;
+    // Fired from the member menu sheet, which the confirmation no longer
+    // closes for us. teamLeave above is a page button and needs no such call.
+    closeSheet();
     try { await removeMember(d.id); toast(t('msg.deleted')); } catch (e) { toast(e.message, 'warn'); }
   }
 });

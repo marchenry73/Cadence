@@ -106,10 +106,20 @@ export function toast(msg, kind = 'info') {
 
 let sheetStack = [];
 
-export function openSheet({ title = '', body = '', footer = '', onMount, dismissable = true, full = false }) {
+export function openSheet({ title = '', body = '', footer = '', onMount, dismissable = true, full = false, layer = 1, onDismiss }) {
   const scrim = $('#scrim');
-  const wrap = $('#sheet');
-  wrap.className = 'sheet' + (full ? ' sheet-full' : '');
+  const wrap = $(layer > 1 ? '#sheet2' : '#sheet');
+  // Re-opening into a node that is already on the stack REPLACES its entry.
+  // Pushing a second one for the same node would leave a phantom layer: the
+  // first close would pop it without emptying the stack, so the scrim would
+  // stay lit over a sheet that is no longer there.
+  const below = sheetStack[sheetStack.length - 1];
+  const replacing = !!below && below.wrap === wrap;
+  // The layer underneath goes inert, so the tab order and a screen reader
+  // cannot wander into a form that is currently buried under a dialog.
+  if (below && !replacing) below.wrap.inert = true;
+  wrap.inert = false;
+  wrap.className = 'sheet' + (layer > 1 ? ' sheet-alt' : '') + (full ? ' sheet-full' : '');
   wrap.innerHTML = `
     <div class="sheet-grip" aria-hidden="true"></div>
     <div class="sheet-head">
@@ -125,29 +135,49 @@ export function openSheet({ title = '', body = '', footer = '', onMount, dismiss
     wrap.style.transition = reduceMotion ? 'none' : 'transform .26s cubic-bezier(.2,.8,.2,1)';
     wrap.style.transform = 'translateY(0)';
   });
-  sheetStack.push({ dismissable });
+  const entry = { wrap, dismissable, onDismiss };
+  if (replacing) sheetStack[sheetStack.length - 1] = entry;
+  else sheetStack.push(entry);
   installSheetGlobals();
   installSheetDrag(wrap, dismissable);
   onMount?.(wrap);
   // Autofocus the first field, but never on touch — it yanks the keyboard up
   // before the sheet has finished moving.
-  if (!matchMedia('(pointer: coarse)').matches) $('input,textarea', wrap)?.focus();
+  // A confirmation has no input to focus. Without the footer fallback the
+  // keyboard stayed on the Delete button in the sheet underneath - which is
+  // the button that opened this dialog in the first place.
+  if (!matchMedia('(pointer: coarse)').matches)
+    ($('input,textarea', wrap) || $('.sheet-foot .btn', wrap))?.focus();
   return closeSheet;
 }
 
 export function closeSheet() {
-  const scrim = $('#scrim');
-  const wrap = $('#sheet');
-  if (!scrim?.classList.contains('on')) return;
+  // Pop first and act on what was popped. The old version read #sheet
+  // unconditionally and guarded on the scrim still being on - which is true
+  // whenever anything is open - so closing the second layer tore down the
+  // first, and an early return left the stack counter stranded at 1 for the
+  // rest of the session.
+  const top = sheetStack.pop();
+  if (!top) return;
+  const wrap = top.wrap;
   wrap.style.transition = reduceMotion ? 'none' : 'transform .2s ease-out';
   wrap.style.transform = 'translateY(100%)';
+  const wasLast = sheetStack.length === 0;
   setTimeout(() => {
-    scrim.classList.remove('on');
-    document.body.classList.remove('sheet-open');
+    if (wasLast) {
+      $('#scrim')?.classList.remove('on');
+      document.body.classList.remove('sheet-open');
+    }
     wrap.innerHTML = '';
     wrap.style.transition = '';
+    wrap.inert = true;
   }, reduceMotion ? 0 : 190);
-  sheetStack.pop();
+  // Whatever is left on the stack becomes reachable again.
+  const below = sheetStack[sheetStack.length - 1];
+  if (below) below.wrap.inert = false;
+  // Fires for every close, including a scrim tap or Escape - which is the
+  // whole point: those used to leave the awaited promise dangling forever.
+  top.onDismiss?.();
 }
 
 // A sheet must always have a way out: tap the scrim, press Escape, hit ✕,
@@ -210,6 +240,11 @@ export function confirmSheet({ title, message, confirm = t('common.delete'), dan
       __confirmNo: () => finish(false)
     });
     openSheet({
+      layer: 2,
+      // Dismissing by scrim, Escape or drag never reached finish(), so the
+      // await never settled. Resolve directly rather than calling finish:
+      // finish would re-enter closeSheet and pop the editor underneath.
+      onDismiss: () => { if (!settled) { settled = true; resolve(false); } },
       title,
       body: `<p class="sheet-msg">${esc(message || '')}</p>`,
       footer: `<button class="btn ghost" data-act="__confirmNo">${esc(t('common.cancel'))}</button>

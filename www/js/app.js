@@ -175,7 +175,7 @@ function guestBoot() {
 
 function renderAuth() {
   document.getElementById('app').innerHTML = `<div class="screen-scroll"><div class="auth-wrap" id="authWrap"></div></div>
-    <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>`;
+    <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="sheet sheet-alt" id="sheet2" inert></div><div class="toast" id="toast"></div>`;
   paintAuth('signin');
 }
 
@@ -259,7 +259,7 @@ function renderShell() {
       ${NAV.map(([id, label, svg]) => `<button class="tab tap${S.route === id ? ' on' : ''}" data-act="goTab" data-route="${id}" aria-current="${S.route === id ? 'page' : 'false'}">${svg}<span>${label}</span></button>`).join('')}
     </nav>
     <div id="ptr"></div>
-    <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>`;
+    <div id="scrim"></div><div class="sheet" id="sheet"></div><div class="sheet sheet-alt" id="sheet2" inert></div><div class="toast" id="toast"></div>`;
 
   installPullToRefresh($('#scroller'), () => S.guest ? Promise.resolve() : syncNow().catch(() => {}));
 
