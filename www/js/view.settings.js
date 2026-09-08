@@ -246,9 +246,14 @@ registerActions({
     const file = await pickICSFile();
     if (!file) return;
     try {
-      const n = importICSEvents(parseICS(await file.text()));
+      const { imported, skippedAllDay } = importICSEvents(parseICS(await file.text()));
       haptic('success');
-      toast(n ? `${n} events imported` : 'Nothing to import', n ? 'good' : 'warn');
+      // All-day events used to vanish while the toast still said success.
+      const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+      const skipped = skippedAllDay ? `, ${skippedAllDay} all-day skipped` : '';
+      toast(imported ? `${plural(imported, 'event')} imported${skipped}` : (skippedAllDay
+        ? `Nothing imported — ${plural(skippedAllDay, 'all-day event')} not supported yet`
+        : 'Nothing to import'), imported ? 'good' : 'warn');
       window.cadenceRerender();
     } catch { toast(t('msg.somethingWrong'), 'warn'); }
   },

@@ -42,10 +42,31 @@ export function downloadICS() {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
+// A DTSTART comes in three shapes and they mean different things:
+//   20260908T140000Z  an instant in UTC - must be converted to local
+//   20260908T140000   a floating local wall-clock time - taken as written
+//   20260908          a date with no time at all - an all-day event
+// Reading the digits and ignoring the Z put every Google and Outlook export
+// out by the local offset, silently.
 function parseICSDate(v) {
-  const m = String(v || '').match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
+  const raw = String(v || '').trim();
+  const dateOnly = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnly) {
+    const [, y, mo, d] = dateOnly;
+    return { day: `${y}-${mo}-${d}`, min: 0, allDay: true };
+  }
+  const m = raw.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?/);
   if (!m) return null;
-  const [, y, mo, d, h, mi] = m;
+  const [, y, mo, d, h, mi, se, zulu] = m;
+  if (zulu) {
+    // Let Date do the offset, including whatever DST applied on that date.
+    const inst = new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +(se || 0)));
+    const pad2 = n => String(n).padStart(2, '0');
+    return {
+      day: `${inst.getFullYear()}-${pad2(inst.getMonth() + 1)}-${pad2(inst.getDate())}`,
+      min: inst.getHours() * 60 + inst.getMinutes(),
+    };
+  }
   return { day: `${y}-${mo}-${d}`, min: Number(h) * 60 + Number(mi) };
 }
 
@@ -62,19 +83,32 @@ export function parseICS(text) {
     if (!start) continue;
     const endRaw = parseICSDate(get('DTEND'));
     const summary = (get('SUMMARY') || 'Imported event').replace(/\\,/g, ',').replace(/\\n/g, ' ');
-    out.push({ title: summary, day: start.day, start: start.min, end: endRaw && endRaw.day === start.day ? endRaw.min : Math.min(1440, start.min + 60) });
+    // An event that runs past midnight keeps the part that belongs to its
+    // start day rather than collapsing to a default hour, because a block
+    // in this app lives inside one day.
+    const end = endRaw
+      ? (endRaw.day === start.day ? endRaw.min : 1440)
+      : Math.min(1440, start.min + 60);
+    out.push({ title: summary, day: start.day, start: start.min, end, allDay: !!start.allDay });
   }
   return out;
 }
 
+// Returns { imported, skippedAllDay } rather than a bare count, so the
+// caller can tell the user what did not come through. All-day events have
+// nowhere to go: this app has no all-day row, and a 00:00-24:00 block would
+// collide with everything else on the day and push the rest into pile chips.
+// Reporting them is the honest half of the fix; rendering them needs an
+// all-day row, which is a feature rather than a repair.
 export function importICSEvents(events) {
-  let n = 0;
+  let imported = 0, skippedAllDay = 0;
   events.forEach(e => {
+    if (e.allDay) { skippedAllDay++; return; }
     if (e.end <= e.start) return;
     save('events', { title: e.title, day: e.day, start_min: e.start, end_min: e.end });
-    n++;
+    imported++;
   });
-  return n;
+  return { imported, skippedAllDay };
 }
 
 export function pickICSFile() {
