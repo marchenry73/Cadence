@@ -140,11 +140,9 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:14px; }
 .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-.eyebrow{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); }
+.eyebrow{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim); }
 .live{ font-size:11px; font-weight:700; color:var(--good); background:color-mix(in oklab, var(--good) 16%, transparent); padding:3px 8px; border-radius:20px; }
-.next-title{ font-family:var(--font-serif); font-size:19px; font-weight:700; }
-.next-time{ color:var(--text-dim); font-size:13px; margin-top:2px; }
-.next-empty{ color:var(--text-dim); padding:6px 0; }
+
 .btn-row{ display:flex; gap:8px; margin-top:12px; }
 .btn-stack{ display:flex; flex-direction:column; gap:10px; }
 
@@ -159,7 +157,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .hero-eyebrow{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; opacity:.85; display:flex; align-items:center; gap:6px; position:relative; }
 .hero-eyebrow i{ width:6px; height:6px; border-radius:50%; background:#fff; animation:pulse 1.4s infinite; }
 .hero-empty .hero-eyebrow{ color:var(--text-dim); }
-.hero-title{ font-family:var(--font-display); font-size:21px; font-weight:700; margin:8px 0 2px; letter-spacing:-.01em; position:relative; }
+.hero-title{ font-family:var(--font-display); font-size:21px; font-weight:700; margin:8px 0 2px; letter-spacing:-.018em; position:relative; }
 .hero-time{ font-size:12.5px; opacity:.85; margin-bottom:12px; position:relative; }
 .hero-empty .hero-time{ color:var(--text-dim); opacity:1; }
 .hero-bar{ height:5px; border-radius:6px; background:rgba(255,255,255,.28); overflow:hidden; margin-bottom:4px; }
@@ -202,7 +200,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .spine{ position:relative; margin:0 0 0 54px; border-radius:var(--radius); overflow:hidden; }
 .hour{ position:absolute; left:-54px; right:0; height:0; border-top:1px solid var(--border); }
 .hour-label{ position:absolute; left:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:right; padding-right:8px; }
-.spine-focus{ position:absolute; left:0; right:0; background:color-mix(in oklch, var(--accent), transparent 94%); border-radius:8px; pointer-events:none; }
+
 /* -- free time is an object, not an absence --
    Every calendar measured renders empty hours as blank grid, so capacity
    is something you infer from negative space. Cadence already knows where
@@ -212,11 +210,12 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .gap{
   position:absolute; left:0; right:0; z-index:1;
   border:none; border-radius:8px;
-  background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 11%, transparent) 1px, transparent 1.4px);
+  /* 7%: large free-time fields read as paper at 11%, as noise above it. */
+  background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px);
   background-size:9px 9px;
   display:flex; align-items:center; justify-content:center;
   color:var(--text-dim); font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  transition:background-color .15s ease, color .15s ease;
+  transition:background-color .15s ease, color .15s ease, transform .12s ease;
 }
 .gap span{ display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:20px; background:var(--bg); }
 .gap span::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; }
@@ -269,7 +268,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .week-wrap{ display:flex; overflow-x:auto; }
 
 /* dragging a block sideways on Today = move it to the next/previous day */
-.block{ touch-action:none; }
+.block{ display:flex; align-items:stretch; padding:0; z-index:1; border-radius:8px; touch-action:none; }
 .block.drag-to-day{ box-shadow:0 10px 24px rgba(0,0,0,.45); }
 .block.drag-to-day::after{ content:attr(data-day-hint); position:absolute; top:4px; right:6px;
   font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
@@ -277,20 +276,9 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 .month-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 
-.month-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-.month-cell{ aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:10px; color:var(--text-dim); }
-.month-cell.out{ opacity:.32; }
 .month-cell.is-today .mc-num{ background:var(--accent); color:#fff; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
-.mc-num{ font-size:13px; }
-.mc-dots{ display:flex; gap:2px; height:5px; }
-.mc-dots i{ width:4px; height:4px; border-radius:50%; }
 
-.agenda-day{ margin-bottom:16px; }
-.agenda-date{ font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:6px; }
-.agenda-row{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 4px; text-align:left; }
-.agenda-bar{ width:3px; height:24px; border-radius:2px; }
-.agenda-time{ font-size:11.5px; color:var(--text-dim); width:110px; flex-shrink:0; }
-.agenda-title{ font-size:14px; font-weight:600; }
+.mc-dots i{ width:4px; height:4px; border-radius:50%; }
 
 /* -------- team -------- */
 .member-row{ display:flex; align-items:center; gap:10px; padding:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
@@ -354,7 +342,6 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .btn.sm{ padding:8px 12px; font-size:13px; flex:none; }
 button[disabled]{ opacity:.5; pointer-events:none; }
 
-.empty-state{ text-align:center; color:var(--text-dim); padding:36px 14px; font-size:14px; }
 .empty-state.big{ padding:60px 14px; font-size:15px; }
 
 /* -------- sheet -------- */
@@ -385,10 +372,11 @@ body.sheet-open{ overflow:hidden; }
 .rv-foot{ font-size:11.5px; color:var(--text-dim); margin-top:4px; }
 .insight{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent);
   border-radius:10px; padding:10px 12px; font-size:13px; margin:12px 0; }
-.block-confirm{ position:absolute; right:6px; bottom:5px; width:24px; height:24px; border-radius:50%;
+.block-confirm{ transition:background .16s ease, border-color .16s ease, transform .16s cubic-bezier(.2,.9,.3,1.4); position:absolute; right:6px; bottom:5px; width:24px; height:24px; border-radius:50%;
   border:1.5px solid var(--border-2); background:var(--surface); display:flex; align-items:center;
   justify-content:center; font-size:12px; color:var(--text-dim); z-index:4; }
-.block-confirm.on{ background:var(--good); border-color:var(--good); color:#06231d; }
+.block-confirm.on{ background:var(--good); border-color:var(--good); color:#06231d; transform:scale(1.08); }
+
 .nl-bar{ display:flex; gap:8px; margin:6px 0 14px; }
 .nl-bar .input{ flex:1; }
 .protect-flag{ position:absolute; top:3px; left:8px; font-size:10px; opacity:.85; }
@@ -449,7 +437,6 @@ body.sheet-open{ overflow:hidden; }
   .side-link:hover{ color:var(--text); }
   .sidebar-spacer{ flex:1; }
   .sidebar-add{ margin:10px 4px 14px; padding:11px; border-radius:12px; background:var(--accent); color:#fff; font-weight:700; font-size:13.5px; text-align:center; }
-  .sidebar-user{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--border); margin-top:6px; font-size:12.5px; color:var(--text-dim); }
 
   .main-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .topbar{ padding:22px 32px 6px; }
@@ -802,8 +789,7 @@ body.sheet-open{ overflow:hidden; }
   box-shadow:inset 3px 0 0 var(--evc), 0 12px 28px -6px rgba(0,0,0,.4); }
 
 /* -- Today's spine: same language at its wider scale -- */
-.block{ display:flex; align-items:stretch; padding:0; z-index:1; border-radius:8px; }
-.block-bar{ width:0; flex-shrink:0; }
+
 .block-body{ flex:1; min-width:0; padding:6px 9px 6px 12px; display:flex; flex-direction:column; gap:2px; }
 .block-title{ font-size:13px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ev-text); }
 .block-time{ font-size:11px; color:var(--ev-text); opacity:.72; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
@@ -816,7 +802,7 @@ body.sheet-open{ overflow:hidden; }
   font-variant-numeric:tabular-nums; letter-spacing:.01em; }
 
 /* -- month header: weight carries the hierarchy, not size -- */
-.month-label{ font-family:var(--font-display); font-size:18px; letter-spacing:-.01em; }
+.month-label{ font-family:var(--font-display); font-size:18px; letter-spacing:-.018em; }
 .month-label b{ font-weight:700; }
 .month-label span{ font-weight:400; color:var(--text-dim); margin-left:.3em; }
 
@@ -868,7 +854,6 @@ body.sheet-open{ overflow:hidden; }
 
 /* Large free-time fields were reading as texture noise; the dots step back
    and the label carries it. */
-.gap{ background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px); }
 
 /* ==================== typography ====================
    Three families, each with one job: Instrument Sans for display, Manrope
@@ -894,12 +879,10 @@ body.sheet-open{ overflow:hidden; }
    labels need positive tracking or they read cramped. One scale, applied
    consistently instead of per-component guesses. */
 h1, .topbar h1{ letter-spacing:-.022em; }
-.hero-title{ letter-spacing:-.018em; }
-.month-label{ letter-spacing:-.018em; }
+
 .eyebrow, .agenda-when, .wk-dow, .month-dow span, .rail-card h3, .gap{
   text-transform:uppercase; letter-spacing:.07em; font-weight:700;
 }
-.eyebrow{ font-size:10.5px; color:var(--text-dim); }
 
 /* Times are secondary to titles everywhere, and consistently so: same
    family, same 0.72 weighting against their title's colour. */
@@ -951,8 +934,6 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 .wk-now.is-today i, .nowline i{ animation:nowPulse 2.6s ease-out infinite; }
 
 /* Completing a block should feel like completing something. */
-.block-confirm{ transition:background .16s ease, border-color .16s ease, transform .16s cubic-bezier(.2,.9,.3,1.4); }
-.block-confirm.on{ transform:scale(1.08); }
 .block-confirm:active{ transform:scale(.9); }
 
 /* Switching week/month/agenda crossfades the grid instead of snapping, so
@@ -961,7 +942,6 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 .cal-body > *{ animation:modeIn .18s ease-out; }
 
 /* Free time invites a click; it should acknowledge the hover as an offer. */
-.gap{ transition:background-color .15s ease, color .15s ease, transform .12s ease; }
 .gap:hover{ transform:scale(1.004); }
 
 /* Sheets already slide; the scrim now matches their curve rather than a
@@ -1029,6 +1009,13 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   overflow-wrap:anywhere;
 }
 .wk-block.is-tight .wk-block-title{ -webkit-line-clamp:1; line-clamp:1; }
+
+/* -- focus hours, marked on the axis rather than the surface --
+   These used to be a 6% accent wash across the grid, which put them in
+   the same visual channel as event tints: two different meanings drawn
+   the same way, one on top of the other. The hour labels inside the
+   window carry it now — same information, no competition. */
+.hour-label.in-focus, .wk-hour.in-focus{ color:var(--text); font-weight:600; }
 
 /* NOTE: this block must stay LAST. The calendar-surface rules above set
    .wk-col{min-width:0} at equal specificity, so when this sat earlier in

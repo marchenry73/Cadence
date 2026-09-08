@@ -131,8 +131,9 @@ function spine() {
 
   const hours = Array.from({ length: 25 }, (_, h) => {
     const hide = compact && h % 2 === 1 && h !== 24;
+    const inFocus = h * 60 >= S.prefs.focus_start && h * 60 <= S.prefs.focus_end;
     return `<div class="hour" style="top:${h * pph}px">
-      <span class="hour-label">${hide ? '' : esc(fmtTime((h % 24) * 60, S.prefs.clock24))}</span>
+      <span class="hour-label${inFocus ? ' in-focus' : ''}">${hide ? '' : esc(fmtTime((h % 24) * 60, S.prefs.clock24))}</span>
       <span class="hour-tick"></span>
     </div>`;
   }).join('');
@@ -158,7 +159,6 @@ function spine() {
     const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;
     return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
       style="top:${top}px;height:${h}px;left:${left};width:${width};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
-      <span class="block-bar"></span>
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>
         ${h > 46 ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
@@ -199,7 +199,6 @@ function spine() {
     </div>`;
 
   return `<div class="spine" id="spine" style="height:${height}px;background:${band}" data-act="spineTap" data-pph="${pph}">
-    <div class="spine-focus" style="top:${focusTop}px;height:${focusHeight}px"></div>
     ${hours}${gaps}${emptyDay}${blocks}
     ${isToday ? `<div class="nowline" id="nowline" style="top:${(minutesNow() / 60) * pph}px"><i></i></div>` : ''}
   </div>`;
