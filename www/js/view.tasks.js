@@ -34,8 +34,11 @@ function row(task) {
   const overdue = task.due_date && task.due_date < todayISO() && !task.done_at;
   return `<div class="swipe-row" data-swipe data-swipe-right="taskComplete" data-id="${task.id}">
     <div class="swipe-under left"><span>✓ ${esc(t('common.done'))}</span></div>
-    <button class="task-row tap" data-act="editTask" data-id="${task.id}">
-      <span class="task-check${task.done_at ? ' on' : ''}" data-act="toggleTask" data-id="${task.id}"></span>
+    <div class="task-line">
+      <button class="task-check${task.done_at ? ' on' : ''}" data-act="toggleTask" data-id="${task.id}"
+        aria-pressed="${task.done_at ? 'true' : 'false'}"
+        aria-label="${esc(task.done_at ? t('task.markNotDone') : t('task.markDone'))}: ${esc(task.title)}"></button>
+      <button class="task-row tap" data-act="editTask" data-id="${task.id}">
       <span class="task-main">
         <span class="task-title${task.done_at ? ' strike' : ''}">${esc(task.title)}</span>
         <span class="task-meta">
@@ -45,7 +48,8 @@ function row(task) {
           ${steps.length ? `<span class="mono">${steps.filter(s => s.done).length}/${steps.length}</span>` : ''}
         </span>
       </span>
-    </button>
+      </button>
+    </div>
   </div>`;
 }
 

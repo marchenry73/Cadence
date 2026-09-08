@@ -302,11 +302,17 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .swipe-under.right{ background:var(--accent-solid); color:var(--on-accent); justify-content:flex-end; }
 /* The content layer must be positioned, or the absolute swipe backgrounds
    paint on top of it and swallow every tap. */
-[data-swipe] > .task-row{ position:relative; z-index:2; background:var(--surface); }
+[data-swipe] > .task-line{ position:relative; z-index:2; background:var(--surface); }
 .swipe-armed{ filter:brightness(1.06); }
 
 /* -------- tasks -------- */
-.task-row{ display:flex; align-items:center; gap:12px; width:100%; padding:12px; background:var(--surface); border:1px solid var(--border); }
+/* The checkbox is a sibling of the row now, not a child of it: it carries
+   its own action, and an action inside a <button> had to be a <span>, which
+   no keyboard could reach. The wrapper keeps them on one line and carries
+   the border the row used to draw. */
+.task-line{ display:flex; align-items:center; gap:12px; width:100%; padding:12px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); }
+.task-row{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding:0; background:transparent; border:none; }
 .task-check{ width:22px; height:22px; border-radius:50%; border:2px solid var(--border-2); flex-shrink:0; }
 .task-check.on{ background:var(--good); border-color:var(--good); }
 .task-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; text-align:left; }
@@ -788,7 +794,7 @@ body.sheet-open{ overflow:hidden; }
   /* Measured on an emulated phone, where these rules are actually in force:
      buttons sat at 36-42px, list rows at 30-38px, and the accent swatches at
      30px square. All fine under a mouse, all a thumb-width short. */
-  .btn, .chip, .input, select.input, .daychip, .cal-period,
+  .btn, .chip, .input, select.input, .daychip, .cal-period, .task-row,
   .trow-mini, .goal-card-head, .goal-next, .ms-row, .skip-link{ min-height:44px; }
   .daychip{ min-width:44px; }
   .swatch{ width:44px; height:44px; }
@@ -804,6 +810,11 @@ body.sheet-open{ overflow:hidden; }
      DAY and quietly steal taps from its leftmost blocks. */
   .wk-more{ position:absolute; }
   .wk-more::after{ content:''; position:absolute; inset:-11px 0 -11px -12px; }
+  /* The checkbox keeps its 22px circle and grows only its hit area, which
+     reaches 44x44. Its only neighbour is the row it belongs to, so the
+     overlap costs nothing a finger would have wanted instead. */
+  .task-check{ position:relative; }
+  .task-check::after{ content:''; position:absolute; inset:-11px; }
 }
 
 /* Honour the OS setting rather than animating regardless. */
