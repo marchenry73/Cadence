@@ -6,7 +6,7 @@ import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast } from './ui.js';
-import { packOverlaps, laneStyle } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute } from './layout.js';
 import { whenLabel } from './search.js';
 
 const WEEK_PPH = 44;
@@ -161,14 +161,14 @@ function weekView() {
       const top = (o.start / 60) * pph;
       const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
-      const { left, width } = laneStyle(o);
+      const { left, width, z } = laneStyle(o, 1.5, 62);
       const tight = h < 32;                    // no room for a second line
       // Elapsed blocks step back so what is left today reads at a glance.
       const past = isToday ? o.end <= nowMin : d < today;
       return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
         aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
-        style="top:${top}px;height:${h}px;left:${left};width:${width};--evc:${color}">
+        style="top:${top}px;height:${h}px;left:${left};width:${width};z-index:${z + 1};--evc:${color}">
         <span class="wk-block-title">${esc(o.title)}</span>
         ${tight ? '' : `<span class="wk-block-time">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
       </button>`;
@@ -229,6 +229,7 @@ function monthView() {
       data-act="pickDayInMonth" data-day="${d}"
       aria-label="${esc(dateLabel(d))}, ${occ.length} scheduled"${isSel ? ' aria-current="date"' : ''}>
       <span class="mc-num">${Number(d.slice(8))}</span>
+      <i class="mc-load" style="--load:${Math.min(1, dayLoad(d) / 480).toFixed(3)}" aria-hidden="true"></i>
       <span class="mc-chips">${chips}${more > 0 ? `<span class="mc-more">+${more}</span>` : ''}</span>
       <span class="mc-dots">${dots}</span>
     </button>`;
@@ -322,7 +323,27 @@ export default {
       </div>
     </div>`;
   },
-  onMount(root) { if (S.calMode === 'week') installWeekDrag(root); }
+  onMount(root) {
+    if (S.calMode !== 'week') return;
+    installWeekDrag(root);
+    const body = root.querySelector('.wk-body');
+    if (!body) return;
+    // Same reveal as Today: open on the live hours, not on midnight.
+    // revealMinute schedules its own retries; an rAF wrapper here would
+    // never fire in a hidden tab.
+    const days = weekDays();
+    const starts = days.flatMap(d => occurrencesOn(d).map(o => o.start));
+    revealMinute(
+      root.closest('.screen-scroll'), body,
+      openingMinute({
+        isToday: days.includes(todayISO()),
+        nowMin: minutesNow(),
+        firstEventMin: starts.length ? Math.min(...starts) : null,
+        focusStart: S.prefs.focus_start
+      }),
+      WEEK_PPH
+    );
+  }
 };
 
 registerActions({

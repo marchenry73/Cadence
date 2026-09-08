@@ -302,7 +302,12 @@ function applyTheme() {
   // query decides; 'light'/'dark' pin it regardless of the OS setting.
   if (S.prefs.theme === 'system') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = S.prefs.theme;
-  document.documentElement.style.setProperty('--accent', S.prefs.accent);
+  // Writes --accent-user, NOT --accent. Setting --accent inline beat the
+  // dark-theme token at every specificity, so dusk silently kept the dawn
+  // coral and the 'brighter after dark' half of the palette never shipped.
+  // The themes now derive --accent from this, so a chosen accent still wins
+  // and still lifts in the dark.
+  document.documentElement.style.setProperty('--accent-user', S.prefs.accent);
   const meta = document.querySelector('meta[name=theme-color]');
   if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#F6EEE4';
 }
@@ -369,7 +374,7 @@ window.cadenceGoRoute = go;
 window.cadenceGoDay = (day, route) => { S.day = day; if (route) go(route); else renderRoute(0, true); };
 window.cadenceRerender = () => renderRoute(0, true);
 window.cadenceRenderGoogleBanner = renderGoogleBanner;
-window.cadenceApplyAccent = c => document.documentElement.style.setProperty('--accent', c);
+window.cadenceApplyAccent = c => document.documentElement.style.setProperty('--accent-user', c);
 
 registerActions({
   // Re-running consent upgrades the SAME Google account rather than making

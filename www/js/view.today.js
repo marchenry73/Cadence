@@ -10,7 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
-import { packOverlaps, laneStyle } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -313,11 +313,24 @@ export default {
 
   onMount(root) {
     const spineEl = $('#spine', root);
-    if (spineEl) requestAnimationFrame(() => {
-      const target = Math.max(0, (minutesNow() / 60) * pxPerHour() - 220);
-      root.closest('.screen-scroll')?.scrollTo({ top: 0 });
-      spineEl.parentElement?.scrollTo?.({});
-    });
+    if (spineEl) {
+      // Open on the live part of the day. The previous version computed
+      // this offset and then discarded it, scrolling to 0 instead, so the
+      // day always opened at midnight above six empty hours.
+      // revealMinute does its own retry scheduling — wrapping this in rAF
+      // would put it back behind the compositor.
+      const list = occurrencesOn(S.day);
+      revealMinute(
+        root.closest('.screen-scroll'), spineEl,
+        openingMinute({
+          isToday: S.day === todayISO(),
+          nowMin: minutesNow(),
+          firstEventMin: list.length ? Math.min(...list.map(o => o.start)) : null,
+          focusStart: S.prefs.focus_start
+        }),
+        pxPerHour()
+      );
+    }
     installBlockDrag(root);
     const nl = $('#nlInput', root);
     if (nl) nl.addEventListener('keydown', e => {

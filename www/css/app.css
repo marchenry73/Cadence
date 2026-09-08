@@ -11,7 +11,8 @@
   --bg:#F6EEE4; --bg-2:#F0E6D8; --surface:#FFFCF7; --surface-2:#F0E6D8;
   --border:rgba(60,40,30,.10); --border-2:rgba(60,40,30,.17); --line:var(--border);
   --text:#2B2420; --text-dim:#716557; --text-faint:#8E826F;
-  --accent:#E8604A; --accent-2:#C94C36; --accent-weak:rgba(232,96,74,.14);
+  --accent-user:#E8604A; --accent:var(--accent-user); --accent-2:#C94C36;
+  --accent-weak:color-mix(in oklab, var(--accent) 14%, transparent);
   --good:#5E8563; --warn:#C97A3A; --danger:#C6432E;
   /* Monarch-style tinted tile family — a distinct hue per surfaced
      category (goals, streak) instead of everything sharing the accent. */
@@ -40,7 +41,8 @@
     --bg:#1C1620; --bg-2:#241D29; --surface:#241D29; --surface-2:#2C2430;
     --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
     --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#73676B;
-    --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
+    --accent:color-mix(in oklab, var(--accent-user) 82%, #fff); --accent-2:#E85C3E;
+    --accent-weak:color-mix(in oklab, var(--accent) 16%, transparent);
     --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
     --moss:#6FB593; --moss-tint:#20362A;
     --peri:#9BA1E8; --peri-tint:#282A47;
@@ -55,7 +57,8 @@
   --bg:#1C1620; --bg-2:#241D29; --surface:#241D29; --surface-2:#2C2430;
   --border:rgba(255,240,225,.08); --border-2:rgba(255,240,225,.15);
   --text:#F3EAE0; --text-dim:#A79A93; --text-faint:#73676B;
-  --accent:#FF7A5C; --accent-2:#E85C3E; --accent-weak:rgba(255,122,92,.16);
+  --accent:color-mix(in oklab, var(--accent-user) 82%, #fff); --accent-2:#E85C3E;
+    --accent-weak:color-mix(in oklab, var(--accent) 16%, transparent);
   --good:#7FB58A; --warn:#E0985A; --danger:#E8624A;
   --moss:#6FB593; --moss-tint:#20362A;
   --peri:#9BA1E8; --peri-tint:#282A47;
@@ -796,7 +799,7 @@ body.sheet-open{ overflow:hidden; }
   --ev-text: color-mix(in oklab, var(--evc) var(--ev-text-mix), var(--ink-warm));
   position:absolute; overflow:hidden; text-align:left;
   background:var(--ev-fill); border:none; border-radius:6px;
-  box-shadow:inset 3px 0 0 var(--evc);
+  box-shadow:inset 3px 0 0 var(--evc), -1px 0 0 var(--surface);
   touch-action:none;
   transition:box-shadow .12s ease, opacity .2s ease, filter .2s ease;
 }
@@ -840,3 +843,29 @@ body.sheet-open{ overflow:hidden; }
    later grew to ~55px, and every hour label floated ~50px above its rule. */
 .wk-gutter-head{ visibility:hidden; }
 .wk-gutter-body{ position:relative; }
+
+/* -- day headers pin while the grid scrolls (desktop) --
+   Sticky positions against the nearest scroll container, and .week-wrap
+   was one (overflow-x:auto) — so the headers stuck to a box that never
+   scrolls vertically, which is to say never. At desktop the grid fits and
+   the wrap needs no overflow at all; below 600px it keeps its horizontal
+   scroll and the headers ride with the grid. The gutter's hidden mirror
+   header becomes a visible-but-empty mask so labels don't scroll through
+   the pinned row. */
+@media (min-width:960px){
+  .week-wrap{ overflow:visible; }
+  .wk-col-head, .wk-gutter-head{ position:sticky; top:0; z-index:5; background:var(--bg); }
+  .wk-gutter-head{ visibility:visible; }
+  .wk-gutter-head > *{ visibility:hidden; }
+}
+
+/* -- month: the shape of the month at a glance --
+   A thin bar under each numeral, its length the day's committed hours
+   against an eight-hour day, so busy and open days read as a heat map
+   before a single title is read. Timepage circles busy days; this says
+   how busy. Length alone carries it — no colour ramp, by design. */
+.mc-load{ display:block; height:3px; border-radius:2px; margin:3px 0 2px;
+  width:calc(var(--load, 0) * 100%); min-width:0;
+  background:color-mix(in oklab, var(--accent) 55%, var(--text-faint)); opacity:.85; }
+.month-cell.out .mc-load{ opacity:.3; }
+@media (max-width:520px){ .mc-load{ display:none; } }
