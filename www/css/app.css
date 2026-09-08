@@ -218,7 +218,6 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .gap span::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; }
 .gap:hover, .gap:focus-visible{ background-color:var(--accent-weak); color:var(--accent); }
 
-
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
 .block-flag{ position:absolute; top:3px; right:5px; font-size:11px; opacity:.7; }
 
@@ -264,7 +263,6 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 /* -------- calendar -------- */
 .cal-modes{ margin:10px 0 12px; }
 .week-wrap{ display:flex; overflow-x:auto; }
-
 
 /* dragging a block sideways on Today = move it to the next/previous day */
 .block{ touch-action:none; }
@@ -479,7 +477,6 @@ body.sheet-open{ overflow:hidden; }
   .week-wrap{ max-width:920px; }
 }
 
-
 /* -------- progress: score, ideal self, game layer -------- */
 .score-card{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
 .score-ring{ width:104px; height:104px; border-radius:50%; display:grid; place-items:center; flex:0 0 auto; }
@@ -574,7 +571,6 @@ body.sheet-open{ overflow:hidden; }
 .wk-chip b{ color:var(--text-dim); font-weight:700; }
 .wk-sum-empty{ font-size:12.5px; color:var(--text-dim); padding:10px 12px;
   border:1px dashed var(--border-2); border-radius:var(--radius); }
-
 
 /* -------- month: cells that say what is actually happening --------
    Dots answered "is this day busy?" but never "busy with what?", which is
@@ -722,25 +718,6 @@ body.sheet-open{ overflow:hidden; }
   .wk-now{ border-top-color:Highlight; }
 }
 
-/* -------- week view on a phone --------
-   Seven columns across 375px leaves 80px each, and once two meetings
-   overlap that is ~26px per event — a colour with no readable title. So on
-   narrow screens the grid keeps all seven days but scrolls horizontally
-   with a floor on column width, and snaps day-to-day so it lands cleanly
-   rather than drifting mid-column. The hour gutter stays pinned, otherwise
-   you lose the time reference as soon as you swipe. */
-@media (max-width:599px){
-  .week-wrap{ display:flex; align-items:flex-start; }
-  .wk-gutter{ position:sticky; left:0; z-index:5; flex-shrink:0;
-    background:var(--bg); box-shadow:1px 0 0 var(--border); }
-  .wk-grid{ overflow-x:auto; scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-  .wk-grid::-webkit-scrollbar{ display:none; }
-  .wk-col{ min-width:104px; scroll-snap-align:start; }
-  /* The day header has to stay put while the body scrolls vertically. */
-  .wk-col-head{ position:sticky; top:0; z-index:4; background:var(--bg); }
-}
-
 /* ==================== the calendar surface ====================
    Every product people call beautiful lands on one principle: the grid
    recedes and the events carry the structure. Hour rules sit near 1.05:1
@@ -885,3 +862,27 @@ body.sheet-open{ overflow:hidden; }
 /* Large free-time fields were reading as texture noise; the dots step back
    and the label carries it. */
 .gap{ background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px); }
+
+
+/* NOTE: this block must stay LAST. The calendar-surface rules above set
+   .wk-col{min-width:0} at equal specificity, so when this sat earlier in
+   the file the later rule won and phone columns collapsed 104px -> 80px
+   with the sticky gutter falling back to relative. */
+/* -------- week view on a phone --------
+   Seven columns across 375px leaves 80px each, and once two meetings
+   overlap that is ~26px per event — a colour with no readable title. So on
+   narrow screens the grid keeps all seven days but scrolls horizontally
+   with a floor on column width, and snaps day-to-day so it lands cleanly
+   rather than drifting mid-column. The hour gutter stays pinned, otherwise
+   you lose the time reference as soon as you swipe. */
+@media (max-width:599px){
+  .week-wrap{ display:flex; align-items:flex-start; }
+  .wk-gutter{ position:sticky; left:0; z-index:5; flex-shrink:0;
+    background:var(--bg); box-shadow:1px 0 0 var(--border); }
+  .wk-grid{ overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .wk-grid::-webkit-scrollbar{ display:none; }
+  .wk-col{ min-width:104px; scroll-snap-align:start; }
+  /* The day header has to stay put while the body scrolls vertically. */
+  .wk-col-head{ position:sticky; top:0; z-index:4; background:var(--bg); }
+}
