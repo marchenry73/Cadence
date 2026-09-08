@@ -140,6 +140,7 @@ function spine() {
   // Cluster-scoped lanes: only blocks that actually collide share width.
   // The old version divided the whole day by the busiest moment, so a
   // single 9am double-booking left every block half-width until midnight.
+  const dayHasFuture = list.some(o => o.end > minutesNow());
   const placed = packOverlaps(list);
 
   const blocks = placed.map((o, i) => {
@@ -148,7 +149,10 @@ function spine() {
     const color = catColor(o.category_id);
     const { left, width } = laneStyle(o, 2);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
-    const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
+    // Same rule as the week grid: elapsed blocks only step back while the
+    // day still has something ahead. Otherwise the whole screen fades and
+    // says nothing.
+    const past = isToday && dayHasFuture && o.end <= minutesNow();
     const done = isBlockDone(o, S.day);
     // Tall blocks show the whole title; only short ones truncate.
     const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;

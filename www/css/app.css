@@ -1008,7 +1008,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    title. The rail keeps most of its saturation, so a finished block still
    says which category it was — identity survives, prominence does not. */
 .wk-block.is-past, .block.is-past{
-  --ev-fill: color-mix(in oklab, var(--evc) calc(var(--ev-tint) * 0.4), var(--surface));
+  --ev-fill: color-mix(in oklab, var(--evc) calc(var(--ev-tint) * 0.55), var(--surface));
   --ev-text: color-mix(in oklab, var(--evc) 26%, var(--text-dim));
   box-shadow:inset 3px 0 0 color-mix(in oklab, var(--evc) 55%, transparent),
              -1px 0 0 var(--surface);

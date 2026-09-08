@@ -165,6 +165,7 @@ function weekView() {
     const isWeekend = dow === 0 || dow === 6;
     // Concurrent meetings sit side by side until side by side stops being
     // readable; past that they collapse to a count. See capDensity().
+    const dayHasFuture = occurrencesOn(d).some(o => o.end > nowMin);
     const { shown, piles } = capDensity(packOverlaps(occurrencesOn(d)), colW);
     const blocks = shown.map((o, i) => {
       const top = (o.start / 60) * pph;
@@ -177,7 +178,11 @@ function weekView() {
       // A tall block has room for the whole title; only short ones truncate.
       const lines = h >= 76 ? 3 : h >= 50 ? 2 : 1;
       // Elapsed blocks step back so what is left today reads at a glance.
-      const past = isToday ? o.end <= nowMin : d < today;
+      // Only step back what has elapsed TODAY, and only while today still
+      // has something ahead of it. Dimming a wholly-past day distinguishes
+      // nothing — its date already says it is behind you — and late in the
+      // evening it turned the entire screen grey.
+      const past = isToday && dayHasFuture && o.end <= nowMin;
       const fresh = S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800;
       return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${fresh ? ' is-new' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
