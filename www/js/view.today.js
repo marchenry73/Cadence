@@ -150,8 +150,10 @@ function spine() {
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     const past = (isToday && o.end <= minutesNow()) || S.day < todayISO();
     const done = isBlockDone(o, S.day);
+    // Tall blocks show the whole title; only short ones truncate.
+    const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;
     return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
-      style="top:${top}px;height:${h}px;left:${left};width:${width};--i:${Math.min(i, 12)};--evc:${color}">
+      style="top:${top}px;height:${h}px;left:${left};width:${width};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
       <span class="block-bar"></span>
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>

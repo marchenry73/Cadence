@@ -5,8 +5,8 @@ import { S, weekDays, monthGrid, occurrencesOn, dayLoad, catColor, catById, cate
 import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
-import { registerActions, haptic, toast } from './ui.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute } from './layout.js';
+import { registerActions, haptic, toast, openSheet } from './ui.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W } from './layout.js';
 import { whenLabel } from './search.js';
 
 const WEEK_PPH = 44;
@@ -139,6 +139,14 @@ function weekView() {
   const weekHasToday = days.includes(today);
   const nowTop = (nowMin / 60) * pph;
 
+  // Real column width, so "can this be read?" is answered by measurement
+  // rather than a guess. Derived from the live scroller rather than a
+  // post-mount measure and re-render, which would paint the wrong density
+  // for a frame on every render.
+  const scrollerW = document.getElementById('scroller')?.clientWidth || 760;
+  const hPad = window.matchMedia('(min-width:960px)').matches ? 64 : 32;
+  const colW = Math.max(60, (scrollerW - hPad - 52) / 7);
+
   // Gutter labels within ~12 minutes of the now-line step aside so the live
   // time can take that slot — the axis should never read "2pm" beside a
   // line that says 2:17.
@@ -155,22 +163,42 @@ function weekView() {
     const isToday = d === today;
     const dow = fromISO(d).getDay();
     const isWeekend = dow === 0 || dow === 6;
-    // Concurrent meetings sit side by side rather than on top of each other.
-    const laid = packOverlaps(occurrencesOn(d));
-    const blocks = laid.map((o, i) => {
+    // Concurrent meetings sit side by side until side by side stops being
+    // readable; past that they collapse to a count. See capDensity().
+    const { shown, piles } = capDensity(packOverlaps(occurrencesOn(d)), colW);
+    const blocks = shown.map((o, i) => {
       const top = (o.start / 60) * pph;
       const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
-      const { left, width, z } = laneStyle(o, 1.5, 62);
+      const { left, width, z } = laneStyle(o, 1.5);
+      // A capped cluster gives its chip room; an uncapped one takes it all.
+      const w = o.capped ? `calc(${width} - ${OVERFLOW_W}px)` : width;
       const tight = h < 32;                    // no room for a second line
+      // A tall block has room for the whole title; only short ones truncate.
+      const lines = h >= 76 ? 3 : h >= 50 ? 2 : 1;
       // Elapsed blocks step back so what is left today reads at a glance.
       const past = isToday ? o.end <= nowMin : d < today;
-      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlockOn"
+      const fresh = S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800;
+      return `<button class="wk-block tap${tight ? ' is-tight' : ''}${past ? ' is-past' : ''}${fresh ? ' is-new' : ''}" data-act="openBlockOn"
         data-day="${d}" data-key="${esc(o.key)}"
         aria-label="${esc(o.title)}, ${esc(fmtRange(o.start, o.end, S.prefs.clock24))}"
-        style="top:${top}px;height:${h}px;left:${left};width:${width};z-index:${z + 1};--i:${Math.min(i, 12)};--evc:${color}">
+        style="top:${top}px;height:${h}px;left:${left};width:${w};z-index:${z + 1};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
         <span class="wk-block-title">${esc(o.title)}</span>
         ${tight ? '' : `<span class="wk-block-time">${esc(fmtTime(o.start, S.prefs.clock24))}</span>`}
+      </button>`;
+    }).join('');
+
+    // One chip per pile, at the time the pile happens, carrying a dot per
+    // category so the mix is legible before you open it.
+    const more = piles.map(p => {
+      const top = (p.start / 60) * pph;
+      const h = Math.max(22, ((p.end - p.start) / 60) * pph - 2);
+      const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
+        .map(c => `<i style="background:${c}"></i>`).join('');
+      return `<button class="wk-more tap" data-act="showPile" data-day="${d}" data-start="${p.start}" data-end="${p.end}"
+        aria-label="${p.items.length} more events between ${esc(fmtRange(p.start, p.end, S.prefs.clock24))}"
+        style="top:${top}px;height:${h}px;width:${OVERFLOW_W - 3}px">
+        <span class="wm-n">+${p.items.length}</span><span class="wm-dots">${dots}</span>
       </button>`;
     }).join('');
     // One horizon across the whole week at two strengths: full accent on
@@ -184,7 +212,7 @@ function weekView() {
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
         <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px">${nowLine}${blocks}</div>
+      <div class="wk-body" style="height:${24 * pph}px;--pph:${pph}px">${nowLine}${blocks}${more}</div>
     </div>`;
   }).join('');
 
@@ -348,6 +376,26 @@ export default {
 
 registerActions({
   calMode: d => { S.calMode = d.mode; window.cadenceRerender(); },
+  // The pile chip opens what it was standing in for. A sheet rather than a
+  // jump to the day, because the question being asked is "what else is at
+  // 10am?" — answering it should not cost you the week you were reading.
+  showPile: d => {
+    const from = Number(d.start), to = Number(d.end);
+    const items = occurrencesOn(d.day)
+      .filter(o => o.start < to && o.end > from)
+      .sort((a, b) => a.start - b.start);
+    openSheet({
+      title: dateLabel(d.day, { weekday: 'long', month: 'short', day: 'numeric' }),
+      body: `<div class="pile-list">${items.map(o => `
+        <button class="pile-row tap" data-act="openBlockOn" data-day="${d.day}" data-key="${esc(o.key)}">
+          <span class="pile-rail" style="background:${catColor(o.category_id)}"></span>
+          <span class="pile-main">
+            <span class="pile-title">${esc(o.title)}</span>
+            <span class="pile-time mono">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>
+          </span>
+        </button>`).join('')}</div>`
+    });
+  },
   pickDayFromWeek: d => window.cadenceGoDay(d.day, 'today'),
   pickDayFromMonth: d => window.cadenceGoDay(d.day, 'today'),
   // Stay in the month while browsing days; the detail list updates in place.

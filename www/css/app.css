@@ -797,7 +797,7 @@ body.sheet-open{ overflow:hidden; }
 .wk-block.is-tight{ padding:1px 5px 1px 8px; justify-content:center; }
 .wk-block.is-tight .wk-block-title{ font-size:10.5px; }
 /* Elapsed blocks step back so "what's left" reads without parsing times. */
-.wk-block.is-past, .block.is-past{ opacity:.55; filter:saturate(.6); }
+
 .wk-block.is-dragging{ z-index:40; opacity:.94; pointer-events:none;
   box-shadow:inset 3px 0 0 var(--evc), 0 12px 28px -6px rgba(0,0,0,.4); }
 
@@ -870,8 +870,6 @@ body.sheet-open{ overflow:hidden; }
    and the label carries it. */
 .gap{ background-image:radial-gradient(circle at 1.5px 1.5px, color-mix(in oklab, var(--text) 7%, transparent) 1px, transparent 1.4px); }
 
-
-
 /* ==================== typography ====================
    Three families, each with one job: Instrument Sans for display, Manrope
    for reading, Plex Mono for anything numeric. The rule that keeps it
@@ -917,9 +915,16 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 /* Blocks arrive when a day renders — a short rise that makes switching
    days feel like new content rather than a redraw. Staggered by index,
    capped so a 20-event day does not take a second to settle. */
+/* Transform only, and deliberately so. A keyframe that starts at
+   opacity:0 with a backwards fill OWNS the element's resting visibility —
+   and in a hidden document the animation clock never advances, so
+   playState reads "running" with currentTime stuck at 0 and every block
+   computes to opacity 0. A calendar that renders while backgrounded then
+   shows nothing at all. Motion may move content; it must never be what
+   makes content visible. */
 @keyframes blockIn{
-  from{ opacity:0; transform:translateY(4px) scale(.995); }
-  to{ opacity:1; transform:none; }
+  from{ transform:translateY(4px) scale(.995); }
+  to{ transform:none; }
 }
 .block, .wk-block{
   animation:blockIn .22s cubic-bezier(.2,.8,.2,1) backwards;
@@ -952,7 +957,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 
 /* Switching week/month/agenda crossfades the grid instead of snapping, so
    the eye keeps its place in the hierarchy. */
-@keyframes modeIn{ from{ opacity:0; transform:translateY(3px); } to{ opacity:1; transform:none; } }
+@keyframes modeIn{ from{ transform:translateY(3px); } to{ transform:none; } }
 .cal-body > *{ animation:modeIn .18s ease-out; }
 
 /* Free time invites a click; it should acknowledge the hover as an offer. */
@@ -963,6 +968,67 @@ h1, .topbar h1{ letter-spacing:-.022em; }
    linear fade that arrives ahead of the sheet. */
 #scrim{ transition:opacity .22s cubic-bezier(.2,.8,.2,1); }
 
+/* -- the overflow chip --
+   Stands in for events a 90px column cannot render legibly. It is
+   deliberately neutral: a count and up to three category dots, so the pile
+   reads as "how many, roughly what kind" without competing with the real
+   blocks beside it. */
+.wk-more{
+  position:absolute; right:1px; z-index:6;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  padding:2px 0; border-radius:6px;
+  background:var(--surface-2); border:1px solid var(--border);
+  color:var(--text-dim);
+  transition:background .12s ease, color .12s ease, border-color .12s ease;
+}
+.wk-more:hover{ background:var(--surface); color:var(--text); border-color:var(--border-2); }
+.wm-n{ font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+.wm-dots{ display:flex; flex-direction:column; gap:2px; }
+.wm-dots i{ width:4px; height:4px; border-radius:50%; }
+
+/* The pile, opened. Same row anatomy as search and agenda results — one
+   list pattern reused rather than a third invented. */
+.pile-list{ display:flex; flex-direction:column; }
+.pile-row{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  padding:10px 6px; border-radius:10px; border-bottom:1px solid var(--border); }
+.pile-row:last-child{ border-bottom:none; }
+.pile-row:hover{ background:var(--surface-2); }
+.pile-rail{ width:3px; align-self:stretch; min-height:26px; border-radius:2px; flex-shrink:0; }
+.pile-main{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.pile-title{ font-size:14px; font-weight:600; }
+.pile-time{ font-size:11.5px; color:var(--text-dim); }
+
+/* -- done → now → next, without fading the screen --
+   The old past treatment was a blanket opacity:.55 plus desaturation. Late
+   in the day that applies to EVERY block, so the whole screen reads as
+   washed out and nothing is actually being distinguished — dimming
+   everything communicates nothing.
+   Contrast does the work instead: the fill steps back toward the surface,
+   the text toward the muted tier, and secondary text further than the
+   title. The rail keeps most of its saturation, so a finished block still
+   says which category it was — identity survives, prominence does not. */
+.wk-block.is-past, .block.is-past{
+  --ev-fill: color-mix(in oklab, var(--evc) calc(var(--ev-tint) * 0.4), var(--surface));
+  --ev-text: color-mix(in oklab, var(--evc) 26%, var(--text-dim));
+  box-shadow:inset 3px 0 0 color-mix(in oklab, var(--evc) 55%, transparent),
+             -1px 0 0 var(--surface);
+}
+.wk-block.is-past .wk-block-time, .block.is-past .block-time{ opacity:.5; }
+
+/* -- titles use the height they are given --
+   A three-hour block has room for the whole title; only a short one needs
+   to truncate. Previously every title was one nowrap line, so a 200px
+   block still ellipsized after five words. */
+.wk-block-title, .block-title{
+  white-space:normal;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:var(--lines, 1);
+  line-clamp:var(--lines, 1);
+  overflow:hidden;
+  overflow-wrap:anywhere;
+}
+.wk-block.is-tight .wk-block-title{ -webkit-line-clamp:1; line-clamp:1; }
 
 /* NOTE: this block must stay LAST. The calendar-surface rules above set
    .wk-col{min-width:0} at equal specificity, so when this sat earlier in

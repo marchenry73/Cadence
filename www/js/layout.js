@@ -37,6 +37,7 @@ export function packOverlaps(items) {
   let cluster = [];
   let clusterEnd = -Infinity;
 
+  let clusterId = 0;
   const flush = () => {
     if (!cluster.length) return;
     const laneEnds = [];
@@ -59,10 +60,12 @@ export function packOverlaps(items) {
       }
       it.lanes = lanes;
       it.span = span;
+      it.cluster = clusterId;   // exact identity, not inferred later
       out.push(it);
     }
     cluster = [];
     clusterEnd = -Infinity;
+    clusterId++;
   };
 
   for (const src of sorted) {
@@ -154,4 +157,64 @@ export function openingMinute({ isToday, nowMin, firstEventMin = null, focusStar
   if (isToday) return nowMin;
   if (firstEventMin != null) return firstEventMin;
   return focusStart;
+}
+
+// ---------------------------------------------------------------- density
+//
+// Measured: at 11.5px/600 a six-character title plus an ellipsis needs 61px
+// of block once padding and the rail are paid for. A week column at a
+// 1000px viewport is 90px. So ONE event can be legible there — and five
+// concurrent events shingled to 62px showed only 18px each once the block
+// above covered them, which is a wall of coloured stubs, not information.
+//
+// Past two lanes, then, the honest move is to stop splitting and start
+// summarising: show the events that can actually be read, and collect the
+// rest behind a count that opens them. Readability over theoretical density.
+export const MIN_LEGIBLE = 56;   // px of block width a title needs to read
+export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
+
+/**
+ * How many lanes a column of this width can show legibly.
+ * Two lanes always split normally — every calendar does that and people
+ * read it fine; it is three-plus where it collapses.
+ */
+export function visibleLanes(colWidth, lanes) {
+  if (lanes <= 2) return lanes;
+  return Math.max(1, Math.floor((colWidth - OVERFLOW_W) / MIN_LEGIBLE));
+}
+
+/**
+ * Split packed blocks into what to draw and what to summarise.
+ * Blocks keep their own lane geometry; the hidden ones are grouped by
+ * cluster so each pile gets one chip at the time it actually happens.
+ *
+ * @returns {{shown:Array, piles:Array<{start,end,lane,lanes,items}>}}
+ */
+export function capDensity(packed, colWidth) {
+  if (!packed.length) return { shown: [], piles: [] };
+  const shown = [], piles = [];
+  const byCluster = new Map();
+  for (const it of packed) {
+    if (!byCluster.has(it.cluster)) byCluster.set(it.cluster, []);
+    byCluster.get(it.cluster).push(it);
+  }
+  for (const group of byCluster.values()) {
+    const lanes = group[0].lanes;
+    const cap = visibleLanes(colWidth, lanes);
+    if (lanes <= cap) {
+      shown.push(...group);
+    } else {
+      const keep = group.filter(g => g.lane < cap);
+      const hide = group.filter(g => g.lane >= cap);
+      // Everything kept re-spans the room the chip does not take.
+      keep.forEach(g => { g.lanes = cap; g.span = 1; g.capped = true; });
+      shown.push(...keep);
+      if (hide.length) piles.push({
+        start: Math.min(...hide.map(h => h.start)),
+        end: Math.max(...hide.map(h => h.end)),
+        items: hide
+      });
+    }
+  }
+  return { shown, piles };
 }
