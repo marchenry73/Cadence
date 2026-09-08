@@ -86,13 +86,21 @@ export function packOverlaps(items) {
  * CSS left/width for a packed block, as percentages of the day column.
  * `gap` is the visual gutter between neighbours, in percent.
  */
-export function laneStyle(it, gap = 1.5, minPx = 0) {
+export function laneStyle(it, gap = 1.5, minPx = 0, reservePx = 0) {
   const unit = 100 / it.lanes;
   const left = it.lane * unit;
   const width = unit * it.span;
   // The last lane runs flush to the column edge; the others leave a gutter.
   const isLast = it.lane + it.span >= it.lanes;
-  const pct = `calc(${width}% - ${isLast ? 0 : gap}%)`;
+  // reservePx is a strip the whole cluster gives up ONCE - the +N chip.
+  // Callers used to subtract it per lane, which charged a four-lane
+  // cluster four chips and left each block narrower than the floor the
+  // cap existed to protect. Lanes divide what remains after the strip.
+  const room = reservePx ? `(100% - ${reservePx}px)` : '100%';
+  const frac = (n) => `calc(${room} * ${(n / 100).toFixed(6)})`;
+  const pct = reservePx
+    ? `calc(${room} * ${(width / 100).toFixed(6)} - ${isLast ? 0 : gap}%)`
+    : `calc(${width}% - ${isLast ? 0 : gap}%)`;
   // Below a legibility floor, let the block outgrow its lane instead of
   // shrinking to an unreadable sliver. In a 90px week column a three-way
   // conflict splits to 28px each — wide enough for a colour and nothing
@@ -102,7 +110,7 @@ export function laneStyle(it, gap = 1.5, minPx = 0) {
   // way Google shingles. Later lanes stack above earlier ones so each keeps
   // its left edge — rail, and the start of its title — visible.
   return {
-    left: `${left}%`,
+    left: reservePx ? frac(left) : `${left}%`,
     width: minPx ? `max(${pct}, ${minPx}px)` : pct,
     z: it.lane
   };
@@ -175,12 +183,22 @@ export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
 
 /**
  * How many lanes a column of this width can show legibly.
- * Two lanes always split normally — every calendar does that and people
- * read it fine; it is three-plus where it collapses.
+ *
+ * The two-lane split is what every calendar does and people read it fine —
+ * but only where the column can actually carry two legible blocks. On a
+ * phone the week column is 104px, so a two-way overlap gave each side 50px
+ * and rendered "Morning workout" as "Mo…". Measured, not guessed: at that
+ * width the title box is 35px. Showing one real title plus a +1 chip beats
+ * showing two stubs, and it is the same trade already made at three lanes.
+ *
+ * MIN_LEGIBLE is now an invariant rather than an aspiration: nothing is
+ * drawn narrower than a title can be read in.
  */
 export function visibleLanes(colWidth, lanes) {
-  if (lanes <= 2) return lanes;
-  return Math.max(1, Math.floor((colWidth - OVERFLOW_W) / MIN_LEGIBLE));
+  if (lanes <= 1) return lanes;
+  // +8 covers the inter-lane gap, which comes out of the same budget.
+  if (lanes === 2 && colWidth >= 2 * MIN_LEGIBLE + 8) return 2;
+  return Math.max(1, Math.min(lanes, Math.floor((colWidth - OVERFLOW_W) / MIN_LEGIBLE)));
 }
 
 /**

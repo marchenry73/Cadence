@@ -360,7 +360,7 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .swatches{ display:flex; gap:10px; flex-wrap:wrap; }
 .swatch{ width:30px; height:30px; border-radius:50%; border:2px solid transparent; }
 .swatch.on{ border-color:var(--text); }
-.warnbar{ background:color-mix(in oklab, var(--warn) 16%, transparent); color:var(--warn); border-radius:var(--r-sm); padding:8px 10px; font-size:12px; margin-bottom:8px; }
+.warnbar{ background:color-mix(in oklab, var(--warn) 16%, transparent); color:color-mix(in oklab, var(--warn) 72%, var(--text)); border-radius:var(--r-sm); padding:8px 10px; font-size:12px; margin-bottom:8px; }
 .img-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; height:110px; border:1.5px dashed var(--border-2); border-radius:var(--r-md); color:var(--text-dim); }
 .img-empty span:first-child{ font-size:26px; }
 .img-empty-label{ font-size:12px; }
@@ -576,7 +576,7 @@ body.sheet-open{ overflow:hidden; }
   background:color-mix(in oklab, var(--warn) 14%, var(--surface));
   border:1px solid color-mix(in oklab, var(--warn) 45%, var(--border)); }
 .gsync-main{ flex:1; min-width:0; }
-.gsync-title{ font-size:13px; font-weight:700; color:var(--warn); }
+.gsync-title{ font-size:13px; font-weight:700; color:color-mix(in oklab, var(--warn) 72%, var(--text)); }
 .gsync-body{ font-size:11px; color:var(--text-dim); margin-top:2px; line-height:1.45; }
 .gsync-banner .btn{ flex:none; }
 
@@ -1041,7 +1041,12 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   -webkit-line-clamp:var(--lines, 1);
   line-clamp:var(--lines, 1);
   overflow:hidden;
-  overflow-wrap:anywhere;
+  /* break-word, not anywhere. `anywhere` lets the browser break INSIDE a
+     word even when the whole word would fit on the next line, so a 63px
+     block rendered "Design critique" as "Desig / n critiq...". break-word
+     only breaks a word that cannot fit on a line by itself, which is the
+     actual thing being guarded against. */
+  overflow-wrap:break-word;
 }
 .wk-block.is-tight .wk-block-title{ -webkit-line-clamp:1; line-clamp:1; }
 

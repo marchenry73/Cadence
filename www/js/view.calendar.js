@@ -171,9 +171,8 @@ function weekView() {
       const top = (o.start / 60) * pph;
       const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
       const color = catColor(o.category_id);
-      const { left, width, z } = laneStyle(o, 1.5);
-      // A capped cluster gives its chip room; an uncapped one takes it all.
-      const w = o.capped ? `calc(${width} - ${OVERFLOW_W}px)` : width;
+      // A capped cluster gives up one chip-width, shared across its lanes.
+      const { left, width: w, z } = laneStyle(o, 1.5, 0, o.capped ? OVERFLOW_W : 0);
       const tight = h < 32;                    // no room for a second line
       // A tall block has room for the whole title; only short ones truncate.
       const lines = h >= 76 ? 3 : h >= 50 ? 2 : 1;

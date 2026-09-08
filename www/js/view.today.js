@@ -10,7 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -142,13 +142,24 @@ function spine() {
   // The old version divided the whole day by the busiest moment, so a
   // single 9am double-booking left every block half-width until midnight.
   const dayHasFuture = list.some(o => o.end > minutesNow());
-  const placed = packOverlaps(list);
 
-  const blocks = placed.map((o, i) => {
+  // Usable spine width, derived the same way the week grid derives its
+  // column width: from the live scroller, before paint, so density is
+  // decided by measurement rather than by hope. A post-mount measure and
+  // re-render would paint the wrong density for one frame every time.
+  const scrollerW = document.getElementById('scroller')?.clientWidth || 390;
+  const wide = window.matchMedia('(min-width:960px)').matches;
+  // 54px is the spine's own left margin (the hour gutter); on desktop the
+  // 320px rail and its 24px gap come out of the same budget.
+  const spineW = Math.max(60, scrollerW - (wide ? 64 : 32) - (wide ? 344 : 0) - 54);
+  const { shown, piles } = capDensity(packOverlaps(list), spineW);
+
+  const blocks = shown.map((o, i) => {
     const top = (o.start / 60) * pph;
     const h = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
     const color = catColor(o.category_id);
-    const { left, width } = laneStyle(o, 2);
+    // A capped cluster gives up one chip-width, shared across its lanes.
+    const { left, width: w } = laneStyle(o, 2, 0, o.capped ? OVERFLOW_W : 0);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     // Same rule as the week grid: elapsed blocks only step back while the
     // day still has something ahead. Otherwise the whole screen fades and
@@ -158,7 +169,7 @@ function spine() {
     // Tall blocks show the whole title; only short ones truncate.
     const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;
     return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
-      style="top:${top}px;height:${h}px;left:${left};width:${width};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
+      style="top:${top}px;height:${h}px;left:${left};width:${w};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>
         ${h > 46 ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
@@ -167,6 +178,20 @@ function spine() {
       ${o.protected ? '<span class="protect-flag" title="Protected">\u{1F512}</span>' : ''}
       ${o.kind === 'routine' ? '<span class="block-flag" title="Routine">\u21bb</span>' : ''}
       ${past && h > 34 ? `<span class="block-confirm${done ? ' on' : ''}" data-act="confirmBlock" data-key="${esc(o.key)}">\u2713</span>` : ''}
+    </button>`;
+  }).join('');
+
+  // One chip per pile, at the time the pile happens, carrying a dot per
+  // category so the mix reads before you open it.
+  const more = piles.map(p => {
+    const top = (p.start / 60) * pph;
+    const h = Math.max(22, ((p.end - p.start) / 60) * pph - 2);
+    const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
+      .map(c => `<i style="background:${c}"></i>`).join('');
+    return `<button class="wk-more tap" data-act="showPile" data-day="${S.day}" data-start="${p.start}" data-end="${p.end}"
+      aria-label="${p.items.length} more between ${esc(fmtRange(p.start, p.end, S.prefs.clock24))}"
+      style="top:${top}px;height:${h}px;width:${OVERFLOW_W - 3}px">
+      <span class="wm-n">+${p.items.length}</span><span class="wm-dots">${dots}</span>
     </button>`;
   }).join('');
 
@@ -199,7 +224,7 @@ function spine() {
     </div>`;
 
   return `<div class="spine" id="spine" style="height:${height}px;background:${band}" data-act="spineTap" data-pph="${pph}">
-    ${hours}${gaps}${emptyDay}${blocks}
+    ${hours}${gaps}${emptyDay}${blocks}${more}
     ${isToday ? `<div class="nowline" id="nowline" style="top:${(minutesNow() / 60) * pph}px"><i></i></div>` : ''}
   </div>`;
 }
