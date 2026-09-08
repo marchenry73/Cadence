@@ -70,7 +70,7 @@ export default {
         <div class="section-head"><span class="eyebrow">${esc(t('task.open'))}</span></div>
         ${open.length ? `<div class="list">${open.map(row).join('')}</div>`
           : `<div class="empty-state big">
-              <div style="font-size:34px;margin-bottom:10px">✅</div>
+              <div class="empty-glyph">✅</div>
               <b>Nothing open</b><br>
               <span class="dim">Type what needs doing in the bar on Today — “Call the bank tomorrow 20m” — and it lands here.</span>
             </div>`}

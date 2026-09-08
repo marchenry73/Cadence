@@ -239,7 +239,7 @@ function desktopRail() {
       <div class="rail-week">${week.map(d => {
         const load = dayLoad(d);
         return `<button class="rw-cell tap${d === todayISO() ? ' today' : ''}" data-act="pickDay" data-day="${d}">
-          <span class="dim" style="font-size:9px">${esc(dateLabel(d, { weekday: 'narrow' }))}</span>
+          <span class="dim rw-dow">${esc(dateLabel(d, { weekday: 'narrow' }))}</span>
           <span class="rw-dot" style="background:var(--accent);opacity:${load ? Math.min(1, load / 480) : .15}"></span>
         </button>`;
       }).join('')}</div>

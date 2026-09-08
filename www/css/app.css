@@ -102,7 +102,12 @@ body{
   user-select:none; -webkit-user-select:none;
 }
 input,textarea{ user-select:text; -webkit-user-select:text; }
-button{ font-family:inherit; color:inherit; background:none; border:none; cursor:pointer; -webkit-appearance:none; }
+/* font-family was inherited but font-size was not, so every <button> fell
+   back to the UA default of 13.333px. Nothing visibly broke, because the
+   buttons that show text show it through a child with an authored size -
+   but it left a trap: put text straight into a button and it silently lands
+   off the eight-step scale. Inheriting the size makes the scale total. */
+button{ font-family:inherit; font-size:inherit; color:inherit; background:none; border:none; cursor:pointer; -webkit-appearance:none; }
 a{ color:var(--accent-ink); text-decoration:none; }
 a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .mono{ font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
@@ -493,6 +498,7 @@ body.sheet-open{ overflow:hidden; }
   .rail-week .rw-cell{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 0; border-radius:var(--r-sm); }
   .rail-week .rw-cell.today{ background:var(--surface-2); }
   .rail-week .rw-dot{ width:5px; height:5px; border-radius:50%; }
+  .rail-week .rw-dow{ font-size:10px; }
 
   .fab{ right:32px; bottom:32px; }
   .tabbar{ display:none; }
@@ -692,6 +698,7 @@ body.sheet-open{ overflow:hidden; }
   color:var(--on-accent); background:var(--accent-solid); padding:2px 7px; border-radius:var(--r-lg); flex-shrink:0; }
 .agenda-row.is-running{ background:color-mix(in oklab, var(--accent) 8%, transparent); }
 
+.empty-glyph{ font-size:26px; line-height:1; margin-bottom:10px; }
 .empty-state{ text-align:center; padding:40px 20px; }
 .es-title{ font-size:14px; font-weight:700; }
 .es-body{ font-size:13px; color:var(--text-dim); margin-top:4px; }

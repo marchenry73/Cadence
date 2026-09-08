@@ -54,7 +54,7 @@ export default {
       ${goals.filter(g => S.goalArea === 'all' || g.horizon === S.goalArea).length
         ? `<div class="goal-grid">${goals.filter(g => S.goalArea === 'all' || g.horizon === S.goalArea).map(goalCard).join('')}</div>`
         : `<div class="empty-state big">
-            <div style="font-size:34px;margin-bottom:10px">🎯</div>
+            <div class="empty-glyph">🎯</div>
             <b>No goals yet</b><br>
             <span class="dim">Goals turn scattered days into a direction. Start with one — or borrow an idea.</span>
             <div class="btn-row" style="justify-content:center;margin-top:16px">
