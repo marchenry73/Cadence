@@ -170,9 +170,10 @@ function spine() {
     // A capped cluster gives up one chip-width, shared across its lanes.
     const { left, width: w } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
-    // Same rule as the week grid: elapsed blocks only step back while the
-    // day still has something ahead. Otherwise the whole screen fades and
-    // says nothing.
+    // Two questions that used to share one answer. `past` is a LOOK:
+    // elapsed blocks only step back while the day still has something
+    // ahead, or the whole screen fades and says nothing. Whether a block
+    // can be CONFIRMED is a different question, answered in confirms below.
     const past = isToday && dayHasFuture && o.end <= minutesNow();
     const done = isBlockDone(o, S.day);
     // Tall blocks show the whole title; only short ones truncate.
@@ -186,8 +187,28 @@ function spine() {
       ${o.image_path ? `<img class="block-img" data-img="${esc(o.image_path)}" alt="">` : ''}
       ${o.protected ? '<span class="protect-flag" title="Protected">\u{1F512}</span>' : ''}
       ${o.kind === 'routine' ? '<span class="block-flag" title="Routine">\u21bb</span>' : ''}
-      ${past && h > 34 ? `<span class="block-confirm${done ? ' on' : ''}" data-act="confirmBlock" data-key="${esc(o.key)}">\u2713</span>` : ''}
     </button>`;
+  }).join('');
+
+  // Elapsed blocks get a confirm tick. It sits OUTSIDE the block because
+  // the block is a <button> and a button inside a button is invalid - which
+  // is why this used to be an unfocusable <span>. A transparent slot is
+  // positioned over the same lane box and only the tick inside it takes
+  // pointer events, so the rest of the block still opens the sheet.
+  //
+  // No height gate: a 15-minute block is exactly the one you forget to
+  // tick, and it was the one that could never be ticked.
+  const confirms = shown.map((o, ci) => {
+    const elapsed = isToday ? o.end <= minutesNow() : S.day < todayISO();
+    if (!elapsed) return '';
+    const cTop = (o.start / 60) * pph;
+    const cH = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
+    const { left: cL, width: cW } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
+    const isDone = isBlockDone(o, S.day);
+    return `<div class="confirm-slot" style="top:${cTop}px;height:${cH}px;left:${cL};width:${cW};--i:${Math.min(ci, 12)}">
+      <button class="block-confirm tap${isDone ? ' on' : ''}" data-act="confirmBlock" data-key="${esc(o.key)}"
+        aria-pressed="${isDone}" aria-label="${esc(t(isDone ? 'today.markNotDone' : 'today.markDone'))}: ${esc(o.title)}">✓</button>
+    </div>`;
   }).join('');
 
   // One chip per pile, at the time the pile happens, carrying a dot per
@@ -233,7 +254,7 @@ function spine() {
     </div>`;
 
   return `<div class="spine" id="spine" style="height:${height}px;background:${band}" data-act="spineTap" data-pph="${pph}">
-    ${hours}${gaps}${emptyDay}${blocks}${more}
+    ${hours}${gaps}${emptyDay}${blocks}${confirms}${more}
     ${isToday ? `<div class="nowline" id="nowline" style="top:${(minutesNow() / 60) * pph}px"><i></i></div>` : ''}
   </div>`;
 }
