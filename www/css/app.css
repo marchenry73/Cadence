@@ -919,6 +919,12 @@ body.sheet-open{ overflow:hidden; }
   touch-action:none;
   transition:box-shadow .12s ease, opacity .2s ease, filter .2s ease;
 }
+/* A 15-minute event in the week grid is 16px tall, which is under WCAG 2.2
+   SC 2.5.8's 24x24 minimum. Deliberate, and it stays: the height IS the
+   duration, so padding it out would either lie about the length or overlap
+   the block below. The Equivalent exception covers it — Agenda mode, one tap
+   away in the same segmented control, lists every one of these events in a
+   343x44 row. Measured, not assumed. Do not "fix" this by growing the box. */
 .wk-block{ padding:3px 6px 3px 9px; display:flex; flex-direction:column; gap:1px; }
 .wk-block:hover, .block:hover{
   box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 4px 14px -4px color-mix(in oklab, var(--evc) 45%, transparent); z-index:3; }
