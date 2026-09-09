@@ -85,7 +85,10 @@ export async function importGoogle({ calendarId = 'primary', days = 30, marks = 
   const seen = new Set();
   let n = 0;
   (json.items || []).forEach(ev => {
-    if (!ev.start?.dateTime || !ev.end?.dateTime || ev.status === 'cancelled') return;
+    // Returns BEFORE seen.add below, so anything imported earlier and since
+    // declined or marked free is cleaned up by the reconciliation pass
+    // rather than stranded on the day forever.
+    if (skipGoogleEvent(ev)) return;
     if (ev.recurringEventId && ownRoutineGoogleIds.has(ev.recurringEventId)) return;
     // A master recurring event is the routine itself, not a block on a day.
     // Importing it as a one-off would collide with the routine that owns it
@@ -125,11 +128,18 @@ export async function importGoogle({ calendarId = 'primary', days = 30, marks = 
       }
     }
 
+    // description is Google's notes field. location is a place, and reading
+    // it here is what replaced typed notes with a street address - or with
+    // null, which is what most events carry. The address is still worth
+    // keeping when there is no description, so it becomes the fallback
+    // rather than the source.
+    const remoteNotes = ev.description || ev.location || null;
     const row = save('events', {
       id: prev?.id,
       title: ev.summary || 'Busy',
       day, start_min: start, end_min: end,
-      notes: ev.location || null,
+      // Never trade a note the user wrote for an empty remote field.
+      notes: remoteNotes ?? prev?.notes ?? null,
       external_id: key
     });
     // Record what was just accepted from Google so neither half mistakes it
@@ -428,6 +438,25 @@ export function googleSyncBlockedReason() { return blocked; }
 // Called after the user grants calendar access, so the next tick tries again
 // instead of staying latched off.
 export function resetGoogleSyncBlock() { blocked = null; lastSyncAt = 0; }
+
+// Which Google events are NOT commitments on your day. Exported so the rule
+// can be tested against real payload shapes without a Google account -
+// this is the kind of thing that is wrong for months because nobody can
+// easily run it.
+export function skipGoogleEvent(ev) {
+  // No clock times means an all-day event; Cadence has no all-day row.
+  if (!ev.start?.dateTime || !ev.end?.dateTime) return true;
+  if (ev.status === 'cancelled') return true;
+  // "Free" in Google means exactly that. Importing it as a block asserts a
+  // commitment the user explicitly said they had not made.
+  if (ev.transparency === 'transparent') return true;
+  // Likewise a meeting you declined. `self` is how Google marks which
+  // attendee is you; matching on responseStatus alone would let a
+  // colleague's decline remove your own meeting.
+  const meAsGuest = (ev.attendees || []).find(a => a.self);
+  if (meAsGuest && meAsGuest.responseStatus === 'declined') return true;
+  return false;
+}
 
 export async function syncGoogleCalendar({ force = false } = {}) {
   // A guest has no account to sync into, and nothing is persisted anyway.
