@@ -105,6 +105,23 @@ export async function outboxCount() {
   try { return (await idb.all('outbox')).length; } catch { return 0; }
 }
 
+// Writes the server refused and this app therefore threw away. Recorded
+// since the outbox was written, but until now never read by anything -
+// which is why a dropped write was indistinguishable from a saved one.
+export async function droppedWrites() {
+  try { return await metaGet('rejected', []); } catch { return []; }
+}
+
+// Acknowledging clears the warning but not the loss - the row is gone and
+// only the user can retype it. Re-announces from the real outbox state so
+// the pill does not just take our word for it.
+export async function ackDropped() {
+  try { await metaSet('rejected', []); } catch {}
+  let left = 0;
+  try { left = (await idb.all('outbox')).length; } catch {}
+  announce({ state: left ? 'pending' : 'synced', pending: left });
+}
+
 // Queue one row write. Ops for the same row collapse: the newest full row wins,
 // so a burst of edits to one block does not become a burst of requests.
 export async function enqueue(table, row) {
@@ -148,11 +165,19 @@ export async function flush() {
         const bad = await metaGet('rejected', []);
         bad.unshift({ at: new Date().toISOString(), table: op.table, id: op.row?.id, message: String(e.message || e) });
         await metaSet('rejected', bad.slice(0, 20));
-        announce({ state: 'rejected', message: String(e.message || e) });
+        // No announce here: the loop continues and the summary below is the
+        // last word. Announcing now only to be overwritten by "synced" two
+        // lines later is how this became invisible.
       }
     }
     const left = (await idb.all('outbox')).length;
-    announce({ state: left ? 'pending' : 'synced', pending: left });
+    const dropped = (await metaGet('rejected', [])).length;
+    // Dropped writes outrank an empty outbox. The outbox IS empty - we
+    // emptied it by discarding the row - so reporting on its length alone
+    // reports success for data we just lost. Stays until acknowledged.
+    announce(dropped
+      ? { state: 'rejected', dropped, pending: left }
+      : { state: left ? 'pending' : 'synced', pending: left });
   } catch (e) {
     announce({ state: 'error', message: String(e.message || e) });
   } finally {

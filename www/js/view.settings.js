@@ -16,6 +16,7 @@ import { openTasks } from './state.js';
 import { CONFIG } from './config.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, readForm, field, segmented, guestBlocked } from './ui.js';
 import { checkForUpdate } from './update.js';
+import { droppedWrites, ackDropped } from './net.js';
 
 function toggleRow(label, name, on) {
   return `<button class="toggle-row tap" data-act="prefToggle" data-name="${name}">
@@ -150,6 +151,7 @@ export default {
         `}
       </div>
 
+      <div id="droppedRow"></div>
       <div id="updateRow"></div>
       <div class="version-row dim small">Cadence v${esc(CONFIG.version)} · ${esc(CONFIG.build)}</div>
     </div>`;
@@ -161,6 +163,21 @@ export default {
       nick.value = v;
       savePrefs({ nickname: v || null });
       toast(v ? 'Nickname saved' : 'You are off the board', 'good');
+    });
+    // Only rendered when there is something to report, so this is never an
+    // empty panel. Before this, a refused write went into IndexedDB and
+    // nothing in the app ever read it back out.
+    droppedWrites().then(list => {
+      const row = root.querySelector('#droppedRow');
+      if (!row || !list.length) return;
+      row.innerHTML = `<div class="section-head"><span class="eyebrow">${esc(t('app.droppedTitle'))}</span></div>
+        <div class="card" style="border-color:var(--danger)">
+          <p class="dim small">${esc(t('app.droppedBody'))}</p>
+          ${list.map(r => `<div class="small"><strong>${esc(r.table || '?')}</strong>
+            <span class="dim"> · ${esc(new Date(r.at).toLocaleString())}</span>
+            <div class="dim small">${esc(r.message || '')}</div></div>`).join('')}
+          <button class="btn ghost sm" data-act="ackDropped">${esc(t('app.droppedAck'))}</button>
+        </div>`;
     });
     checkForUpdate().then(info => {
       const row = root.querySelector('#updateRow');
@@ -217,6 +234,10 @@ registerActions({
   prefSeg: d => { savePrefs({ [d.name]: /^\d+$/.test(d.value) ? Number(d.value) : d.value }); haptic('light'); window.cadenceRerender(); },
   prefColor: d => { savePrefs({ accent: d.value }); window.cadenceApplyAccent(d.value); window.cadenceRerender(); },
   prefToggle: d => { savePrefs({ [d.name]: !S.prefs[d.name] }); haptic('light'); window.cadenceRerender(); },
+
+  // Clears the warning, not the loss: the rows are gone and only the user can
+  // retype them. Saying so is the point of the card.
+  ackDropped: () => { ackDropped().then(() => window.cadenceRerender()); },
 
   addCat: () => openCategorySheet(),
   editCat: d => openCategorySheet(d.id),

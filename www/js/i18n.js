@@ -24,6 +24,10 @@ export const EN = {
   'app.today': 'Today', 'app.tomorrow': 'Tomorrow', 'app.now': 'Now',
   'app.offline': 'Offline', 'app.syncing': 'Syncing', 'app.synced': 'Synced',
   'app.pending': '{n} waiting to sync', 'app.loading': 'Loading',
+  'app.dropped': '{n} not saved', 'app.syncError': 'Sync failed',
+  'app.droppedTitle': 'Changes that could not be saved',
+  'app.droppedBody': 'The server refused these, so they were not kept. Nothing here is recoverable — if you still want them, make the change again.',
+  'app.droppedAck': 'Dismiss',
 
   'common.add': 'Add', 'common.save': 'Save', 'common.cancel': 'Cancel',
   'common.delete': 'Delete', 'common.close': 'Close', 'common.done': 'Done',

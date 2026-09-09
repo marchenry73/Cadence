@@ -144,6 +144,10 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .sync-pill.syncing .dot{ background:var(--accent); animation:pulse 1s infinite; }
 .sync-pill.synced .dot{ background:var(--good); }
 .sync-pill.offline .dot{ background:var(--warn); }
+/* A refused write is not a slow write. Offline is amber and recoverable;
+   this is red and permanent. */
+.sync-pill.failed{ color:var(--danger); border-color:color-mix(in oklab, var(--danger) 40%, var(--border)); }
+.sync-pill.failed .dot{ background:var(--danger); }
 .sync-pill.guest{ color:var(--warn); border-color:color-mix(in oklab, var(--warn) 40%, var(--border)); }
 .sync-pill.guest .dot{ background:var(--warn); }
 @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }

@@ -2,7 +2,7 @@
 // Everything else (views, sheets) is imported for its side effects
 // (registerActions) and default-exported render/lifecycle object.
 import { CONFIG } from './config.js';
-import { initNet, sb, onSyncState, outboxCount } from './net.js';
+import { initNet, sb, onSyncState, outboxCount, droppedWrites, ackDropped } from './net.js';
 import { S, onChange, loadFromCache, syncNow, startRealtime, notify, savePrefs } from './state.js';
 import { setLang, currentLang, t } from './i18n.js';
 import { currentSession, onAuthChange, signIn, signUp, resetPassword, usernameAvailable, ensureProfile, signInWithProvider } from './auth.js';
@@ -351,14 +351,31 @@ function renderGoogleBanner() {
   </div>`;
 }
 
-function updateSyncPill({ state, pending }) {
+// net.js announces six states. This used to render three and let the other
+// three - 'rejected', 'error' and anything unrecognised - fall through to
+// the final else, which said "Synced". A permanently discarded write and a
+// successful one looked identical.
+let lastSyncState = null;
+function updateSyncPill({ state, pending, dropped }) {
   const pill = $('#syncPill'), label = $('#syncLabel');
   if (!pill) return;
-  pill.className = 'sync-pill ' + (state === 'offline' ? 'offline' : state === 'syncing' ? 'syncing' : state === 'synced' ? 'synced' : '');
+  const failed = state === 'rejected' || state === 'error';
+  pill.className = 'sync-pill ' + (state === 'offline' ? 'offline'
+    : state === 'syncing' ? 'syncing'
+    : failed ? 'failed'
+    : state === 'synced' ? 'synced' : '');
   label.textContent = state === 'offline' ? t('app.offline')
     : state === 'syncing' ? t('app.syncing')
+    : state === 'rejected' ? t('app.dropped', { n: dropped })
+    : state === 'error' ? t('app.syncError')
     : state === 'pending' ? t('app.pending', { n: pending })
     : t('app.synced');
+  // The pill is on screen at 390px too (measured: 136x31, top right), but it
+  // is a 12px label that changes colour - easy to miss, and what it reports
+  // here is permanent data loss. Toast once on the transition into a failure
+  // state, not on every flush that finds the same unacknowledged drop.
+  if (failed && lastSyncState !== state) toast(t('app.dropped', { n: dropped || 1 }), 'warn');
+  lastSyncState = state;
 }
 
 // Showing up counts, but only once a day and only two points — the score
