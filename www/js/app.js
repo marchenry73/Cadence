@@ -15,7 +15,7 @@ import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
 import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
-import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock } from './google.js';
+import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock, googleSyncInFlight } from './google.js';
 import { requestGoogleCalendarAccess, captureGoogleRefreshToken } from './auth.js';
 import { openQuickAdd } from './sheets.js';
 import './search.js';
@@ -138,15 +138,10 @@ async function afterSignIn(bootSession = null) {
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
   window.addEventListener('online', () => syncNow().catch(() => {}));
 
-  // Google Calendar keeps itself current in the background: once on
-  // launch, then on its own schedule and whenever the device reconnects.
-  // syncGoogleCalendar() no-ops safely when the user is not signed in with
-  // Google, so this costs nothing for password accounts.
-  // Google issues the refresh token only on the first consent, so grab it
-  // whenever a session has one before the value is gone for good.
-  syncGoogleCalendar({ force: true }).then(renderGoogleBanner).catch(() => {});
-  setInterval(() => { syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}); }, 5 * 60 * 1000);
-  window.addEventListener('online', () => syncGoogleCalendar().then(renderGoogleBanner).catch(() => {}));
+  // Google Calendar keeps itself current on its own. syncGoogleCalendar()
+  // no-ops safely when the user is not signed in with Google, so all of
+  // this costs a password account nothing.
+  startGoogleAutoSync();
   installEdgeBack(() => { if (S.route !== 'today') go('today'); });
   startReminderWatch();
   awardDailyLogin();
@@ -356,6 +351,47 @@ function renderGoogleBanner() {
 // the final else, which said "Synced". A permanently discarded write and a
 // successful one looked identical.
 let lastSyncState = null;
+// Every trigger goes through here so the banner is refreshed on all of them
+// and a failure can never escape into an unhandled rejection that would
+// stop the loop.
+const googleTick = (force = false) =>
+  syncGoogleCalendar({ force }).then(renderGoogleBanner).catch(() => {});
+
+function startGoogleAutoSync() {
+  googleTick(true);
+
+  // The baseline. On a phone this is the least reliable of the four: a
+  // backgrounded WebView has its timers frozen, and a hidden tab throttles
+  // them to about once a minute.
+  setInterval(() => googleTick(), 5 * 60 * 1000);
+  window.addEventListener('online', () => googleTick());
+
+  // Coming back to the app is the trigger that actually carries a phone.
+  // syncGoogleCalendar rate-limits itself, so returning after twenty
+  // seconds costs nothing while returning after three hours syncs at once.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') googleTick();
+  });
+  // Capacitor does not reliably fire visibilitychange in the Android
+  // wrapper, which is the build where backgrounding is most aggressive.
+  try {
+    window.Capacitor?.Plugins?.App?.addListener?.(
+      'appStateChange', ({ isActive }) => { if (isActive) googleTick(); });
+  } catch { /* web build, or plugin not installed */ }
+
+  // And push a local edit up promptly rather than on the next tick. NOT
+  // armed while a sync is running: a pull saves every event it imports,
+  // each save notifies, and arming on those would make the sync retrigger
+  // itself forever.
+  let nudge = null;
+  onChange(reason => {
+    if (!String(reason || '').startsWith('save:')) return;
+    if (googleSyncInFlight()) return;
+    clearTimeout(nudge);
+    nudge = setTimeout(() => googleTick(true), 15000);
+  });
+}
+
 function updateSyncPill({ state, pending, dropped }) {
   const pill = $('#syncPill'), label = $('#syncLabel');
   if (!pill) return;

@@ -425,7 +425,10 @@ async function pushRoutines(token, calendarId, marks) {
 // starts returning 401 and syncing stops until the user signs in with Google
 // again. Fixing it properly means exchanging the refresh token server-side
 // (a Supabase Edge Function), which is a separate piece of work.
-const SYNC_EVERY_MS = 10 * 60 * 1000;
+// Matches the interval in app.js. They used to disagree - a tick every five
+// minutes against a ten-minute gate - so every other tick did nothing at
+// all, which is not obvious from either file on its own.
+const SYNC_EVERY_MS = 5 * 60 * 1000;
 
 let lastSyncAt = 0;
 let blocked = null;   // 'needs-calendar-consent' | 'calendar-api-disabled' | 'expired'
@@ -434,6 +437,12 @@ let inFlight = false;
 // Why the background sync is currently not running, or null if it is fine.
 // Settings uses this to explain itself instead of silently doing nothing.
 export function googleSyncBlockedReason() { return blocked; }
+
+// True for the whole of a sync pass, including the imports inside it.
+// app.js needs this: a pull calls save() for every event it brings down,
+// and save() notifies, so a sync-after-edit trigger that did not check
+// would be re-armed by its own import and never stop.
+export function googleSyncInFlight() { return inFlight; }
 
 // Called after the user grants calendar access, so the next tick tries again
 // instead of staying latched off.
