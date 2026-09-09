@@ -27,7 +27,7 @@
   --on-accent:#fff;
   --accent-ink:color-mix(in oklab, var(--accent-user) 80%, #000);
   --accent-weak:color-mix(in oklab, var(--accent) 14%, transparent);
-  --good:#5E8563; --warn:#9A5A20; --danger:#B03A26;
+  --good:#5E8563; --warn:#94551D; --danger:#B03A26;
   /* Monarch-style tinted tile family — a distinct hue per surfaced
      category (goals, streak) instead of everything sharing the accent. */
   --moss:#4F8467; --moss-tint:#DCEBE1;
