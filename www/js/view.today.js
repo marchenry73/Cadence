@@ -7,7 +7,7 @@ import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINU
 import { openBlockSheet, openQuickAdd, parsePhrase } from './sheets.js';
 import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
-import { startTimer, snapshot, onTimer, timerChip } from './timer.js';
+import { startTimer, pauseTimer, resetTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
 import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin } from './layout.js';
@@ -33,21 +33,25 @@ function dayStrip() {
 // should read before anything else, the way the whole redesign is built
 // around "what matters most gets the most visual weight."
 function hero(next, isToday, timer) {
+  const showTimerChip = timer.running || timer.remaining < timer.minutes * 60;
+  // It draws a pause glyph, so it has to pause. This is the only timer
+  // control in the app: tap toggles, hold resets.
+  const timerBtn = showTimerChip
+    ? `<button class="btn ghost sm mono" data-act="toggleFocus" data-hold="resetFocus"
+        aria-label="${esc(timer.running ? t('timer.pause') : t('timer.resume'))}">${esc(timerChip())}</button>`
+    : '';
   if (!next) {
     return `<div class="hero hero-empty">
       <div class="hero-eyebrow">${esc(t('today.nextUp'))}</div>
       <div class="hero-title">${esc(t('today.nothingLeft'))}</div>
       <div class="btn-row">
         <button class="btn ghost sm" data-act="startTimerQuick" data-minutes="25" data-label="">${esc(t('today.startFocus'))}</button>
+        ${timerBtn}
       </div>
     </div>`;
   }
   const color = catColor(next.category_id);
   const running = isToday && next.start <= minutesNow();
-  const showTimerChip = timer.running || timer.remaining < timer.minutes * 60;
-  const timerBtn = showTimerChip
-    ? `<button class="btn ghost sm mono" data-act="gotoTimer">${esc(timerChip())}</button>` : '';
-
   if (running) {
     const total = next.end - next.start;
     const elapsed = minutesNow() - next.start;
@@ -414,7 +418,16 @@ export default {
     if (nl) nl.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); commitNL(); }
     });
-    this._offTimer = onTimer(() => { const chip = $('[data-act=gotoTimer]', root); if (chip) chip.textContent = timerChip(); });
+    this._offTimer = onTimer(s => {
+      const chip = $('[data-act=toggleFocus]', root);
+      if (!chip) return;
+      // Back at full length means the timer is over and hero() would no
+      // longer draw this. Rewriting its text instead left a live-looking
+      // control for a timer that had already finished.
+      if (!s.running && s.remaining >= s.minutes * 60) { chip.remove(); return; }
+      chip.textContent = timerChip();
+      chip.setAttribute('aria-label', s.running ? t('timer.pause') : t('timer.resume'));
+    });
   },
 
   onUnmount() { this._offTimer?.(); }
@@ -473,7 +486,16 @@ registerActions({
     openBlockSheet({ occ, day: S.day });
   },
   fillGap: d => openBlockSheet({ day: S.day, start: Number(d.start), end: Math.min(Number(d.start) + 60, Number(d.end)) }),
-  startTimerQuick: d => { startTimer(Number(d.minutes) || 25, d.label || ''); toast(t('timer.start'), 'good'); },
-  gotoTimer: () => window.cadenceGoRoute('today'),
+  // Without the rerender the chip does not appear until something else
+  // happens to repaint Today, so the timer ran with nothing on screen.
+  startTimerQuick: d => { startTimer(Number(d.minutes) || 25, d.label || ''); toast(t('timer.start'), 'good'); window.cadenceRerender(); },
+  // startTimer() with no argument resumes from whatever is left rather than
+  // restarting, which is what makes this a toggle and not a restart button.
+  toggleFocus: () => {
+    if (snapshot().running) { pauseTimer(); toast(t('timer.paused'), 'good'); }
+    else { startTimer(); toast(t('timer.resumed'), 'good'); }
+    window.cadenceRerender();
+  },
+  resetFocus: () => { resetTimer(); toast(t('timer.reset'), 'good'); window.cadenceRerender(); },
   editTaskFromRail: d => openTaskSheet(d.id)
 });

@@ -135,6 +135,8 @@ export const EN = {
 
   'timer.focus': 'Focus', 'timer.start': 'Start', 'timer.pause': 'Pause',
   'timer.reset': 'Reset', 'timer.finished': 'Focus finished',
+  'timer.resume': 'Resume', 'timer.paused': 'Paused — hold to reset',
+  'timer.resumed': 'Back on',
 
   'msg.saved': 'Saved', 'msg.deleted': 'Deleted', 'msg.copied': 'Copied', 'common.copy': 'Copy', 'common.you': 'you',
   'msg.queued': 'Saved on this device. It will sync when you are back online.',

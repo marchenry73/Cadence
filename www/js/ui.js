@@ -50,12 +50,19 @@ export function runAction(name, node, ev) {
   fn(node?.dataset || {}, node, ev);
 }
 
-// Set when a swipe actually engages, and read by the click delegation just
-// below. Releasing a swipe would otherwise ALSO click whatever button the
-// finger started on - firing the row action and opening the editor from one
-// gesture. The guard that used to stand here read node.dataset.swipeOpen,
-// which nothing in the codebase has ever set.
-let swipeUntil = 0;
+// A gesture that already did something must swallow the click the browser
+// sends afterwards, or one finger movement fires two actions. Two gestures
+// need this:
+//
+//   swipe  - the row underneath is a button, so releasing the swipe would
+//            also click it. The guard that used to stand here read
+//            node.dataset.swipeOpen, which nothing has ever set.
+//   hold   - the long-press action fires at 480ms while the finger is
+//            still down. Nothing stopped the click that followed on
+//            release, so every long-press ran its data-hold action AND
+//            its data-act one: hold a block and the context sheet opened,
+//            then the editor opened straight over it.
+let suppressClickUntil = 0;
 
 // One listener for the whole app. Buttons carry data-act (+ any data-* the
 // handler needs), so re-rendering markup never leaks listeners.
@@ -63,7 +70,7 @@ export function installDelegation() {
   document.addEventListener('click', ev => {
     const node = ev.target.closest('[data-act]');
     if (!node || node.hasAttribute('disabled')) return;
-    if (Date.now() < swipeUntil) return;   // the click that trails a swipe
+    if (Date.now() < suppressClickUntil) return;   // the click trailing a gesture
     // Native inputs keep their own behaviour (date/time pickers, selects,
     // text carets). Calling preventDefault on those stops the picker opening.
     const tag = node.tagName;
@@ -89,7 +96,13 @@ export function installDelegation() {
   document.addEventListener('pointerdown', ev => {
     const node = ev.target.closest('[data-hold]');
     if (!node) return;
-    holdTimer = setTimeout(() => { haptic('medium'); runAction(node.dataset.hold, node, ev); }, 480);
+    holdTimer = setTimeout(() => {
+      haptic('medium');
+      // Set BEFORE running the action: the action may open a sheet, and
+      // the click still arrives on release either way.
+      suppressClickUntil = Date.now() + 700;
+      runAction(node.dataset.hold, node, ev);
+    }, 480);
   }, { passive: true });
   const clearHold = () => { clearTimeout(holdTimer); holdTimer = null; };
   ['pointerup', 'pointercancel', 'pointermove', 'scroll'].forEach(e =>
@@ -328,7 +341,7 @@ export function installRowSwipes(root) {
     active = false; node = null;
     // Only when the finger actually travelled: a plain tap must still reach
     // the button it landed on.
-    if (locked) swipeUntil = Date.now() + 350;
+    if (locked) suppressClickUntil = Date.now() + 350;
     if (fired && which) { haptic('success'); runAction(which, n); }
   };
   const reset = () => {
@@ -337,7 +350,7 @@ export function installRowSwipes(root) {
       node.style.transform = 'translateX(0)';
       node.classList.remove('swipe-armed');
     }
-    if (locked) swipeUntil = Date.now() + 350;
+    if (locked) suppressClickUntil = Date.now() + 350;
     active = false; node = null;
   };
   root.addEventListener('pointerup', end, { passive: true });
