@@ -125,6 +125,8 @@ export const EN = {
   'gsync.pausedWhy': 'Google signs you out of calendar access after about an hour. Your changes are saved and will sync as soon as you reconnect.',
   'gsync.reconnect': 'Reconnect Google',
   'gsync.needsConsent': 'Cadence needs permission to use your Google Calendar.',
+  'gsync.willPause': 'Google Calendar sync will stop in about an hour',
+  'gsync.needsRefresh': 'Google only hands over the key that keeps sync running when you reconnect. Syncing works until then.',
   'gsync.apiDisabled': 'Turn on the Google Calendar API in Google Cloud to sync.',
 
   'app.guest': 'Guest — not saved',

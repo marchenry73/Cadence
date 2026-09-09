@@ -257,6 +257,16 @@ export async function captureGoogleRefreshToken(session = null) {
 let lastRefreshFailure = null;   // 'needs_consent' | 'transient' | null
 export function googleRefreshFailureReason() { return lastRefreshFailure; }
 
+// A password account has no Google refresh token and never will, so the
+// launch check must not mistake that for something broken. Reads the
+// identity Supabase recorded at sign-up rather than guessing from whether
+// a token happens to be present right now.
+export async function isGoogleAccount() {
+  const { data } = await sb.auth.getSession();
+  const meta = data?.session?.user?.app_metadata || {};
+  return meta.provider === 'google' || (meta.providers || []).includes('google');
+}
+
 async function refreshViaEdge() {
   const { data } = await sb.auth.getSession();
   const jwt = data?.session?.access_token;

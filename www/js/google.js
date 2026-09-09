@@ -6,7 +6,7 @@
 // Google events simply appear rather than waiting for anyone to press an
 // import button. Password accounts fall back to the .ics import.
 import { S, save, remove, mine, setLocalDeleteHook } from './state.js';
-import { providerToken, googleRefreshFailureReason } from './auth.js';
+import { providerToken, googleRefreshFailureReason, isGoogleAccount } from './auth.js';
 import { sb } from './net.js';
 import { todayISO, addDays } from './util.js';
 import { metaGet, metaSet } from './idb.js';
@@ -443,6 +443,29 @@ export function googleSyncBlockedReason() { return blocked; }
 // and save() notifies, so a sync-after-edit trigger that did not check
 // would be re-armed by its own import and never stop.
 export function googleSyncInFlight() { return inFlight; }
+
+// Is sync actually able to outlive Google's one-hour token expiry?
+//
+// Only if a refresh token was captured. Without one everything works for
+// an hour and then stops, and the cause is by then an hour in the past.
+// The Edge Function answers this definitively - 404 means nothing stored -
+// so ask at launch and surface it while it is still fixable in one tap.
+//
+// Returns null when there is nothing to check: guests, offline, and
+// password accounts, which have no refresh token by definition.
+export async function verifyGoogleRefreshToken() {
+  if (S.guest || !navigator.onLine) return null;
+  if (!(await isGoogleAccount())) return null;
+  const fresh = await providerToken({ forceRefresh: true });
+  if (fresh) { if (blocked === 'needs-refresh-token') blocked = null; return 'ok'; }
+  if (googleRefreshFailureReason() === 'needs_consent') {
+    blocked = 'needs-refresh-token';
+    return 'needs-consent';
+  }
+  // Transient: the function was down, or the network blinked. Latching on
+  // that would show a banner demanding a tap that fixes nothing.
+  return 'unknown';
+}
 
 // Called after the user grants calendar access, so the next tick tries again
 // instead of staying latched off.

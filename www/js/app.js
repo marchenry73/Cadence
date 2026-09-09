@@ -15,7 +15,7 @@ import { maybeShowOnboarding } from './onboarding.js';
 import { startReminderWatch } from './notify.js';
 import { resetTimer } from './timer.js';
 import { hydrateImages } from './images.js';
-import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock, googleSyncInFlight } from './google.js';
+import { syncGoogleCalendar, googleSyncBlockedReason, resetGoogleSyncBlock, googleSyncInFlight, verifyGoogleRefreshToken } from './google.js';
 import { requestGoogleCalendarAccess, captureGoogleRefreshToken } from './auth.js';
 import { openQuickAdd } from './sheets.js';
 import './search.js';
@@ -330,16 +330,22 @@ function renderGoogleBanner() {
   const why = googleSyncBlockedReason();
   if (!why) { host.innerHTML = ''; return; }
 
-  const body = why === 'expired' ? t('gsync.pausedWhy')
+  // needs-refresh-token is a WARNING, not a pause: sync is working right
+  // now and will keep working for about an hour. Calling that "paused"
+  // would be false, and the user would reasonably ignore it next time.
+  const soon = why === 'needs-refresh-token';
+  const title = soon ? t('gsync.willPause') : t('gsync.paused');
+  const body = soon ? t('gsync.needsRefresh')
+    : why === 'expired' ? t('gsync.pausedWhy')
     : why === 'needs-calendar-consent' ? t('gsync.needsConsent')
     : t('gsync.apiDisabled');
-  // Only expiry and missing consent are fixable by tapping; a disabled API
-  // has to be turned on in Google Cloud, so offering a button would lie.
-  const canReconnect = why === 'expired' || why === 'needs-calendar-consent';
+  // Only these are fixable by tapping; a disabled API has to be turned on
+  // in Google Cloud, so offering a button there would lie.
+  const canReconnect = soon || why === 'expired' || why === 'needs-calendar-consent';
 
   host.innerHTML = `<div class="gsync-banner">
     <div class="gsync-main">
-      <div class="gsync-title">${esc(t('gsync.paused'))}</div>
+      <div class="gsync-title">${esc(title)}</div>
       <div class="gsync-body">${esc(body)}</div>
     </div>
     ${canReconnect ? `<button class="btn primary sm" data-act="reconnectGoogle">${esc(t('gsync.reconnect'))}</button>` : ''}
@@ -359,6 +365,9 @@ const googleTick = (force = false) =>
 
 function startGoogleAutoSync() {
   googleTick(true);
+  // Answer "will this still be syncing in an hour?" now, rather than
+  // letting the user discover the answer in an hour.
+  verifyGoogleRefreshToken().then(renderGoogleBanner).catch(() => {});
 
   // The baseline. On a phone this is the least reliable of the four: a
   // backgrounded WebView has its timers frozen, and a hidden tab throttles
