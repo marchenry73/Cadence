@@ -171,12 +171,25 @@ export async function publishScore({ weekStart, points, streak, efficiency }) {
   }, { onConflict: 'user_id,week_start' }).then(() => {}, () => {});
 }
 
+// Returns { rows, error } rather than a bare array. Swallowing the error
+// into [] made "the request failed" and "nobody has posted yet" the same
+// value, and the caller announced the second one either way.
 export async function leaderboard(weekStart, limit = 25) {
-  const { data, error } = await sb.from('scores')
-    .select('nickname, points, streak, efficiency, user_id')
-    .eq('week_start', weekStart)
-    .order('points', { ascending: false })
-    .limit(limit);
-  if (error) return [];
-  return (data || []).map((r, i) => ({ ...r, rank: i + 1, me: r.user_id === S.user?.id }));
+  if (!sb) return { rows: [], error: 'offline' };
+  try {
+    const { data, error } = await sb.from('scores')
+      .select('nickname, points, streak, efficiency, user_id')
+      .eq('week_start', weekStart)
+      .order('points', { ascending: false })
+      .limit(limit);
+    if (error) return { rows: [], error: error.message || String(error) };
+    return {
+      rows: (data || []).map((r, i) => ({ ...r, rank: i + 1, me: r.user_id === S.user?.id })),
+      error: null
+    };
+  } catch (e) {
+    // A throw here used to unwind the caller and leave the card stuck on
+    // "Loading the board…" with nothing to press.
+    return { rows: [], error: e?.message || String(e) };
+  }
 }

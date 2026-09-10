@@ -150,6 +150,7 @@ export const EN = {
   'msg.badImage': 'Only JPEG, PNG, WebP or HEIC images',
   'msg.confirmDelete': 'Delete this?', 'msg.somethingWrong': 'Something went wrong',
   'msg.confirmDeleteSeries': 'Delete this and every other time it repeats?',
+  'board.failed': 'Could not load the board just now.',
 };
 
 let current = 'en';

@@ -214,7 +214,14 @@ export default {
         <button class="btn ghost sm" data-act="editNickname">Choose a nickname</button>`;
       return;
     }
-    const rows = await leaderboard(days[0]);
+    const { rows, error } = await leaderboard(days[0]);
+    // Three outcomes, three things to say. Reporting a failed request as
+    // an empty week is how the board came to insist nobody had played.
+    if (error) {
+      card.innerHTML = `<p class="dim small">${esc(t('board.failed'))}</p>
+        <button class="btn ghost sm" data-act="retryBoard">${esc(t('common.retry'))}</button>`;
+      return;
+    }
     card.innerHTML = rows.length
       ? `<div class="board">${rows.map(r => `
           <div class="board-row${r.me ? ' me' : ''}">
@@ -230,6 +237,8 @@ export default {
 
 registerActions({
   ...idealActions,
+  // Re-runs onMount, which is where the board is fetched.
+  retryBoard: () => window.cadenceRerender(),
 
   reviewWeek: d => {
     const next = S.weekOffset + Number(d.dir);
