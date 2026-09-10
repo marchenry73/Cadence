@@ -589,6 +589,10 @@ body.sheet-open{ overflow:hidden; }
      tasks/goals/week at a glance on the right. */
   .pad:has(.spine){ display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start; }
   .daystrip{ grid-column:1/-1; padding:0 0 6px; }
+  /* The rail carries the task list at this width - same data, five instead
+     of three, and sticky, so it stays put while the day scrolls. Rendering
+     both put the same task on screen twice. */
+  .tasks-mini{ display:none; }
   .today-main{ min-width:0; }
   .desktop-rail{ display:flex; flex-direction:column; gap:16px; position:sticky; top:20px; }
   .rail-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }

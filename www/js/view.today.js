@@ -301,18 +301,11 @@ function spine() {
 function desktopRail() {
   const tasks = openTasks().sort((a, b) => taskScore(b) - taskScore(a)).slice(0, 5);
   const goals = mine('goals').slice(0, 4);
-  const week = Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i - todayISOdow()));
+  // No week card here. The day strip above already spans this column and is
+  // the better control by a distance: names, dates, load dots and seven
+  // real buttons, against seven dots. It also hardcoded a Sunday week via
+  // getDay(), ignoring S.prefs.week_starts, so deleting it deletes a bug.
   return `<div class="desktop-rail">
-    <div class="rail-card">
-      <h3>${esc(t('today.yourDay'))}</h3>
-      <div class="rail-week">${week.map(d => {
-        const load = dayLoad(d);
-        return `<button class="rw-cell tap${d === todayISO() ? ' today' : ''}" data-act="pickDay" data-day="${d}">
-          <span class="dim rw-dow">${esc(dateLabel(d, { weekday: 'narrow' }))}</span>
-          <span class="rw-dot" style="background:var(--accent);opacity:${load ? Math.min(1, load / 480) : .15}"></span>
-        </button>`;
-      }).join('')}</div>
-    </div>
     <div class="rail-card">
       <h3>${esc(t('nav.tasks'))}</h3>
       ${tasks.length ? tasks.map(tk => `<button class="rail-task tap" data-act="editTaskFromRail" data-id="${tk.id}">
@@ -326,8 +319,7 @@ function desktopRail() {
     </div>
   </div>`;
 }
-function todayISOdow() { return new Date(fromISOLocal(todayISO())).getDay(); }
-function fromISOLocal(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+
 
 // Drag a block up or down to reschedule it. Snaps to 15 minutes, keeps the
 // duration, and clamps inside the 24h day. A routine occurrence dragged on a
