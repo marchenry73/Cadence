@@ -1,6 +1,6 @@
 // Goals — quarter/year/life horizons, milestone progress, and check-ins that
 // keep a goal from going stale and silently dying.
-import { S, mine, goalMilestones, goalCheckins, goalProgress, goalStale, goalHours, weekDays, save, remove } from './state.js';
+import { S, mine, goalMilestones, goalCheckins, goalProgress, goalStale, goalHours, weekDays, save, remove, justTouched } from './state.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtDur } from './util.js';
 import { openGoalSheet, openCheckinSheet } from './sheets.js';
@@ -14,7 +14,7 @@ function goalCard(g) {
   const ms = goalMilestones(g.id);
   const stale = goalStale(g);
   const next = ms.find(m => !m.done_at);
-  return `<div class="goal-card">
+  return `<div class="goal-card${justTouched('goals', g.id) ? ' is-found' : ''}">
     <button class="goal-card-head tap" data-act="editGoal" data-id="${g.id}">
       <div class="goal-title">${esc(g.title)}</div>
       <div class="goal-area">${esc(g.area)}${g.target_date ? ' · ' + esc(dateLabel(g.target_date, { month: 'short', day: 'numeric', year: 'numeric' })) : ''}</div>

@@ -175,6 +175,13 @@ export function logActivity(kind, detail, minutes = 0) {
 
 // ------------------------------------------------------------------ selectors
 
+// Was this row the last thing touched, recently enough to still be worth
+// pointing at? Blocks have used S.lastTouched for this since it shipped;
+// search now sets it too, so a found task or goal can say "here".
+export const justTouched = (table, id) =>
+  !!S.lastTouched && S.lastTouched.table === table && S.lastTouched.id === id
+  && Date.now() - S.lastTouched.at < 2500;
+
 export const mine = table => S[table].filter(r => r.user_id === S.user?.id);
 export const catById = id => S.categories.find(c => c.id === id) || null;
 export const catColor = id => catById(id)?.color || S.prefs.accent;

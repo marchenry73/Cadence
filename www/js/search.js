@@ -14,7 +14,7 @@
 //      results appear as you type with no request and no spinner, and it
 //      works offline. That is a direct consequence of the offline-first
 //      store, not a trick.
-import { mine, catById, occurrencesOn } from './state.js';
+import { S, mine, catById, occurrencesOn } from './state.js';
 import { todayISO, addDays, fromISO, esc } from './util.js';
 import { openSheet, closeSheet, registerActions, $ } from './ui.js';
 import { openBlockSheet } from './sheets.js';
@@ -186,8 +186,22 @@ registerActions({
   openSearch: () => openSearch(),
   searchGo: d => {
     closeSheet();
-    if (d.kind === 'task') { window.cadenceGoRoute('tasks'); return; }
-    if (d.kind === 'goal') { window.cadenceGoRoute('goals'); return; }
+    if (d.kind === 'task') {
+      // A finished task is findable but lives behind the "done" filter,
+      // which defaults to "open". Landing on Tasks without switching it
+      // showed a screen the result was not on.
+      const task = mine('tasks').find(x => x.id === d.id);
+      if (task) S.taskFilter = task.done_at ? 'done' : 'open';
+      // The same marker blocks already use to point at themselves.
+      S.lastTouched = { table: 'tasks', id: d.id, at: Date.now() };
+      window.cadenceGoRoute('tasks');
+      return;
+    }
+    if (d.kind === 'goal') {
+      S.lastTouched = { table: 'goals', id: d.id, at: Date.now() };
+      window.cadenceGoRoute('goals');
+      return;
+    }
     // Events and routines live on a day, so land on that day with the
     // block already open rather than leaving the user to hunt for it.
     if (d.day) window.cadenceGoDay(d.day, 'today');
