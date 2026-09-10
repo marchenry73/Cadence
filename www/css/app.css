@@ -326,8 +326,18 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .block-img{ width:38px; object-fit:cover; flex-shrink:0; }
 .block-flag{ position:absolute; top:3px; inset-inline-end:5px; font-size:11px; opacity:.7; }
 
-.nowline{ position:absolute; inset-inline-start:0; inset-inline-end:0; height:0; border-top:2px solid var(--danger); z-index:5; }
-.nowline i{ position:absolute; inset-inline-start:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger); }
+/* The line, the dot and the pulse all read one variable, so they cannot
+   drift apart again - the halo used to hardcode --accent while the dot
+   was --danger, which put a red dot inside an accent-coloured glow.
+   Today is red and the week is accent; that difference is left alone
+   here because changing it is a design decision, not a repair. */
+.nowline{ --now-color:var(--danger);
+  position:absolute; inset-inline-start:0; inset-inline-end:0; height:0;
+  border-top:2px solid var(--now-color); z-index:5; }
+/* -(border + dot) / 2 centres it: -(2 + 8) / 2 = -5. It was -4, a pixel
+   low, while the week has always used the same formula correctly. */
+.nowline i{ position:absolute; inset-inline-start:-4px; top:-5px; width:8px; height:8px;
+  border-radius:50%; background:var(--now-color); }
 
 /* -------- press / swipe -------- */
 .tap{ transition:transform .1s ease, opacity .1s ease; }
@@ -898,7 +908,10 @@ body.sheet-open{ overflow:hidden; }
    falling back to system colours rather than vanishing. */
 @media (forced-colors: active){
   .wk-block, .month-cell, .agenda-row, .sr-row{ border:1px solid CanvasText; }
-  .wk-now{ border-top-color:Highlight; }
+  /* Both now-lines, not just the week's. .nowline was left out, so a
+     high-contrast theme kept one of them and lost the other. */
+  .wk-now, .nowline{ border-top-color:Highlight; }
+  .wk-now.is-today i, .nowline i{ background:Highlight; }
 }
 
 /* ==================== the calendar surface ====================
@@ -948,9 +961,10 @@ body.sheet-open{ overflow:hidden; }
 /* -- the now-line: one horizon across the week at two strengths -- */
 .wk-now{ position:absolute; inset-inline-start:0; inset-inline-end:0; height:0; pointer-events:none; }
 .wk-now.is-ghost{ z-index:0; border-top:1px solid color-mix(in oklab, var(--accent) 16%, transparent); }
-.wk-now.is-today{ z-index:4; border-top:1.5px solid var(--accent); }
+.wk-now.is-today{ --now-color:var(--accent); z-index:4; border-top:1.5px solid var(--now-color); }
+/* -(1.5 + 7) / 2 = -4.25. This one was always right. */
 .wk-now.is-today i{ position:absolute; inset-inline-start:-3.5px; top:-4.25px; width:7px; height:7px;
-  border-radius:50%; background:var(--accent); }
+  border-radius:50%; background:var(--now-color); }
 
 /* -- events: one language, shared by the week grid and Today's spine --
    A tint of the category over the surface, a saturated rail drawn INSIDE
@@ -1148,8 +1162,8 @@ h1, .topbar h1{ letter-spacing:-.022em; }
 /* The now-line is live data, so its dot breathes — slowly enough to read
    as "this is current" rather than as something demanding attention. */
 @keyframes nowPulse{
-  0%,100%{ box-shadow:0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent); }
-  50%{ box-shadow:0 0 0 5px color-mix(in oklab, var(--accent) 0%, transparent); }
+  0%,100%{ box-shadow:0 0 0 0 color-mix(in oklab, var(--now-color, var(--accent)) 45%, transparent); }
+  50%{ box-shadow:0 0 0 5px color-mix(in oklab, var(--now-color, var(--accent)) 0%, transparent); }
 }
 .wk-now.is-today i, .nowline i{ animation:nowPulse 2.6s ease-out infinite; }
 
