@@ -14,6 +14,25 @@ import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERF
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
+// The waking window. Free time only means anything inside it: a night
+// counted as "open" is how the header came to advertise eight hours of
+// sleep as availability. Shared by the readout and the gap chips so the
+// two cannot drift apart again.
+const WAKE_A = 6 * 60, WAKE_B = 23 * 60;
+
+// Unbooked minutes inside the waking window, and on today only the part
+// still ahead. Measured from the same gaps the chips are drawn from, with
+// no minimum length - a scatter of short gaps is still open time even
+// when none of it is worth a chip.
+function openMinutes(day, isToday) {
+  const from = Math.max(WAKE_A, isToday ? minutesNow() : 0);
+  if (from >= WAKE_B) return 0;
+  return freeGaps(day, 0)
+    .map(([a, b]) => [Math.max(a, from), Math.min(b, WAKE_B)])
+    .filter(([a, b]) => b > a)
+    .reduce((sum, [a, b]) => sum + (b - a), 0);
+}
+
 function dayStrip() {
   // Anchored on the day being VIEWED, not on today. Built from todayISO()
   // the strip showed the same seven days forever, so opening any day
@@ -249,7 +268,6 @@ function spine() {
   // useless, since a blank day is obvious from the blank grid. So: gaps are
   // clamped to waking hours, and a day with nothing on it gets a real empty
   // state instead of one enormous rectangle.
-  const WAKE_A = 6 * 60, WAKE_B = 23 * 60;
   const gaps = list.length ? freeGaps(S.day, 45)
     .map(([a, b]) => [Math.max(a, WAKE_A), Math.min(b, WAKE_B)])
     .filter(([a, b]) => b - a >= 45 && b > (isToday ? minutesNow() : 0))
@@ -380,7 +398,7 @@ export default {
   render() {
     const isToday = S.day === todayISO();
     const committed = dayLoad(S.day);
-    const free = DAY_MINUTES - committed;
+    const free = openMinutes(S.day, isToday);
     const next = nextUp(S.day, isToday ? minutesNow() : 0);
     const timer = snapshot();
 
