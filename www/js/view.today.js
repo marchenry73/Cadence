@@ -4,7 +4,7 @@
 import { S, occurrencesOn, dayLoad, freeGaps, catColor, save, nextUp, openTasks, mine, goalProgress, taskScore, isBlockDone, markBlockDone, unmarkBlockDone } from './state.js';
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtTime, fmtRange, fmtDur, todayISO, addDays, minutesNow, DAY_MINUTES, snap } from './util.js';
-import { openBlockSheet, openQuickAdd, parsePhrase } from './sheets.js';
+import { openBlockSheet, openQuickAdd, parsePhrase, previewPhrase } from './sheets.js';
 import { openTaskSheet } from './sheets.js';
 import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ } from './ui.js';
 import { startTimer, pauseTimer, resetTimer, snapshot, onTimer, timerChip } from './timer.js';
@@ -404,9 +404,14 @@ export default {
         <div class="nl-bar">
           <input class="input" id="nlInput" autocomplete="off" autocapitalize="sentences"
                  aria-label="Add an event or task in plain language"
+                 aria-describedby="nlPreview"
                  placeholder="Gym 6–7am · Draft brief tomorrow 45m">
           <button class="btn primary sm" data-act="nlCommit">${esc(t('common.add'))}</button>
         </div>
+        <!-- The same read-back the quick-add sheet shows. aria-live so the
+             parse is announced as it changes, polite so it waits for a
+             pause in typing rather than interrupting every keystroke. -->
+        <div class="qa-preview" id="nlPreview" aria-live="polite"></div>
 
         ${hero(next, isToday, timer)}
         ${tileRow(committed)}
@@ -445,9 +450,17 @@ export default {
     }
     installBlockDrag(root);
     const nl = $('#nlInput', root);
-    if (nl) nl.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); commitNL(); }
-    });
+    if (nl) {
+      // Show what the parser made of it BEFORE committing, the way the
+      // quick-add sheet always has.
+      const preview = $('#nlPreview', root);
+      const paint = () => { if (preview) preview.innerHTML = previewPhrase(nl.value); };
+      nl.addEventListener('input', paint);
+      nl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); commitNL(); }
+      });
+      paint();
+    }
     this._offTimer = onTimer(s => {
       const chip = $('[data-act=toggleFocus]', root);
       if (!chip) return;

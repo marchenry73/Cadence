@@ -320,7 +320,9 @@ export function parsePhrase(text) {
     : { type: 'block', title, day, start, end, category_id };
 }
 
-function previewPhrase(text) {
+// Exported so Today's bar can show the same read-back rather than keeping
+// a second copy of it in step with this one.
+export function previewPhrase(text) {
   const p = parsePhrase(text);
   if (!p) return `<span class="dim">${esc(t('block.title'))}…</span>`;
   const cat = p.category_id ? catById(p.category_id)?.name : null;
