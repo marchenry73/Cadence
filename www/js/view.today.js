@@ -399,7 +399,7 @@ export default {
         ${tileRow(committed)}
 
         <div class="section-head"><span class="eyebrow">${esc(t('today.yourDay'))}</span><span class="dim small mono">${esc(fmtDur(free))} ${esc(t('today.open').toLowerCase())}</span></div>
-        ${spine()}
+        <div class="spine-scroll" id="spineScroll">${spine()}</div>
 
         ${taskListMini()}
       </div>
@@ -416,8 +416,11 @@ export default {
       // revealMinute does its own retry scheduling — wrapping this in rAF
       // would put it back behind the compositor.
       const list = occurrencesOn(S.day);
+      // The grid's own scroller, not the page's. Pointed at the page, this
+      // put the current hour near the top by pushing the day strip, the add
+      // bar, the hero and the tiles off the top of the screen.
       revealMinute(
-        root.closest('.screen-scroll'), spineEl,
+        $('#spineScroll', root) || root.closest('.screen-scroll'), spineEl,
         openingMinute({
           isToday: S.day === todayISO(),
           nowMin: minutesNow(),

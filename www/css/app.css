@@ -275,6 +275,15 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
    which is exactly why this survived so long.
    The gradient is a background, and backgrounds already honour
    border-radius, so the clip bought nothing it could not do without. */
+/* The grid scrolls, the screen above it does not. Wrapping .spine itself
+   would clip the hour labels, which render in the 54px gutter OUTSIDE the
+   spine box (measured: labels at x=2-50, spine starts at x=56) - the same
+   geometry that made an earlier overflow:hidden on .spine hide all 25.
+   overflow-x is deliberately hidden rather than auto: overflow-y:auto
+   forces the other axis to a scrolling value, and a stray fraction of a
+   pixel would otherwise hand the grid a horizontal scrollbar. */
+.spine-scroll{ overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+  max-height:min(58vh, 560px); border-radius:var(--radius); }
 .spine{ position:relative; margin-inline-start:54px; border-radius:var(--radius); }
 .hour{ position:absolute; inset-inline-start:-54px; inset-inline-end:0; height:0; border-top:1px solid var(--border); }
 .hour-label{ position:absolute; inset-inline-start:0; top:-8px; font-size:11px; color:var(--text-faint); width:48px; text-align:end; padding-inline-end:8px; }
