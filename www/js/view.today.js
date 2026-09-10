@@ -15,17 +15,31 @@ import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERF
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
 function dayStrip() {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i - 1));
-  return `<div class="daystrip">${days.map(d => {
+  // Anchored on the day being VIEWED, not on today. Built from todayISO()
+  // the strip showed the same seven days forever, so opening any day
+  // outside that window left nothing marked and nowhere to step.
+  const today = todayISO();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(S.day, i - 1));
+  const chips = days.map(d => {
     const on = d === S.day;
-    const isToday = d === todayISO();
+    const isToday = d === today;
     const load = dayLoad(d);
     return `<button class="daychip tap${on ? ' on' : ''}" data-act="pickDay" data-day="${d}">
       <span class="dc-dow">${esc(dateLabel(d, { weekday: 'short' }))}</span>
       <span class="dc-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</span>
       <span class="dc-dot" style="opacity:${load ? Math.min(1, load / 480) : 0}"></span>
     </button>`;
-  }).join('')}</div>`;
+  }).join('');
+  // Now that the window follows you, it can carry you somewhere with no
+  // one-tap way back - and Today has no jump-home control the way the
+  // calendar does. This is that control, and it exists only while it has
+  // something to do. Its side says which way home is.
+  const home = days.includes(today) ? '' : `<button class="daychip tap dc-home" data-act="pickDay" data-day="${today}">
+      <span class="dc-dow">${esc(t('cal.today'))}</span>
+      <span class="dc-num today">${Number(today.slice(8))}</span>
+      <span class="dc-dot" style="opacity:0"></span>
+    </button>`;
+  return `<div class="daystrip">${today < S.day ? home + chips : chips + home}</div>`;
 }
 
 // The hero panel that leads the screen: what's running right now, or what's
