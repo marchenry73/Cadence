@@ -761,6 +761,10 @@ body.sheet-open{ overflow:hidden; }
   text-align:start; width:100%; border-bottom:1px solid var(--border); }
 .sr-row:last-child{ border-bottom:none; }
 .sr-row:hover{ background:var(--surface-2); }
+/* The row Enter will open. Keyboard users had no way to tell which that was,
+   and no way to move it. Distinct from :hover so a mouse hovering one row
+   while the keyboard selects another does not read as two selections. */
+.sr-row.is-active{ background:var(--accent-weak); box-shadow:inset 2px 0 0 var(--accent-user, var(--accent)); }
 .sr-icon{ width:26px; height:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
   color:var(--text-faint); }
 .sr-icon svg{ width:16px; height:16px; }

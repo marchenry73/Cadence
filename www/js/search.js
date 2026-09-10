@@ -144,8 +144,11 @@ function resultsHTML(q) {
   if (!rows.length) {
     return `<div class="sr-hint">Nothing matches “${esc(q.trim())}”.</div>`;
   }
-  return `<div class="sr-list">${rows.map(r => `
-    <button class="sr-row tap" data-act="searchGo"
+  // A listbox of options, so the selection can move without focus leaving
+  // the input the user is typing in.
+  return `<div class="sr-list" id="srList" role="listbox" aria-label="Search results">${rows.map((r, i) => `
+    <button class="sr-row tap${i === 0 ? ' is-active' : ''}" data-act="searchGo" role="option"
+      id="sr-${i}" aria-selected="${i === 0 ? 'true' : 'false'}"
       data-kind="${r.kind}" data-id="${esc(r.id)}"
       data-day="${esc(r.day || '')}" data-key="${esc(r.key || '')}">
       <span class="sr-icon" style="${r.color ? `color:${r.color}` : ''}">${ICONS[r.kind] || ''}</span>
@@ -163,7 +166,8 @@ export function openSearch() {
     body: `
       <div class="field">
         <input class="input" id="searchInput" autocomplete="off" autocapitalize="none"
-               placeholder="Find anything…" aria-label="Search">
+               placeholder="Find anything…" aria-label="Search"
+               role="combobox" aria-expanded="true" aria-controls="srList" aria-autocomplete="list">
       </div>
       <div id="searchResults">${resultsHTML('')}</div>`
   });
@@ -171,14 +175,52 @@ export function openSearch() {
   if (!input) return;
   // Everything is already in memory, so this can run on every keystroke
   // with no debounce and still feel instant.
+  // Which result Enter will open. Reset on every re-query, because the row
+  // that was third for "den" is not the row that is third for "dent".
+  let sel = 0;
+  const rowsNow = () => [...document.querySelectorAll('.sr-row')];
+  const mark = () => {
+    const rows = rowsNow();
+    if (!rows.length) { input.removeAttribute('aria-activedescendant'); return; }
+    sel = Math.max(0, Math.min(sel, rows.length - 1));
+    rows.forEach((r, i) => {
+      r.classList.toggle('is-active', i === sel);
+      r.setAttribute('aria-selected', i === sel ? 'true' : 'false');
+    });
+    input.setAttribute('aria-activedescendant', rows[sel].id);
+    rows[sel].scrollIntoView({ block: 'nearest' });
+  };
   const paint = () => {
     const host = $('#searchResults');
     if (host) host.innerHTML = resultsHTML(input.value);
+    sel = 0;
+    mark();
   };
   input.addEventListener('input', paint);
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); $('.sr-row')?.click(); }
+    const rows = rowsNow();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!rows.length) return;
+      e.preventDefault();
+      // Wraps, so holding one arrow cannot strand you at an end.
+      sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+      mark();
+      return;
+    }
+    if (e.key === 'Home' || e.key === 'End') {
+      if (!rows.length) return;
+      e.preventDefault();
+      sel = e.key === 'Home' ? 0 : rows.length - 1;
+      mark();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // The row the user can SEE is selected, not whatever is first.
+      rows[sel]?.click();
+    }
   });
+  mark();
   setTimeout(() => input.focus(), 60);
 }
 
