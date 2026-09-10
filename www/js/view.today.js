@@ -151,7 +151,7 @@ function taskListMini() {
     <div class="section-head"><span class="eyebrow">${esc(t('nav.tasks'))}</span><span class="dim small mono">${open.length} ${esc(t('task.open'))}</span></div>
     <div class="tasks-mini">${top.map(tk => `
       <button class="trow-mini tap" data-act="editTaskFromRail" data-id="${tk.id}">
-        <span class="task-check${tk.done_at ? ' on' : ''}"></span>
+        <span class="task-check"></span>
         <span class="ttitle-mini${tk.done_at ? ' strike' : ''}">${esc(tk.title)}</span>
       </button>`).join('')}</div>`;
 }
@@ -309,7 +309,7 @@ function desktopRail() {
     <div class="rail-card">
       <h3>${esc(t('nav.tasks'))}</h3>
       ${tasks.length ? tasks.map(tk => `<button class="rail-task tap" data-act="editTaskFromRail" data-id="${tk.id}">
-        <span class="task-check${tk.done_at ? ' on' : ''}" style="width:16px;height:16px"></span>${esc(tk.title)}</button>`).join('')
+        <span class="task-check" style="width:16px;height:16px"></span>${esc(tk.title)}</button>`).join('')
         : `<span class="dim small">${esc(t('task.empty'))}</span>`}
     </div>
     <div class="rail-card">
@@ -506,7 +506,6 @@ registerActions({
   openBlock: (d, node) => {
     // Ignore the click that always follows a drag gesture.
     if (d.justDragged) { delete node.dataset.justDragged; return; }
-    if (node.closest('.block-confirm')) return;
     const occ = occurrencesOn(S.day).find(o => o.key === d.key);
     if (occ) openBlockSheet({ occ, day: S.day });
   },

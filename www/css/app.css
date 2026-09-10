@@ -48,6 +48,9 @@
      surfaces that float above the page, pill for capsules. Anything not
      on this scale is a mistake, not a nuance. */
   --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:20px; --r-pill:999px;
+  /* Was hand-rolled in seven rules, in two different stacks. A token so
+     the ninth one cannot invent a third. */
+  --font-mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* The event rail is an inset box-shadow, and box-shadow has no logical
      form - so its offset is a variable, flipped once for right-to-left
      rather than restated on all eight rules that draw it. */
@@ -129,7 +132,7 @@ input,textarea{ user-select:text; -webkit-user-select:text; }
 button{ font-family:inherit; font-size:inherit; color:inherit; background:none; border:none; cursor:pointer; -webkit-appearance:none; }
 a{ color:var(--accent-ink); text-decoration:none; }
 a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
-.mono{ font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+.mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 .dim{ color:var(--text-dim); } .small{ font-size:13px; }
 .strike{ text-decoration:line-through; opacity:.7; }
 .good{ color:var(--good-ink); } .good-text{ color:var(--good-ink); }
@@ -187,7 +190,7 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 
 .stat-row{ display:flex; gap:10px; margin:6px 0 14px; }
 .stat{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }
-.stat-n{ font-size:20px; font-weight:700; font-family:'IBM Plex Mono',monospace; }
+.stat-n{ font-size:20px; font-weight:700; font-family:var(--font-mono); }
 .stat-l{ font-size:12px; color:var(--text-dim); margin-top:2px; }
 
 .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:14px; }
@@ -251,11 +254,11 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
    puts the disc above the gradient and below the text. */
 .tile-ring{ position:relative; isolation:isolate;
   width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-  font-size:10px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+  font-size:10px; font-weight:800; font-family:var(--font-mono); }
 .tile-ring::before{ content:''; position:absolute; inset:4px; border-radius:50%;
   background:var(--tile-bg, var(--surface)); z-index:-1; }
 .tile-label{ font-size:11px; font-weight:700; line-height:1.25; }
-.tile-sub{ font-size:10px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+.tile-sub{ font-size:10px; color:var(--text-dim); font-family:var(--font-mono); }
 
 /* -------- "when should I do this?" suggestions -------- */
 .sug-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
@@ -445,7 +448,7 @@ textarea.input{ resize:vertical; min-height:60px; font-family:inherit; }
 .chip.on{ background:var(--accent-solid); color:var(--on-accent); }
 .range-wrap{ display:flex; align-items:center; gap:10px; }
 .range-wrap input[type=range]{ flex:1; }
-.range-wrap output{ font-family:'IBM Plex Mono',monospace; font-size:13px; width:24px; text-align:end; }
+.range-wrap output{ font-family:var(--font-mono); font-size:13px; width:24px; text-align:end; }
 .stepper{ display:flex; align-items:center; gap:14px; }
 .swatches{ display:flex; gap:10px; flex-wrap:wrap; }
 .swatch{ width:30px; height:30px; border-radius:50%; border:2px solid transparent; }
@@ -989,7 +992,7 @@ body.sheet-open{ overflow:hidden; }
 
 .block-body{ flex:1; min-width:0; padding:6px 9px 6px 12px; display:flex; flex-direction:column; gap:2px; }
 .block-title{ font-size:13px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ev-text); }
-.block-time{ font-size:11px; color:var(--ev-text); opacity:.92; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+.block-time{ font-size:11px; color:var(--ev-text); opacity:.92; }
 .block.running{ box-shadow:inset var(--rail-x, 3px) 0 0 var(--evc), 0 0 0 2px var(--accent); }
 .block-flag, .protect-flag{ color:var(--ev-text); opacity:1; }
 /* The spine's per-hour border and the gradient would double up; the
@@ -1060,7 +1063,7 @@ body.sheet-open{ overflow:hidden; }
    as they change each minute. */
 .mono, .wk-hour, .wk-now-time, .hour-label,
 .wk-num, .mc-num, .dc-num, .agenda-time, .sr-when{
-  font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family:var(--font-mono);
   font-variant-numeric:tabular-nums;
   font-feature-settings:'tnum' 1, 'zero' 1;   /* slashed zero reads as data */
 }
@@ -1081,9 +1084,14 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   text-transform:uppercase; letter-spacing:.07em; font-weight:700;
 }
 
-/* Times are secondary to titles everywhere, and consistently so: same
-   family, same 0.72 weighting against their title's colour. */
+/* Times are secondary to titles everywhere, and now actually consistent.
+   This rule claimed to set the family and did not, so .block-time declared
+   it locally and .wk-block-time never got it: measured on the same data,
+   the day view drew times in IBM Plex Mono and the week view in Manrope.
+   (The comment also claimed a 0.72 weighting that no rule has ever
+   applied. Both times use opacity .92, set on their own rules.) */
 .wk-block-time, .block-time, .agenda-time, .hero-time{
+  font-family:var(--font-mono);
   font-variant-numeric:tabular-nums;
 }
 
@@ -1174,7 +1182,7 @@ h1, .topbar h1{ letter-spacing:-.022em; }
   transition:background .12s ease, color .12s ease, border-color .12s ease;
 }
 .wk-more:hover{ background:var(--surface); color:var(--text); border-color:var(--border-2); }
-.wm-n{ font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+.wm-n{ font-family:var(--font-mono); font-size:10px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
 .wm-dots{ display:flex; flex-direction:column; gap:2px; }
 .wm-dots i{ width:4px; height:4px; border-radius:50%; }
 
