@@ -7,3 +7,6 @@ android/local.properties
 *.log
 www-demo/
 supabase/.temp/
+
+# audit-a11y.js gets copied here to be fetchable by the page; it must never ship
+www/_audit.js
