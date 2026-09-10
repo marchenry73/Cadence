@@ -58,7 +58,14 @@ export default {
   render() {
     const overdue = overdueTasks();
     const open = openTasks().filter(t => !overdue.includes(t)).sort((a, b) => taskScore(b) - taskScore(a));
-    const done = mine('tasks').filter(t => t.done_at).sort((a, b) => (b.done_at || '').localeCompare(a.done_at || '')).slice(0, 30);
+    const doneAll = mine('tasks').filter(t => t.done_at).sort((a, b) => (b.done_at || '').localeCompare(a.done_at || ''));
+    // The cap keeps this list browsable. It must not hide the one row the
+    // user explicitly searched for: search switches the filter to "done",
+    // and finishing thirty-one things used to make the thirty-first
+    // unfindable — right filter, no row, nothing to scroll to.
+    const done = doneAll.slice(0, 30);
+    const wanted = doneAll.find(t => justTouched('tasks', t.id));
+    if (wanted && !done.includes(wanted)) done.unshift(wanted);
 
     return `<div class="pad">
       <div class="segmented">

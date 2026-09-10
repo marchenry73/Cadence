@@ -41,7 +41,12 @@ export function openBlockSheet(opts = {}) {
     // Which weekdays this repeats on. Seeded from the routine when editing
     // one, empty otherwise - an empty list means "does not repeat", which is
     // what every block was permanently stuck as before.
-    days: (occ && occ.kind === 'routine'
+    // Seeded from the routine whenever this block belongs to one - INCLUDING
+    // a one-off override, which is an event carrying routine_id. Seeding those
+    // empty made the picker lie: a block from a Mon-Fri series showed no days
+    // selected, so turning one on read as "also repeat on Monday" and acted as
+    // "repeat ONLY on Monday", quietly dropping the other four.
+    days: (occ && occ.routine_id
       ? (S.routines.find(r => r.id === occ.routine_id)?.days || [])
       : []).slice(),
     image_path: occ?.image_path || null,
@@ -469,6 +474,21 @@ export const sheetActions = {
       save('events', {
         ...patch, day: draft.day, routine_id: draft.routine_id, image_path: draft.image_path || null
       });
+    } else if (repeats && draft.routine_id) {
+      // This event exists to override a routine on one day, so it is part
+      // of that series. Converting it into a SECOND routine deletes the
+      // override — which is the only thing suppressing the parent that day
+      // — so the parent reappears next to the new one: two copies of the
+      // same block, every week. The protected-time check above cannot catch
+      // that, because it runs while the override still hides the parent.
+      //
+      // A judgement call, and worth naming: an event has no scope picker,
+      // so nothing asks whether "make this repeat" means this series or a
+      // new one. Editing the series is the only reading that cannot leave
+      // two overlapping copies behind.
+      save('routines', { id: draft.routine_id, ...patch, days: draft.days.slice() });
+      remove('events', draft.id);
+      if (draft.image_path) deleteImage(draft.image_path);
     } else if (repeats) {
       // Days chosen on a one-off: this becomes a routine. An event being
       // converted gives up its row, because leaving it behind would draw the
