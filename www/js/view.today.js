@@ -128,11 +128,15 @@ function tileRow(committed) {
   }).join('');
   const streak = streakNow();
   const streakPct = Math.min(100, streak * (100 / 7));
-  const streakTile = `<div class="tile t-honey">
+  // A button, like the two tiles it sits beside and is indistinguishable
+  // from. It was a div, so the one tile that looked most like a score you
+  // could drill into was the one that ignored you.
+  const streakTile = `<button class="tile t-honey tap" data-act="gotoReview"
+      aria-label="${esc(t('today.streak'))}: ${streak}. ${esc(t('today.streakHow'))}">
     <div class="tile-ring" style="background:conic-gradient(var(--honey) 0 ${streakPct}%, color-mix(in oklab, var(--honey) 25%, transparent) 0)">${streak}</div>
-    <div class="tile-label">Day streak</div>
-    <div class="tile-sub">${esc(fmtDur(committed))} today</div>
-  </div>`;
+    <div class="tile-label">${esc(t('today.streak'))}</div>
+    <div class="tile-sub">${streak ? `${esc(fmtDur(committed))} ${esc(t('today.todayLower'))}` : esc(t('today.streakHow'))}</div>
+  </button>`;
   return `<div class="tiles">${goalTiles}${streakTile}</div>`;
 }
 
@@ -489,6 +493,7 @@ function commitNL() {
 registerActions({
   nlCommit: () => commitNL(),
   gotoGoals: () => window.cadenceGoRoute('goals'),
+  gotoReview: () => window.cadenceGoRoute('review'),
   confirmBlock: (d, node, ev) => {
     ev.stopPropagation();
     playCue('done');

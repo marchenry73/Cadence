@@ -44,6 +44,10 @@ export const EN = {
   'today.empty': 'A clear day. Add a block or pull a task in.',
   'today.in': 'in {t}', 'today.nowRunning': 'Running now',
   'today.planDay': 'Plan this day',
+  'today.streak': 'Day streak', 'today.todayLower': 'today',
+  // Deliberately names the three things that count, because opening the
+  // app is not one of them and a stuck 0 otherwise looks like a bug.
+  'today.streakHow': 'Confirm a block, finish a task or a focus session',
 
   'block.new': 'New block', 'block.edit': 'Edit block', 'block.title': 'Title',
   'block.category': 'Category', 'block.start': 'Starts', 'block.end': 'Ends',
