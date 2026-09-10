@@ -4,6 +4,7 @@
 // is measured against it — the app never guesses what "better" means for you.
 import { S, savePrefs, categories, catById, categoryTotals, occurrencesOn, isBlockDone, mine } from './state.js';
 import { esc, fmtDur, todayISO } from './util.js';
+import { t } from './i18n.js';
 import { openSheet, closeSheet, readForm, toast, haptic, field, $ } from './ui.js';
 
 export const PARTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening'], ['any', 'Any time']];
@@ -34,13 +35,17 @@ const pct = (a, b) => (b > 0 ? Math.max(0, Math.min(100, Math.round((a / b) * 10
 // Six honest measures, each 0–100, blended into one score. The weights say
 // what this app believes: keeping your word matters most, then whether the
 // time went to what you said you cared about.
+// Translation KEYS, not labels. Resolving t() in a module-level const runs
+// it before any pack has loaded and freezes all six at English for every
+// language - the same way the tab bar was frozen. efficiency() resolves
+// them instead, and that runs per render.
 const WEIGHTS = [
-  ['kept', 'Plan kept', .25],
-  ['goal', 'Time on goals', .20],
-  ['shape', 'Matched your ideal day', .20],
-  ['deep', 'Uninterrupted focus', .15],
-  ['ontime', 'Confirmed on the day', .10],
-  ['accounted', 'Hours accounted for', .10]
+  ['kept', 'rev.planKept', .25],
+  ['goal', 'eff.goalTime', .20],
+  ['shape', 'eff.shape', .20],
+  ['deep', 'eff.deep', .15],
+  ['ontime', 'eff.ontime', .10],
+  ['accounted', 'eff.accounted', .10]
 ];
 
 export function efficiency(days) {
@@ -91,7 +96,7 @@ export function efficiency(days) {
     const got = actual[a.category_id] || 0;
     return {
       category_id: a.category_id,
-      name: catById(a.category_id)?.name || 'Area',
+      name: catById(a.category_id)?.name || t('eff.area'),
       color: catById(a.category_id)?.color || 'var(--accent)',
       identity: a.identity || '',
       part: a.part || 'any',
@@ -99,18 +104,22 @@ export function efficiency(days) {
     };
   }).sort((x, y) => y.target - x.target);
 
-  return { score, parts, labels: WEIGHTS, areas, totalPlanned, totalActual, goalMin, focusMin };
+  // Resolved here, at render, rather than at import.
+  const labels = WEIGHTS.map(([k, key, w]) => [k, t(key), w]);
+  return { score, parts, labels, areas, totalPlanned, totalActual, goalMin, focusMin };
 }
 
 // An encouraging coach, not a scoreboard: one line, always with a next move.
 export function coachLine(e) {
   const gap = e.areas.filter(a => a.target && a.pct < 60).sort((a, b) => a.pct - b.pct)[0];
   const win = e.areas.filter(a => a.target && a.pct >= 90)[0];
-  if (!e.totalPlanned) return 'Nothing scheduled yet — put one block in for tomorrow and you are already moving.';
-  if (e.score >= 85) return `Outstanding week. You are living close to the person you described${win ? ` — ${esc(win.name)} especially` : ''}.`;
-  if (e.score >= 65) return `Solid week.${gap ? ` The one to reclaim next week is ${esc(gap.name)} — you are at ${gap.pct}% of the hours you wanted.` : ' Keep the rhythm going.'}`;
-  if (e.score >= 40) return `Real progress, uneven days.${gap ? ` Protect two ${esc(gap.name)} blocks next week and this jumps.` : ' Confirm your blocks as you go and this gets easier to read.'}`;
-  return 'Rough week — everyone has them. Pick one block for tomorrow and confirm it; that is the whole trick.';
+  // Whole sentences per branch, not fragments glued together. esc() stays
+  // on every name: t() does not escape and these land in innerHTML.
+  if (!e.totalPlanned) return t('eff.coachNone');
+  if (e.score >= 85) return win ? t('eff.coachGreatWin', { cat: esc(win.name) }) : t('eff.coachGreat');
+  if (e.score >= 65) return gap ? t('eff.coachSolidGap', { cat: esc(gap.name), pct: gap.pct }) : t('eff.coachSolid');
+  if (e.score >= 40) return gap ? t('eff.coachProgressGap', { cat: esc(gap.name) }) : t('eff.coachProgress');
+  return t('eff.coachRough');
 }
 
 // ------------------------------------------------------------------- setup

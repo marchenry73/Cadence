@@ -151,6 +151,47 @@ export const EN = {
   'msg.confirmDelete': 'Delete this?', 'msg.somethingWrong': 'Something went wrong',
   'msg.confirmDeleteSeries': 'Delete this and every other time it repeats?',
   'board.failed': 'Could not load the board just now.',
+
+  // The Review screen. It had four t() calls against two dozen strings, so
+  // it stayed English whatever language the rest of the app was in.
+  'rev.pointsWeek': 'Points this week', 'rev.level': 'Level', 'rev.levelN': 'Level {n}',
+  'rev.challengeDone': 'Challenge complete — nice.', 'rev.challengeThis': 'This month\u2019s challenge',
+  'rev.earned': 'Earned',
+  'rev.reviewDone': 'Review done for this week ✓', 'rev.finishReview': 'Finish this week\u2019s review (+30)',
+  'rev.board': 'This week\u2019s board', 'rev.boardLoading': 'Loading the board…',
+  'rev.boardNickname': 'Pick a nickname to join the weekly board — it is the only thing other people see.',
+  'rev.chooseNickname': 'Choose a nickname',
+  'rev.boardEmpty': 'No scores posted yet this week — be first.',
+  'rev.boardReset': 'Points reset every week, so a good week always counts.',
+  'rev.selfVsIdeal': 'Current self vs ideal self', 'rev.yourRun': 'Your run',
+  'rev.planned': 'Planned', 'rev.actuallyDone': 'Actually done', 'rev.planKept': 'Plan kept',
+  // Reads correctly at any number, because t() has no plural support.
+  'rev.unconfirmed': '{n} not confirmed yet — tick them off on Today so this stays honest.',
+  'rev.timeWent': 'Where the time went', 'rev.uncategorised': 'Uncategorised',
+  // Whole sentences with slots, not fragments: word order is not universal.
+  'rev.insightOver': 'You planned {t} more {cat} than you kept. Try scheduling less of it next week.',
+  'rev.insightBest': '{cat} is your most reliable block — protect it.',
+  'rev.timeWord': 'time', 'rev.thatCategory': 'That category',
+  'rev.emptyWeek': 'Nothing scheduled this week yet.',
+  'rev.emptyWeekSub': 'Plan a few blocks, then confirm them as the week goes.',
+  'rev.hoursPerGoal': 'Hours invested per goal',
+  'rev.goalHoursHint': 'Link a block to a goal when you create it, and its hours land here.',
+
+  // The efficiency model in ideal.js, which renders inside Review.
+  'eff.goalTime': 'Time on goals', 'eff.shape': 'Matched your ideal day',
+  'eff.deep': 'Uninterrupted focus', 'eff.ontime': 'Confirmed on the day',
+  'eff.accounted': 'Hours accounted for', 'eff.area': 'Area',
+  // One complete sentence per branch. Handing a translator "Solid week."
+  // and " The one to reclaim next week is" separately cannot produce a
+  // correct sentence in a language that orders them differently.
+  'eff.coachNone': 'Nothing scheduled yet — put one block in for tomorrow and you are already moving.',
+  'eff.coachGreat': 'Outstanding week. You are living close to the person you described.',
+  'eff.coachGreatWin': 'Outstanding week. You are living close to the person you described — {cat} especially.',
+  'eff.coachSolid': 'Solid week. Keep the rhythm going.',
+  'eff.coachSolidGap': 'Solid week. The one to reclaim next week is {cat} — you are at {pct}% of the hours you wanted.',
+  'eff.coachProgress': 'Real progress, uneven days. Confirm your blocks as you go and this gets easier to read.',
+  'eff.coachProgressGap': 'Real progress, uneven days. Protect two {cat} blocks next week and this jumps.',
+  'eff.coachRough': 'Rough week — everyone has them. Pick one block for tomorrow and confirm it; that is the whole trick.',
 };
 
 let current = 'en';

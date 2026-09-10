@@ -49,7 +49,7 @@ function scoreCard(e) {
 function idealCard(e) {
   if (!idealIsSet()) {
     return `<div class="card ideal-empty">
-      <p class="eyebrow">Current self vs ideal self</p>
+      <p class="eyebrow">${esc(t('rev.selfVsIdeal'))}</p>
       <p class="dim">Describe the person you want to be and how many hours each part of your
       life deserves. Every week gets measured against that, not against a stranger's idea of productive.</p>
       <button class="btn primary" data-act="editIdeal">Define my ideal self</button>
@@ -86,31 +86,31 @@ function gameCard(days, e) {
   const reviewed = S.activity.some(a => a.kind === 'review-done' && a.detail === days[0]);
   return `
     <div class="stat-row">
-      <div class="stat"><div class="stat-n">${pts}</div><div class="stat-l">Points this week</div></div>
-      <div class="stat"><div class="stat-n ${streak ? 'good' : ''}">${streak}🔥</div><div class="stat-l">Day streak</div></div>
-      <div class="stat"><div class="stat-n">${lv.level}</div><div class="stat-l">Level</div></div>
+      <div class="stat"><div class="stat-n">${pts}</div><div class="stat-l">${esc(t('rev.pointsWeek'))}</div></div>
+      <div class="stat"><div class="stat-n ${streak ? 'good' : ''}">${streak}🔥</div><div class="stat-l">${esc(t('today.streak'))}</div></div>
+      <div class="stat"><div class="stat-n">${lv.level}</div><div class="stat-l">${esc(t('rev.level'))}</div></div>
     </div>
     <div class="card">
-      <div class="lvl-head"><span class="eyebrow">Level ${lv.level}</span>
+      <div class="lvl-head"><span class="eyebrow">${esc(t('rev.levelN', { n: lv.level }))}</span>
         <span class="dim small mono">${lv.points} / ${lv.nextAt}</span></div>
       <div class="sub-track"><div class="sub-fill" style="width:${lv.pct}%"></div></div>
       <div class="chal">
         <div class="chal-head"><span>${esc(ch.name)}</span><span class="mono dim">${ch.have}/${ch.target}</span></div>
         <div class="sub-track"><div class="sub-fill" style="width:${ch.pct}%"></div></div>
-        <div class="dim small">${ch.done ? 'Challenge complete — nice.' : 'This month’s challenge'}</div>
+        <div class="dim small">${esc(t(ch.done ? 'rev.challengeDone' : 'rev.challengeThis'))}</div>
       </div>
       <div class="badge-grid">
         ${BADGES.map(b => `<div class="badge${have.has(b.code) ? ' on' : ''}" title="${esc(b.hint)}">
           <span class="badge-icon">${b.icon}</span>
           <span class="badge-name">${esc(b.name)}</span>
-          <span class="badge-hint dim">${have.has(b.code) ? 'Earned' : esc(b.hint)}</span>
+          <span class="badge-hint dim">${have.has(b.code) ? esc(t('rev.earned')) : esc(b.hint)}</span>
         </div>`).join('')}
       </div>
       ${S.weekOffset === 0 ? `<button class="btn ${reviewed ? 'ghost' : 'primary'}" data-act="finishReview" data-week="${days[0]}"
-        ${reviewed ? 'disabled' : ''}>${reviewed ? 'Review done for this week ✓' : 'Finish this week’s review (+30)'}</button>` : ''}
+        ${reviewed ? 'disabled' : ''}>${esc(t(reviewed ? 'rev.reviewDone' : 'rev.finishReview'))}</button>` : ''}
     </div>
-    <div class="section-head"><span class="eyebrow">This week’s board</span></div>
-    <div class="card" id="boardCard"><div class="dim small">Loading the board…</div></div>`;
+    <div class="section-head"><span class="eyebrow">${esc(t('rev.board'))}</span></div>
+    <div class="card" id="boardCard"><div class="dim small">${esc(t('rev.boardLoading'))}</div></div>`;
 }
 
 export default {
@@ -145,36 +145,43 @@ export default {
 
       ${scoreCard(e)}
 
-      <div class="section-head"><span class="eyebrow">Current self vs ideal self</span></div>
+      <div class="section-head"><span class="eyebrow">${esc(t('rev.selfVsIdeal'))}</span></div>
       ${idealCard(e)}
 
-      <div class="section-head"><span class="eyebrow">Your run</span></div>
+      <div class="section-head"><span class="eyebrow">${esc(t('rev.yourRun'))}</span></div>
       ${gameCard(days, e)}
 
       <div class="stat-row">
-        <div class="stat"><div class="stat-n">${esc(fmtDur(totalPlanned))}</div><div class="stat-l">Planned</div></div>
-        <div class="stat"><div class="stat-n good">${esc(fmtDur(totalActual))}</div><div class="stat-l">Actually done</div></div>
-        <div class="stat"><div class="stat-n">${kept}%</div><div class="stat-l">Plan kept</div></div>
+        <div class="stat"><div class="stat-n">${esc(fmtDur(totalPlanned))}</div><div class="stat-l">${esc(t('rev.planned'))}</div></div>
+        <div class="stat"><div class="stat-n good">${esc(fmtDur(totalActual))}</div><div class="stat-l">${esc(t('rev.actuallyDone'))}</div></div>
+        <div class="stat"><div class="stat-n">${kept}%</div><div class="stat-l">${esc(t('rev.planKept'))}</div></div>
       </div>
 
-      ${unconfirmed ? `<div class="warnbar">${unconfirmed} past block${unconfirmed === 1 ? '' : 's'} not confirmed yet — tick them off on Today so this stays honest.</div>` : ''}
+      <!-- Phrased to read correctly at any number: t() has no plural support
+           and "1 past blocks" is exactly the sort of thing that makes an app
+           feel unfinished. -->
+      ${unconfirmed ? `<div class="warnbar">${esc(t('rev.unconfirmed', { n: unconfirmed }))}</div>` : ''}
 
       ${keys.length ? `
-        <div class="section-head"><span class="eyebrow">Where the time went</span></div>
+        <div class="section-head"><span class="eyebrow">${esc(t('rev.timeWent'))}</span></div>
         ${keys.map(k => {
           const cat = k === 'none' ? null : catById(k);
-          return bar(cat?.name || 'Uncategorised', cat?.color || 'var(--text-faint)', planned[k] || 0, actual[k] || 0, max);
+          return bar(cat?.name || t('rev.uncategorised'), cat?.color || 'var(--text-faint)', planned[k] || 0, actual[k] || 0, max);
         }).join('')}
         ${worst && (planned[worst] - (actual[worst] || 0)) > 30 ? `
-          <div class="insight">You planned ${esc(fmtDur(planned[worst] - (actual[worst] || 0)))} more
-          ${esc(catById(worst)?.name || 'time')} than you kept. Try scheduling less of it next week.</div>` : ''}
+          <div class="insight">${esc(t('rev.insightOver', {
+            t: fmtDur(planned[worst] - (actual[worst] || 0)),
+            cat: catById(worst)?.name || t('rev.timeWord')
+          }))}</div>` : ''}
         ${best && (actual[best] || 0) >= (planned[best] || 0) * 0.8 ? `
-          <div class="insight good-text">${esc(catById(best)?.name || 'That category')} is your most reliable block — protect it.</div>` : ''}
-      ` : `<div class="empty-state">Nothing scheduled this week yet.<br>
-            <span class="dim">Plan a few blocks, then confirm them as the week goes.</span></div>`}
+          <div class="insight good-text">${esc(t('rev.insightBest', {
+            cat: catById(best)?.name || t('rev.thatCategory')
+          }))}</div>` : ''}
+      ` : `<div class="empty-state">${esc(t('rev.emptyWeek'))}<br>
+            <span class="dim">${esc(t('rev.emptyWeekSub'))}</span></div>`}
 
       ${goals.length ? `
-        <div class="section-head"><span class="eyebrow">Hours invested per goal</span></div>
+        <div class="section-head"><span class="eyebrow">${esc(t('rev.hoursPerGoal'))}</span></div>
         <div class="card">
           ${goals.map(g => {
             const mins = goalHours(g.id, days);
@@ -183,7 +190,7 @@ export default {
               <span class="mono ${mins ? '' : 'dim'}">${esc(fmtDur(mins))}</span>
             </div>`;
           }).join('')}
-          <p class="dim small" style="margin:10px 0 0">Link a block to a goal when you create it, and its hours land here.</p>
+          <p class="dim small" style="margin:10px 0 0">${esc(t('rev.goalHoursHint'))}</p>
         </div>` : ''}
     </div>`;
   },
@@ -210,8 +217,8 @@ export default {
       return;
     }
     if (!S.prefs.nickname) {
-      card.innerHTML = `<p class="dim small">Pick a nickname to join the weekly board — it is the only thing other people see.</p>
-        <button class="btn ghost sm" data-act="editNickname">Choose a nickname</button>`;
+      card.innerHTML = `<p class="dim small">${esc(t('rev.boardNickname'))}</p>
+        <button class="btn ghost sm" data-act="editNickname">${esc(t('rev.chooseNickname'))}</button>`;
       return;
     }
     const { rows, error } = await leaderboard(days[0]);
@@ -230,8 +237,8 @@ export default {
             <span class="board-streak dim small">${r.streak}🔥</span>
             <span class="board-pts mono">${r.points}</span>
           </div>`).join('')}</div>
-         <p class="dim small" style="margin:10px 0 0">Points reset every week, so a good week always counts.</p>`
-      : `<p class="dim small">No scores posted yet this week — be first.</p>`;
+         <p class="dim small" style="margin:10px 0 0">${esc(t('rev.boardReset'))}</p>`
+      : `<p class="dim small">${esc(t('rev.boardEmpty'))}</p>`;
   }
 };
 
