@@ -474,12 +474,35 @@ export const sheetActions = {
   },
 
   blockDelete: async () => {
-    const ok = await confirmSheet({ title: t('common.delete'), message: t('msg.confirmDelete') });
+    // The scope picker only renders for a routine, so this can only be
+    // true when there is a series to delete. blockSave has branched on
+    // draft.scope all along; this never did, which made Delete on a
+    // routine identical to blockSkip below it.
+    const series = !!draft.routine_id && draft.scope === 'series';
+    const routine = series ? S.routines.find(x => x.id === draft.routine_id) : null;
+    // Ask the question that matches what is about to happen. "Delete this?"
+    // is honest about one block and misleading about every future one.
+    const ok = await confirmSheet({
+      title: t('common.delete'),
+      message: series ? t('msg.confirmDeleteSeries') : t('msg.confirmDelete')
+    });
     if (!ok) return;
     // The confirmation is its own layer now, so it no longer closes this
     // editor on the way out. Close it deliberately instead of by accident.
     closeSheet();
-    if (draft.kind === 'routine') {
+    if (routine) {
+      // Occurrences edited for one day are stored as events pointing at
+      // the routine. Leaving them would keep the block alive on exactly
+      // the days the user had customised, which looks like the delete
+      // half-worked. filter() copies first, so removing while iterating
+      // is safe.
+      mine('events').filter(e => e.routine_id === routine.id).forEach(e => {
+        if (e.image_path) deleteImage(e.image_path);
+        remove('events', e.id);
+      });
+      remove('routines', routine.id);
+    } else if (draft.kind === 'routine') {
+      // "Just today" on a routine: still a skip, which is correct.
       const r = S.routines.find(x => x.id === draft.routine_id);
       if (r) save('routines', { id: r.id, skip_dates: [...(r.skip_dates || []), draft.day] });
     } else if (draft.id) {

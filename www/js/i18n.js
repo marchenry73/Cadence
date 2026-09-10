@@ -144,7 +144,8 @@ export const EN = {
   'msg.queued': 'Saved on this device. It will sync when you are back online.',
   'msg.imageTooBig': 'That image is over 5 MB',
   'msg.badImage': 'Only JPEG, PNG, WebP or HEIC images',
-  'msg.confirmDelete': 'Delete this?', 'msg.somethingWrong': 'Something went wrong'
+  'msg.confirmDelete': 'Delete this?', 'msg.somethingWrong': 'Something went wrong',
+  'msg.confirmDeleteSeries': 'Delete this and every other time it repeats?',
 };
 
 let current = 'en';
