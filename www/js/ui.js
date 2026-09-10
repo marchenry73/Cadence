@@ -63,6 +63,12 @@ export function runAction(name, node, ev) {
 //            its data-act one: hold a block and the context sheet opened,
 //            then the editor opened straight over it.
 let suppressClickUntil = 0;
+// WHICH element the gesture happened on. Without this the window is global:
+// a long-press opens a sheet in ~260ms and then swallows the taps on that
+// sheet's own buttons for the rest of its 700ms, and an aborted swipe kills
+// the next tap on any other row. Only clicks inside this node are the
+// gesture's own trailing click.
+let suppressClickNode = null;
 
 // One listener for the whole app. Buttons carry data-act (+ any data-* the
 // handler needs), so re-rendering markup never leaks listeners.
@@ -70,7 +76,10 @@ export function installDelegation() {
   document.addEventListener('click', ev => {
     const node = ev.target.closest('[data-act]');
     if (!node || node.hasAttribute('disabled')) return;
-    if (Date.now() < suppressClickUntil) return;   // the click trailing a gesture
+    // Time AND place: the trailing click lands on the element the gesture
+    // started on, never on something a sheet put on top of it.
+    if (Date.now() < suppressClickUntil && suppressClickNode
+        && (suppressClickNode === ev.target || suppressClickNode.contains(ev.target))) return;
     // Native inputs keep their own behaviour (date/time pickers, selects,
     // text carets). Calling preventDefault on those stops the picker opening.
     const tag = node.tagName;
@@ -101,6 +110,7 @@ export function installDelegation() {
       // Set BEFORE running the action: the action may open a sheet, and
       // the click still arrives on release either way.
       suppressClickUntil = Date.now() + 700;
+      suppressClickNode = node;
       runAction(node.dataset.hold, node, ev);
     }, 480);
   }, { passive: true });
@@ -340,8 +350,9 @@ export function installRowSwipes(root) {
     n.classList.remove('swipe-armed');
     active = false; node = null;
     // Only when the finger actually travelled: a plain tap must still reach
-    // the button it landed on.
-    if (locked) suppressClickUntil = Date.now() + 350;
+    // the button it landed on. Scoped to this row, so an aborted swipe here
+    // cannot eat the next tap on a different one.
+    if (locked) { suppressClickUntil = Date.now() + 350; suppressClickNode = node; }
     if (fired && which) { haptic('success'); runAction(which, n); }
   };
   const reset = () => {
@@ -350,7 +361,7 @@ export function installRowSwipes(root) {
       node.style.transform = 'translateX(0)';
       node.classList.remove('swipe-armed');
     }
-    if (locked) suppressClickUntil = Date.now() + 350;
+    if (locked) { suppressClickUntil = Date.now() + 350; suppressClickNode = node; }
     active = false; node = null;
   };
   root.addEventListener('pointerup', end, { passive: true });

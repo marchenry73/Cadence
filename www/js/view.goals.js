@@ -62,6 +62,15 @@ export default {
             </div>
           </div>`}
     </div>`;
+  },
+
+  // Arriving from search, put the card it found on screen. The Tasks view
+  // got this when the highlight was added and Goals did not, so a found
+  // goal could be marked while sitting below the fold - highlighted where
+  // nobody could see it.
+  onMount(root) {
+    const found = root.querySelector('.is-found');
+    if (found) found.scrollIntoView({ block: 'center' });
   }
 };
 

@@ -355,6 +355,22 @@ function awardPlanAhead(day) {
   if (!already) logActivity('plan-ahead', day);
 }
 
+// Removing a routine has to take its day-specific overrides with it.
+// Those are events carrying routine_id, and left behind they point at a
+// routine that no longer exists and render forever as ordinary blocks with
+// no route back. There are TWO ways to remove a routine - the Delete button
+// with the series scope, and clearing every repeat day and saving - and
+// only the first one did this.
+function removeRoutineAndOverrides(routineId) {
+  if (!routineId) return;
+  // filter() copies first, so removing while iterating is safe.
+  mine('events').filter(e => e.routine_id === routineId).forEach(e => {
+    if (e.image_path) deleteImage(e.image_path);
+    remove('events', e.id);
+  });
+  remove('routines', routineId);
+}
+
 export const sheetActions = {
   sheetClose: () => closeSheet(),
 
@@ -446,7 +462,8 @@ export const sheetActions = {
       // Clearing every day would orphan the routine - it would exist and
       // never occur - so an empty set deletes it instead.
       if (repeats) save('routines', { id: draft.routine_id, ...patch, days: draft.days.slice() });
-      else remove('routines', draft.routine_id);
+      // Clearing every day is a delete, so it has to clean up like one.
+      else removeRoutineAndOverrides(draft.routine_id);
     } else if (draft.kind === 'routine') {
       // "Just today" becomes a one-off block that shadows the routine.
       save('events', {
@@ -493,16 +510,7 @@ export const sheetActions = {
     // editor on the way out. Close it deliberately instead of by accident.
     closeSheet();
     if (routine) {
-      // Occurrences edited for one day are stored as events pointing at
-      // the routine. Leaving them would keep the block alive on exactly
-      // the days the user had customised, which looks like the delete
-      // half-worked. filter() copies first, so removing while iterating
-      // is safe.
-      mine('events').filter(e => e.routine_id === routine.id).forEach(e => {
-        if (e.image_path) deleteImage(e.image_path);
-        remove('events', e.id);
-      });
-      remove('routines', routine.id);
+      removeRoutineAndOverrides(routine.id);
     } else if (draft.kind === 'routine') {
       // "Just today" on a routine: still a skip, which is correct.
       const r = S.routines.find(x => x.id === draft.routine_id);

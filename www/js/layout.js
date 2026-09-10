@@ -210,8 +210,35 @@ export function openingMinute({ isToday, nowMin, firstEventMin = null, focusStar
 // Past two lanes, then, the honest move is to stop splitting and start
 // summarising: show the events that can actually be read, and collect the
 // rest behind a count that opens them. Readability over theoretical density.
-export const MIN_LEGIBLE = 56;   // px of block width a title needs to read
-export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
+// Both numbers below are PIXELS, and a pixel count only means something
+// beside a text size. They were measured at the browser default 16px root.
+// Now that the type scale is in rem, a reader who sets a 24px default gets
+// 19.5px titles - and a 56px floor that was "enough for six characters and
+// an ellipsis" is enough for four. Left fixed, the cap would keep splitting
+// columns that can no longer carry the split, which is the exact failure
+// MIN_LEGIBLE exists to prevent. So they are a BASIS, and typeScale()
+// converts them to the reader's actual scale.
+export const MIN_LEGIBLE = 56;   // px of block width a title needs, at a 16px root
+export const OVERFLOW_W = 26;    // px reserved for the "+N" chip, at a 16px root
+const SCALE_BASIS = 16;          // the root size those two were measured at
+
+/**
+ * How much larger the reader's text is than the 16px the numbers assume.
+ *
+ * Read off the root element, which is what rem resolves against and what a
+ * browser font-size setting actually changes. Returns 1 when there is no
+ * document (tests) or the value is unreadable, so every caller degrades to
+ * exactly the behaviour it had before any of this.
+ */
+export function typeScale() {
+  if (typeof document === 'undefined' || !document.documentElement) return 1;
+  const px = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(px) && px > 0 ? px / SCALE_BASIS : 1;
+}
+
+/** The legibility floor and the chip strip at the reader's scale. */
+export const minLegible = (scale = typeScale()) => MIN_LEGIBLE * scale;
+export const overflowW = (scale = typeScale()) => Math.round(OVERFLOW_W * scale);
 // The gutter between neighbouring lanes. In PIXELS, deliberately: it used
 // to be a percentage of the container, which cannot be budgeted against a
 // pixel floor because it grows as the container does.
@@ -261,7 +288,7 @@ export function placeInGrid(startMin, endMin, pph, minPx, gapPx = 0) {
  * MIN_LEGIBLE is now an invariant rather than an aspiration: nothing is
  * drawn narrower than a title can be read in.
  */
-export function visibleLanes(colWidth, lanes, gapPx = GAP_PX) {
+export function visibleLanes(colWidth, lanes, gapPx = GAP_PX, scale = typeScale()) {
   if (lanes <= 1) return lanes;
   // Every lane but the last also pays for a gutter, so the budget is
   // (MIN_LEGIBLE + gutter) per lane with one gutter handed back for the
@@ -272,8 +299,9 @@ export function visibleLanes(colWidth, lanes, gapPx = GAP_PX) {
   // i.e. share >= MIN_LEGIBLE + gutter for every lane. Handing one gutter
   // back to the budget (the last lane does not pay it) is off by exactly the
   // amount that put 200 width/lane combinations back under the floor.
-  if (lanes === 2 && colWidth >= 2 * (MIN_LEGIBLE + gapPx)) return 2;
-  const fits = Math.floor((colWidth - OVERFLOW_W) / (MIN_LEGIBLE + gapPx));
+  const floor = minLegible(scale), chip = overflowW(scale);
+  if (lanes === 2 && colWidth >= 2 * (floor + gapPx)) return 2;
+  const fits = Math.floor((colWidth - chip) / (floor + gapPx));
   return Math.max(1, Math.min(lanes, fits));
 }
 
@@ -284,7 +312,7 @@ export function visibleLanes(colWidth, lanes, gapPx = GAP_PX) {
  *
  * @returns {{shown:Array, piles:Array<{start,end,lane,lanes,items}>}}
  */
-export function capDensity(packed, colWidth) {
+export function capDensity(packed, colWidth, scale = typeScale()) {
   if (!packed.length) return { shown: [], piles: [] };
   const shown = [], piles = [];
   const byCluster = new Map();
@@ -294,7 +322,7 @@ export function capDensity(packed, colWidth) {
   }
   for (const group of byCluster.values()) {
     const lanes = group[0].lanes;
-    const cap = visibleLanes(colWidth, lanes);
+    const cap = visibleLanes(colWidth, lanes, GAP_PX, scale);
     if (lanes <= cap) {
       shown.push(...group);
     } else {

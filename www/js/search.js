@@ -240,6 +240,13 @@ registerActions({
       return;
     }
     if (d.kind === 'goal') {
+      // Goals have the same problem tasks did: the list is filtered by
+      // horizon, so landing without clearing it shows a screen the result
+      // is not on. Widening to "all" rather than switching to the goal's
+      // own horizon, because the horizon segments are a browsing choice
+      // and "all" is the one that definitely contains it.
+      const goal = mine('goals').find(x => x.id === d.id);
+      if (goal) S.goalArea = 'all';
       S.lastTouched = { table: 'goals', id: d.id, at: Date.now() };
       window.cadenceGoRoute('goals');
       return;

@@ -416,10 +416,20 @@ function updateSyncPill({ state, pending, dropped }) {
     : state === 'pending' ? t('app.pending', { n: pending })
     : t('app.synced');
   // The pill is on screen at 390px too (measured: 136x31, top right), but it
-  // is a 12px label that changes colour - easy to miss, and what it reports
-  // here is permanent data loss. Toast once on the transition into a failure
-  // state, not on every flush that finds the same unacknowledged drop.
-  if (failed && lastSyncState !== state) toast(t('app.dropped', { n: dropped || 1 }), 'warn');
+  // is a 12px label that changes colour, easy to miss. Toast once on the
+  // transition into a failure state, not on every flush that finds the same
+  // unacknowledged drop.
+  //
+  // Only 'rejected' means a write was thrown away. 'error' is the outer
+  // catch in flush() - an IndexedDB hiccup, a read that failed before any op
+  // was even looked at - and the outbox is untouched, so the next flush
+  // retries it. Both used to raise the same toast, and its wording matches
+  // the settings card: "Nothing here is recoverable". Telling someone their
+  // work is permanently gone when it is safely queued is its own bug, and a
+  // worse one than saying nothing.
+  if (failed && lastSyncState !== state) {
+    toast(state === 'rejected' ? t('app.dropped', { n: dropped || 1 }) : t('app.syncError'), 'warn');
+  }
   lastSyncState = state;
 }
 

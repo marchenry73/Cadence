@@ -432,11 +432,17 @@ const SYNC_EVERY_MS = 5 * 60 * 1000;
 
 let lastSyncAt = 0;
 let blocked = null;   // 'needs-calendar-consent' | 'calendar-api-disabled' | 'expired'
+// Deliberately SEPARATE from `blocked`, because the sync gate reads that one.
+// A missing refresh token means sync will stop in about an hour, not that it
+// has stopped - putting it in `blocked` silenced every passive trigger
+// immediately while the banner claimed everything was fine.
+let softWarning = null;   // 'needs-refresh-token'
 let inFlight = false;
 
 // Why the background sync is currently not running, or null if it is fine.
 // Settings uses this to explain itself instead of silently doing nothing.
-export function googleSyncBlockedReason() { return blocked; }
+// The banner shows either. Only `blocked` gates the sync itself.
+export function googleSyncBlockedReason() { return blocked || softWarning; }
 
 // True for the whole of a sync pass, including the imports inside it.
 // app.js needs this: a pull calls save() for every event it brings down,
@@ -457,9 +463,11 @@ export async function verifyGoogleRefreshToken() {
   if (S.guest || !navigator.onLine) return null;
   if (!(await isGoogleAccount())) return null;
   const fresh = await providerToken({ forceRefresh: true });
-  if (fresh) { if (blocked === 'needs-refresh-token') blocked = null; return 'ok'; }
+  if (fresh) { softWarning = null; return 'ok'; }
   if (googleRefreshFailureReason() === 'needs_consent') {
-    blocked = 'needs-refresh-token';
+    // A WARNING, not a block. Sync keeps running on the current token
+    // until it expires; this only says it will not be renewed.
+    softWarning = 'needs-refresh-token';
     return 'needs-consent';
   }
   // Transient: the function was down, or the network blinked. Latching on
@@ -469,7 +477,7 @@ export async function verifyGoogleRefreshToken() {
 
 // Called after the user grants calendar access, so the next tick tries again
 // instead of staying latched off.
-export function resetGoogleSyncBlock() { blocked = null; lastSyncAt = 0; }
+export function resetGoogleSyncBlock() { blocked = null; softWarning = null; lastSyncAt = 0; }
 
 // Which Google events are NOT commitments on your day. Exported so the rule
 // can be tested against real payload shapes without a Google account -

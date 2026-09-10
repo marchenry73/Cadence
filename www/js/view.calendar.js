@@ -6,7 +6,7 @@ import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast, openSheet } from './ui.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, overflowW, typeScale, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
 import { whenLabel } from './search.js';
 
 // The week grid ignored the density preference entirely.
@@ -178,7 +178,12 @@ function weekView() {
   // for a frame on every render.
   const scrollerW = document.getElementById('scroller')?.clientWidth || 760;
   const hPad = window.matchMedia('(min-width:960px)').matches ? 64 : 32;
-  const colW = Math.max(60, (scrollerW - hPad - 52) / 7);
+  // Read once for the whole grid rather than per column: the px numbers
+  // below were all measured at a 16px root, and the gutter (.wk-gutter) is
+  // 3.25rem now, so at a larger browser font it is wider than 52.
+  const scale = typeScale();
+  const chipW = overflowW(scale);
+  const colW = Math.max(60, (scrollerW - hPad - 52 * scale) / 7);
 
   // Gutter labels within ~12 minutes of the now-line step aside so the live
   // time can take that slot — the axis should never read "2pm" beside a
@@ -199,15 +204,20 @@ function weekView() {
     // Concurrent meetings sit side by side until side by side stops being
     // readable; past that they collapse to a count. See capDensity().
     const dayHasFuture = occurrencesOn(d).some(o => o.end > nowMin);
-    const { shown, piles } = capDensity(packOverlaps(occurrencesOn(d)), colW);
+    const { shown, piles } = capDensity(packOverlaps(occurrencesOn(d)), colW, scale);
     const blocks = shown.map((o, i) => {
       const { top, height: h } = placeInGrid(o.start, o.end, pph, 16, 2);
       const color = catColor(o.category_id);
       // A capped cluster gives up one chip-width, shared across its lanes.
-      const { left, width: w, z } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
-      const tight = h < 32;                    // no room for a second line
-      // A tall block has room for the whole title; only short ones truncate.
-      const lines = h >= 76 ? 3 : h >= 50 ? 2 : 1;
+      const { left, width: w, z } = laneStyle(o, GAP_PX, 0, o.capped ? chipW : 0);
+      // Every threshold here is a height that text of a GIVEN SIZE fits in,
+      // so all three scale with the reader's font. Left fixed, a 24px root
+      // asks a 50px block to hold two 20.6px lines plus a time and cuts the
+      // title mid-glyph. The 16px placement floor above is NOT scaled: it is
+      // the duration made visible, and a 15-minute block that grows stops
+      // telling the truth about its length.
+      const tight = h < 32 * scale;            // no room for a second line
+      const lines = h >= 76 * scale ? 3 : h >= 50 * scale ? 2 : 1;
       // Elapsed blocks step back so what is left today reads at a glance.
       // Only step back what has elapsed TODAY, and only while today still
       // has something ahead of it. Dimming a wholly-past day distinguishes
@@ -230,12 +240,12 @@ function weekView() {
     // One chip per pile, at the time the pile happens, carrying a dot per
     // category so the mix is legible before you open it.
     const more = piles.map(p => {
-      const { top, height: h } = placeInGrid(p.start, p.end, pph, 33, 2);
+      const { top, height: h } = placeInGrid(p.start, p.end, pph, 33 * scale, 2);
       const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
         .map(c => `<i style="background:${c}"></i>`).join('');
       return `<button class="wk-more tap" data-act="showPile" data-day="${d}" data-start="${p.start}" data-end="${p.end}"
         aria-label="${p.items.length} more events between ${esc(fmtRange(p.start, p.end, S.prefs.clock24))}"
-        style="top:${top}px;height:${h}px;width:${OVERFLOW_W - 3}px">
+        style="top:${top}px;height:${h}px;width:${chipW - 3}px">
         <span class="wm-n">+${p.items.length}</span><span class="wm-dots">${dots}</span>
       </button>`;
     }).join('');

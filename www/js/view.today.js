@@ -10,7 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, pauseTimer, resetTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, overflowW, typeScale, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -199,16 +199,25 @@ function spine() {
   // re-render would paint the wrong density for one frame every time.
   const scrollerW = document.getElementById('scroller')?.clientWidth || 390;
   const wide = window.matchMedia('(min-width:960px)').matches;
-  // 54px is the spine's own left margin (the hour gutter); on desktop the
-  // 320px rail and its 24px gap come out of the same budget.
-  const spineW = Math.max(60, scrollerW - (wide ? 64 : 32) - (wide ? 344 : 0) - 54);
-  const { shown, piles } = capDensity(packOverlaps(list), spineW);
+  // Everything below that is written in pixels was measured at a 16px root.
+  // The type scale is in rem now, so a reader with a larger browser font
+  // gets larger text in the same boxes unless these move with it.
+  const scale = typeScale();
+  const chipW = overflowW(scale);
+  // The spine's own left margin is the hour gutter, and the gutter is rem
+  // now (--spine-gutter): 3.375rem, which is 54px at a 16px root. Budgeting
+  // a flat 54 here would hand the blocks width the gutter is still using.
+  // On desktop the 320px rail and its 24px gap come out of the same budget.
+  const gutter = 54 * scale;
+  const spineW = Math.max(60, scrollerW - (wide ? 64 : 32) - (wide ? 344 : 0) - gutter);
+  const { shown, piles } = capDensity(packOverlaps(list), spineW, scale);
 
   const blocks = shown.map((o, i) => {
-    const { top, height: h } = placeInGrid(o.start, o.end, pph, 30, 3);
+    // 30px is one title line plus the block's padding, at a 16px root.
+    const { top, height: h } = placeInGrid(o.start, o.end, pph, 30 * scale, 3);
     const color = catColor(o.category_id);
     // A capped cluster gives up one chip-width, shared across its lanes.
-    const { left, width: w } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
+    const { left, width: w } = laneStyle(o, GAP_PX, 0, o.capped ? chipW : 0);
     const running = isToday && o.start <= minutesNow() && o.end > minutesNow();
     // Two questions that used to share one answer. `past` is a LOOK:
     // elapsed blocks only step back while the day still has something
@@ -216,13 +225,17 @@ function spine() {
     // can be CONFIRMED is a different question, answered in confirms below.
     const past = isToday && dayHasFuture && o.end <= minutesNow();
     const done = isBlockDone(o, S.day);
-    // Tall blocks show the whole title; only short ones truncate.
-    const lines = h >= 96 ? 3 : h >= 62 ? 2 : 1;
+    // Tall blocks show the whole title; only short ones truncate. The
+    // thresholds are heights that a title of a GIVEN SIZE fits in, so they
+    // scale with it - left fixed, a 24px root asks a 62px block to hold two
+    // 24.4px lines plus a time, and the title is cut mid-glyph with nothing
+    // on screen saying so.
+    const lines = h >= 96 * scale ? 3 : h >= 62 * scale ? 2 : 1;
     return `<button class="block tap${running ? ' running' : ''}${past ? ' is-past' : ''}${past && done ? ' is-done' : ''}${S.lastTouched && S.lastTouched.id === o.id && Date.now() - S.lastTouched.at < 1800 ? ' is-new' : ''}" data-act="openBlock" data-key="${esc(o.key)}" data-hold="blockMenu"
       style="top:${top}px;height:${h}px;left:${left};width:${w};--i:${Math.min(i, 12)};--lines:${lines};--evc:${color}">
       <span class="block-body">
         <span class="block-title">${esc(o.title)}</span>
-        ${h > 46 ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
+        ${h > 46 * scale ? `<span class="block-time">${esc(fmtRange(o.start, o.end, S.prefs.clock24))}</span>` : ''}
       </span>
       ${o.image_path ? `<img class="block-img" data-img="${esc(o.image_path)}" alt="">` : ''}
       ${o.protected ? '<span class="protect-flag" title="Protected">\u{1F512}</span>' : ''}
@@ -243,8 +256,8 @@ function spine() {
     if (!elapsed) return '';
     // Identical placement to the block it sits over, so the tick cannot
     // drift away from its block at the end of the day.
-    const { top: cTop, height: cH } = placeInGrid(o.start, o.end, pph, 30, 3);
-    const { left: cL, width: cW } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
+    const { top: cTop, height: cH } = placeInGrid(o.start, o.end, pph, 30 * scale, 3);
+    const { left: cL, width: cW } = laneStyle(o, GAP_PX, 0, o.capped ? chipW : 0);
     const isDone = isBlockDone(o, S.day);
     return `<div class="confirm-slot" style="top:${cTop}px;height:${cH}px;left:${cL};width:${cW};--i:${Math.min(ci, 12)}">
       <button class="block-confirm tap${isDone ? ' on' : ''}" data-act="confirmBlock" data-key="${esc(o.key)}"
@@ -255,12 +268,12 @@ function spine() {
   // One chip per pile, at the time the pile happens, carrying a dot per
   // category so the mix reads before you open it.
   const more = piles.map(p => {
-    const { top, height: h } = placeInGrid(p.start, p.end, pph, 33, 2);
+    const { top, height: h } = placeInGrid(p.start, p.end, pph, 33 * scale, 2);
     const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
       .map(c => `<i style="background:${c}"></i>`).join('');
     return `<button class="wk-more tap" data-act="showPile" data-day="${S.day}" data-start="${p.start}" data-end="${p.end}"
       aria-label="${p.items.length} more between ${esc(fmtRange(p.start, p.end, S.prefs.clock24))}"
-      style="top:${top}px;height:${h}px;width:${OVERFLOW_W - 3}px">
+      style="top:${top}px;height:${h}px;width:${chipW - 3}px">
       <span class="wm-n">+${p.items.length}</span><span class="wm-dots">${dots}</span>
     </button>`;
   }).join('');
