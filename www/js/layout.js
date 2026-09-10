@@ -217,6 +217,37 @@ export const OVERFLOW_W = 26;    // px reserved for the "+N" chip
 // pixel floor because it grows as the container does.
 export const GAP_PX = 4;
 
+// Where a block sits on a 24-hour grid, guaranteed to stay on it.
+//
+// A minimum height keeps short blocks legible and tappable, but nothing
+// used to check that top + height still fitted. A 23:50-23:59 block is 9px
+// of real height, gets forced to the 30px floor, and its bottom lands 19px
+// past midnight - below the last hour line, hanging into whatever follows.
+//
+// It gives back HEIGHT rather than position, down to a 24px floor - the
+// WCAG 2.2 target minimum, so the block stays tappable. That reduces the
+// overhang rather than removing it: a 23:50 block still ends about 13px
+// below the last hour line. Removing it entirely means sliding the block up,
+// which was measured and rejected - on two adjacent late blocks the overlap
+// went from 7px to 26px on a 30px block, so one block hid another to tidy
+// up an edge.
+export const TARGET_MIN = 24;
+
+export function placeInGrid(startMin, endMin, pph, minPx, gapPx = 0) {
+  const gridH = 24 * pph;
+  // The top is left alone. Clamping it too was still a slide, just a
+  // smaller one, and it put the overlap back up to 20px.
+  const top = Math.max(0, (startMin / 60) * pph);
+  const natural = Math.max(minPx, ((endMin - startMin) / 60) * pph - gapPx);
+  // Give back height, not position. Sliding the block up instead would keep
+  // its full size but push it into whatever sits above: measured on two
+  // adjacent late blocks, the overlap went from 7px to 26px on a 30px block,
+  // trading a cosmetic overhang for one block hiding another. Shrinking
+  // leaves the overlap exactly as it was.
+  const height = Math.max(TARGET_MIN, Math.min(natural, gridH - top));
+  return { top, height };
+}
+
 /**
  * How many lanes a column of this width can show legibly.
  *

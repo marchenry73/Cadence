@@ -10,7 +10,7 @@ import { openSheet, closeSheet, confirmSheet, toast, haptic, registerActions, $ 
 import { startTimer, pauseTimer, resetTimer, snapshot, onTimer, timerChip } from './timer.js';
 import { playCue } from './notify.js';
 import { streakNow } from './gamify.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
 
 const pxPerHour = () => S.prefs.density === 'compact' ? 52 : 68;
 
@@ -205,8 +205,7 @@ function spine() {
   const { shown, piles } = capDensity(packOverlaps(list), spineW);
 
   const blocks = shown.map((o, i) => {
-    const top = (o.start / 60) * pph;
-    const h = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
+    const { top, height: h } = placeInGrid(o.start, o.end, pph, 30, 3);
     const color = catColor(o.category_id);
     // A capped cluster gives up one chip-width, shared across its lanes.
     const { left, width: w } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
@@ -242,8 +241,9 @@ function spine() {
   const confirms = shown.map((o, ci) => {
     const elapsed = isToday ? o.end <= minutesNow() : S.day < todayISO();
     if (!elapsed) return '';
-    const cTop = (o.start / 60) * pph;
-    const cH = Math.max(30, ((o.end - o.start) / 60) * pph - 3);
+    // Identical placement to the block it sits over, so the tick cannot
+    // drift away from its block at the end of the day.
+    const { top: cTop, height: cH } = placeInGrid(o.start, o.end, pph, 30, 3);
     const { left: cL, width: cW } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
     const isDone = isBlockDone(o, S.day);
     return `<div class="confirm-slot" style="top:${cTop}px;height:${cH}px;left:${cL};width:${cW};--i:${Math.min(ci, 12)}">
@@ -255,8 +255,7 @@ function spine() {
   // One chip per pile, at the time the pile happens, carrying a dot per
   // category so the mix reads before you open it.
   const more = piles.map(p => {
-    const top = (p.start / 60) * pph;
-    const h = Math.max(33, ((p.end - p.start) / 60) * pph - 2);
+    const { top, height: h } = placeInGrid(p.start, p.end, pph, 33, 2);
     const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
       .map(c => `<i style="background:${c}"></i>`).join('');
     return `<button class="wk-more tap" data-act="showPile" data-day="${S.day}" data-start="${p.start}" data-end="${p.end}"

@@ -6,7 +6,7 @@ import { t, dateLabel, monthLabel, monthParts, dayNames } from './i18n.js';
 import { esc, fmtRange, fmtTime, fmtDur, todayISO, addDays, fromISO, iso, hexA, snap, minutesNow, DAY_MINUTES } from './util.js';
 import { openBlockSheet } from './sheets.js';
 import { registerActions, haptic, toast, openSheet } from './ui.js';
-import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin } from './layout.js';
+import { packOverlaps, laneStyle, revealMinute, openingMinute, capDensity, OVERFLOW_W, GAP_PX, offHoursBand, inFocusMin, placeInGrid } from './layout.js';
 import { whenLabel } from './search.js';
 
 // The week grid ignored the density preference entirely.
@@ -201,8 +201,7 @@ function weekView() {
     const dayHasFuture = occurrencesOn(d).some(o => o.end > nowMin);
     const { shown, piles } = capDensity(packOverlaps(occurrencesOn(d)), colW);
     const blocks = shown.map((o, i) => {
-      const top = (o.start / 60) * pph;
-      const h = Math.max(16, ((o.end - o.start) / 60) * pph - 2);
+      const { top, height: h } = placeInGrid(o.start, o.end, pph, 16, 2);
       const color = catColor(o.category_id);
       // A capped cluster gives up one chip-width, shared across its lanes.
       const { left, width: w, z } = laneStyle(o, GAP_PX, 0, o.capped ? OVERFLOW_W : 0);
@@ -231,8 +230,7 @@ function weekView() {
     // One chip per pile, at the time the pile happens, carrying a dot per
     // category so the mix is legible before you open it.
     const more = piles.map(p => {
-      const top = (p.start / 60) * pph;
-      const h = Math.max(33, ((p.end - p.start) / 60) * pph - 2);
+      const { top, height: h } = placeInGrid(p.start, p.end, pph, 33, 2);
       const dots = [...new Set(p.items.map(x => catColor(x.category_id)))].slice(0, 3)
         .map(c => `<i style="background:${c}"></i>`).join('');
       return `<button class="wk-more tap" data-act="showPile" data-day="${d}" data-start="${p.start}" data-end="${p.end}"

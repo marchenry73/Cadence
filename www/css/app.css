@@ -222,7 +222,11 @@ a:hover{ color:color-mix(in oklch, var(--accent), white 20%); }
 .hero-bar{ height:5px; border-radius:var(--r-sm); background:rgba(255,255,255,.28); overflow:hidden; margin-bottom:4px; }
 .hero-bar i{ display:block; height:100%; background:#fff; border-radius:var(--r-sm); }
 .hero .btn-row{ position:relative; }
-.hero .btn.ghost{ background:rgba(255,255,255,.2); color:#fff; }
+/* White text on a white-tinted fill over the hero gradient. At .2 the fill
+   lightened the ground enough to fail: 3.90:1 on the worst of the eight
+   accents, against the 4.5 that 13px bold needs. Solved across all eight at
+   the LIGHTER of the two gradient stops, which is the harder one. */
+.hero .btn.ghost{ background:rgba(255,255,255,.1); color:#fff; }
 /* The empty hero is a plain --surface card, not an accent field, so the
    translucent-white ghost treatment above would put white text on white.
    Four classes so this wins on specificity, not on source order. */
