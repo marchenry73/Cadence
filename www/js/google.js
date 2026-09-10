@@ -508,11 +508,16 @@ export async function syncGoogleCalendar({ force = false } = {}) {
   if (blocked && !force) return 0;
   if (!force && Date.now() - lastSyncAt < SYNC_EVERY_MS) return 0;
 
-  let token = await providerToken();
-  if (!token) return 0;          // password account, or not signed in with Google
-
+  // Claimed BEFORE the first await. Checking the flag and then awaiting
+  // let two calls in the same tick both pass the check - and the triggers
+  // added for foregrounding mean online, visibilitychange and
+  // appStateChange routinely fire together when a phone wakes on wifi.
+  // Two concurrent passes can POST the same local event to Google twice.
   inFlight = true;
   try {
+    // let, not const: the expired-token path below reassigns it.
+    let token = await providerToken();
+    if (!token) return 0;        // password account, or not signed in with Google
     const marks = await loadMarks();
     // A 401 means the hour is up. Mint a fresh token via the Edge Function
     // and retry once, so an expiry costs a round trip instead of stopping

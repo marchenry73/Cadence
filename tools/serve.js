@@ -29,6 +29,13 @@ http.createServer((req, res) => {
     if (err) { res.writeHead(404, { 'content-type': 'text/plain' }).end('nf'); return; }
     res.writeHead(200, {
       'content-type': TYPES[path.extname(full).toLowerCase()] || 'application/octet-stream',
+      // no-store is what makes a verification pass see the file just written
+      // rather than one from ten minutes ago. It also makes Chrome refuse to
+      // register the service worker: sw.js fetches fine (200, correct type)
+      // but registration fails with "An unknown error occurred when fetching
+      // the script". index.html catches that, so the app boots and works.
+      // Do not chase those console errors as an app bug - they are this
+      // header. Service worker behaviour cannot be tested through this server.
       'cache-control': 'no-store, no-cache, must-revalidate',
       'pragma': 'no-cache',
     });

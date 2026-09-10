@@ -2,7 +2,7 @@
 // Everything else (views, sheets) is imported for its side effects
 // (registerActions) and default-exported render/lifecycle object.
 import { CONFIG } from './config.js';
-import { initNet, sb, onSyncState, outboxCount, droppedWrites, ackDropped } from './net.js';
+import { initNet, sb, onSyncState, outboxCount, droppedWrites, ackDropped, flush } from './net.js';
 import { S, onChange, loadFromCache, syncNow, startRealtime, notify, savePrefs } from './state.js';
 import { setLang, currentLang, t } from './i18n.js';
 import { currentSession, onAuthChange, signIn, signUp, resetPassword, usernameAvailable, ensureProfile, signInWithProvider } from './auth.js';
@@ -136,7 +136,19 @@ async function afterSignIn(bootSession = null) {
   }).catch(() => {});
   onSyncState(updateSyncPill);
   setInterval(() => { if (navigator.onLine) syncNow().catch(() => {}); }, 45000);
-  window.addEventListener('online', () => syncNow().catch(() => {}));
+  // Pull AND push. flush() is otherwise only called from enqueue(), so a
+  // write that failed mid-flush because the network dropped sat in the
+  // outbox until the user happened to make another edit. syncNow() only
+  // pulls, so reconnecting alone never resent it.
+  window.addEventListener('online', () => {
+    syncNow().catch(() => {});
+    flush().catch(() => {});
+  });
+  // Same reason, for the case where the network never dropped but the app
+  // was backgrounded long enough for a flush to have been interrupted.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && navigator.onLine) flush().catch(() => {});
+  });
 
   // Google Calendar keeps itself current on its own. syncGoogleCalendar()
   // no-ops safely when the user is not signed in with Google, so all of
