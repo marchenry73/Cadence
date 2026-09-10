@@ -247,12 +247,15 @@ function weekView() {
     const nowLine = weekHasToday
       ? `<div class="wk-now${isToday ? ' is-today' : ' is-ghost'}" style="top:${nowTop}px" aria-hidden="true">${isToday ? '<i></i>' : ''}</div>`
       : '';
-    return `<div class="wk-col${isToday ? ' is-today' : ''}${isWeekend ? ' is-weekend' : ''}" data-act="pickDayFromWeek" data-day="${d}">
-      <div class="wk-col-head">
+    // The day name and number navigate; the body below creates. The whole
+    // column used to navigate, which meant tapping an empty 2pm on
+    // Wednesday jumped to Wednesday and discarded the 2pm.
+    return `<div class="wk-col${isToday ? ' is-today' : ''}${isWeekend ? ' is-weekend' : ''}">
+      <div class="wk-col-head tap" data-act="pickDayFromWeek" data-day="${d}">
         <div class="wk-dow">${esc(dateLabel(d, { weekday: 'short' }))}</div>
         <div class="wk-num${isToday ? ' today' : ''}">${Number(d.slice(8))}</div>
       </div>
-      <div class="wk-body" style="height:${24 * pph}px;background-image:${offHoursBand(S.prefs.focus_start, S.prefs.focus_end, pph)}, ${wkRules}">${nowLine}${blocks}${more}</div>
+      <div class="wk-body" data-act="wkBodyTap" data-day="${d}" data-pph="${pph}" style="height:${24 * pph}px;background-image:${offHoursBand(S.prefs.focus_start, S.prefs.focus_end, pph)}, ${wkRules}">${nowLine}${blocks}${more}</div>
     </div>`;
   }).join('');
 
@@ -456,6 +459,17 @@ registerActions({
     });
   },
   pickDayFromWeek: d => window.cadenceGoDay(d.day, 'today'),
+  // The week grid's answer to spineTap. Same guard: a tap that landed on a
+  // block is that block's, not a request for a new one on top of it.
+  wkBodyTap: (d, node, ev) => {
+    if (ev.target !== node) return;
+    const rect = node.getBoundingClientRect();
+    const pph = Number(node.dataset.pph);
+    if (!pph) return;
+    const min = snap(((ev.clientY - rect.top) / pph) * 60, 15);
+    haptic('light');
+    openBlockSheet({ day: d.day, start: Math.max(0, Math.min(1410, min)) });
+  },
   pickDayFromMonth: d => window.cadenceGoDay(d.day, 'today'),
   // Stay in the month while browsing days; the detail list updates in place.
   // Jumping straight to Today made the grid useless for scanning a month.
