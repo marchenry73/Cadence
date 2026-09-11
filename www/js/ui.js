@@ -119,6 +119,25 @@ export function installDelegation() {
     document.addEventListener(e, clearHold, { passive: true }));
 }
 
+// Reveal the row a search just landed on, and make sure the mark removes
+// itself.
+//
+// The ring is a class plus a keyframe. The keyframe ends on its own, but
+// under prefers-reduced-motion there is no keyframe - just a static ring -
+// and the class is only recomputed when something re-renders. justTouched()
+// expires at 2.5s and schedules nothing, so on an idle offline screen
+// nothing ever calls notify() and the ring stays indefinitely. The reader
+// who asked for less motion got the one version that never stopped.
+//
+// Shared because Tasks and Goals have already drifted apart twice on this
+// one feature, and a third copy would drift again.
+export function revealFound(root, ms = 2600) {
+  const el = root && root.querySelector('.is-found');
+  if (!el) return;
+  el.scrollIntoView({ block: 'center' });
+  setTimeout(() => el.classList.remove('is-found'), ms);
+}
+
 // ---------------------------------------------------------------- toast
 
 let toastTimer = null;

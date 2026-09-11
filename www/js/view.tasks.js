@@ -5,7 +5,7 @@ import { S, mine, openTasks, overdueTasks, taskScore, catById, save, remove, fre
 import { t, dateLabel } from './i18n.js';
 import { esc, fmtDur, todayISO } from './util.js';
 import { openTaskSheet } from './sheets.js';
-import { registerActions, haptic, toast, installRowSwipes } from './ui.js';
+import { registerActions, haptic, toast, installRowSwipes, revealFound } from './ui.js';
 
 // Fill today's free time with the tasks that matter most: highest
 // importance/urgency score first, each dropped into the earliest gap big
@@ -90,10 +90,9 @@ export default {
   },
   onMount(root) {
     installRowSwipes(root);
-    // Arriving from search: put the row it found on screen. Without this
-    // the highlight can be half a list below the fold.
-    const found = root.querySelector('.is-found');
-    if (found) found.scrollIntoView({ block: 'center' });
+    // Arriving from search: put the row it found on screen, and let the
+    // mark clear itself even when reduced motion means it cannot fade.
+    revealFound(root);
   }
 };
 

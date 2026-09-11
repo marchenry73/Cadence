@@ -5,7 +5,7 @@ import { t, dateLabel } from './i18n.js';
 import { esc, fmtDur } from './util.js';
 import { openGoalSheet, openCheckinSheet } from './sheets.js';
 import { openInterestSheet } from './onboarding.js';
-import { openSheet, closeSheet, registerActions, haptic, toast, confirmSheet, readForm, field, $ } from './ui.js';
+import { openSheet, closeSheet, registerActions, haptic, toast, confirmSheet, readForm, field, $, revealFound } from './ui.js';
 
 const HORIZONS = ['quarter', 'year', 'life'];
 
@@ -69,8 +69,7 @@ export default {
   // goal could be marked while sitting below the fold - highlighted where
   // nobody could see it.
   onMount(root) {
-    const found = root.querySelector('.is-found');
-    if (found) found.scrollIntoView({ block: 'center' });
+    revealFound(root);
   }
 };
 
