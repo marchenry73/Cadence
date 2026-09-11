@@ -44,8 +44,42 @@ filename every time, so the links below never change):
 
 1. `www/downloads/cadence-latest.apk` in this repo, then commit and push — this is what
    `https://marchenry73.github.io/Cadence/downloads/cadence-latest.apk` serves.
-2. `G:\My Drive\Professional Documents\Projects\Cadence\cadence-latest.apk` — Google
-   Drive Desktop syncs this automatically, no manual upload needed.
+2. `G:\My Drive\APK Builds\cadence.apk` — the shared APK folder, one file per app,
+   **overwritten in place**. No dates, no hashes, no version in the filename. Google
+   Drive Desktop syncs it, so this is an ordinary file copy:
+
+       cp android/app/build/outputs/apk/debug/app-debug.apk \
+          "/g/My Drive/APK Builds/cadence.apk"
+
+   Debug, deliberately, matching the build above. The shared convention warns that
+   a debug APK has no JavaScript in it — true for the Expo template, which expects a
+   Metro dev server, and not true here. Capacitor copies the web app into
+   `android/app/src/main/assets/public/`, so a debug build is self-contained and
+   installable. Release signing is not set up on this project.
+
+   The old per-project path under `Professional Documents` is gone. Dated filenames
+   had grown that folder to 27 files and 497 MB, and it was consolidated on
+   2026-09-11 to one file per app.
+
+   **There is therefore no rollback APK.** Overwriting replaces the only copy in
+   Drive. If a build turns out to be broken the previous one is not there to fall
+   back on — rebuild from git.
+
+Those two are not the same file and must not be confused. Item 1 is app content, the
+payload the live site serves to the in-app updater, and it stays in the repo. Item 2 is
+the deliverable. **Deleting item 1 breaks in-app updating** — it was deleted from the
+working tree once, on 2026-09-11, and restored from git.
+
+The APK is large because it carries a copy of itself. Measured 2026-09-11:
+
+| file | bytes |
+|---|---|
+| `www/downloads/cadence-latest.apk` (served to the updater) | 22,099,340 |
+| `android/app/src/main/assets/public/downloads/cadence-latest.apk` (embedded) | 11,189,114 |
+| `G:\My Drive\APK Builds\cadence.apk` (deliverable) | 22,099,340 |
+
+The embedded copy is what a freshly installed app offers as its own first update, so
+it is one generation behind by design. Do not try to make the two match.
 
 **Also bump three version numbers together**, or the update-checker and Android's own
 update mechanism will disagree with each other:
